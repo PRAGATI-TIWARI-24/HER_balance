@@ -1,16 +1,33 @@
-# React + Vite
+# 🌸 HerBalance: AI-Powered PCOD Management & Awareness
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+HerBalance is a comprehensive full-stack application designed to help users track, manage, and understand PCOD through data-driven insights and Machine Learning. Built for informed self-management, it combines a premium user interface with an intelligent backend.
 
-Currently, two official plugins are available:
+## 🚀 System Architecture & Flow Control
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+The application follows a modern, decoupled architecture ensuring security, speed, and seamless user experience:
 
-## React Compiler
+1. **User Interface (React + Tailwind):** Captures user data (health logs, symptoms, assessment answers) via a responsive frontend.
+2. **Authentication Flow:** Passwords are securely hashed using `bcrypt` before reaching the database.
+3. **API Layer (FastAPI):** Acts as the bridge, processing requests and routing data.
+4. **Database (SQLite):** Securely stores user profiles and tracking history.
+5. **AI Engine:** Analyzes data using a trained Machine Learning model to return real-time risk assessments.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+`[User Input] ➔ [React Frontend] ➔ [FastAPI] ➔ [SQLite & Random Forest ML] ➔ [Dashboard Insights]`
 
-## Expanding the Oxlint configuration
+## 📊 AI Insights: What Matters Most?
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+Our Machine Learning model analyzes various lifestyle and physical parameters to predict risk. Based on our model's feature importance analysis, factors like **BMI**, **Skin darkening**, and overall **Weight** play the most critical role, followed by Age and Weight gain.
+
+![HerBalance Symptoms Importance](Screenshot%202026-09-22%20213232.png)
+
+## 🛠️ Tech Stack
+* **Frontend:** React.js, Tailwind CSS, Vite
+* **Backend:** FastAPI, Python
+* **Database:** SQLite (with `bcrypt` for password hashing)
+* **Machine Learning:** Scikit-learn (Random Forest)
+
+## ✨ Key Features
+* Secure User Authentication (Login/Signup Modal)
+* Interactive Assessment Form
+* AI-Driven Risk Prediction
+* Personalized Dashboard with Cycle Tracking & Diet Recommendations
