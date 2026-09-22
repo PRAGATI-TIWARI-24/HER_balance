@@ -5,3 +5,6 @@ scikit-learn
 bcrypt
 pydantic
 python-multipart
+joblib
+sqlalchemy
+starlette

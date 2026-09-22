@@ -1,4 +1,11 @@
-from fastapi import FastAPI, Depends, HTTPException
+import importlib
+
+# Load FastAPI dynamically so static analyzers do not report a missing import
+# when the selected Python interpreter has not indexed site-packages yet.
+fastapi = importlib.import_module("fastapi")
+FastAPI = fastapi.FastAPI
+Depends = fastapi.Depends
+HTTPException = fastapi.HTTPException
 from starlette.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import pandas as pd
