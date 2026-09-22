@@ -27,7 +27,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
 
     // Backend ka link (isLogin true hai toh login par bhejo, warna signup par)
     const endpoint = isLogin ? '/login' : '/signup';
-    const url = `http://127.0.0.1:8000${endpoint}`;
+    const url = `https://her-balance.onrender.com${endpoint}`;
 
     try {
       const response = await fetch(url, {
