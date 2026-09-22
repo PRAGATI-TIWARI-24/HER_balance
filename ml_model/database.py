@@ -1,5 +1,12 @@
-from sqlalchemy import create_engine, Column, Integer, String, Float, ForeignKey
-from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy import (  # type: ignore[reportMissingImports]
+    create_engine,
+    Column,
+    Integer,
+    String,
+    Float,
+    ForeignKey,
+)
+from sqlalchemy.orm import declarative_base, sessionmaker  # type: ignore[reportMissingImports]
 
 # 1. Database ka connection URL (ye herbalance.db naam ki file banayega)
 SQLALCHEMY_DATABASE_URL = "sqlite:///./herbalance.db"
