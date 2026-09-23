@@ -1,3 +1,4 @@
+
 import Assessment from "./Test";
 import { useState } from 'react';
 import AuthModal from './AuthModal';
@@ -12,6 +13,7 @@ const Icon = ({ path, size = 20, className = '' }) => (
 
 const icons = 
 {
+
   menu: "M3 12h18M3 6h18M3 18h18",
   x: "M18 6L6 18M6 6l12 12",
   cycle: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m0 4v4l3 3",
@@ -42,11 +44,11 @@ function ProgressRing({ pct, color, size = 56, label }) {
   return (
     <div className="flex flex-col items-center gap-1">
       <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#FFF7E6" strokeWidth="5" />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#F0EDE8" strokeWidth="5" />
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth="5"
           strokeDasharray={`${dash} ${circ}`} strokeLinecap="round" />
       </svg>
-      <span className="text-xs font-medium text-midnight/70">{label}</span>
+      <span className="text-xs font-medium text-[#7A7880]">{label}</span>
     </div>
   )
 }
@@ -55,12 +57,12 @@ function ProgressRing({ pct, color, size = 56, label }) {
 function DashboardMockup() {
   return (
     <div className="relative">
-      <div className="absolute -inset-4 rounded-[40px] bg-gradient-to-br from-rosewood/15 via-sage/15 to-blush/15 blur-2xl" />
-      <div className="relative bg-white rounded-[28px] shadow-2xl shadow-rosewood/10 border border-misty/30 overflow-hidden w-full max-w-[420px] mx-auto">
+      <div className="absolute -inset-4 rounded-[40px] bg-gradient-to-br from-[#8B7BB5]/10 via-[#A8BFA3]/10 to-[#D99AA5]/10 blur-2xl" />
+      <div className="relative bg-white rounded-[28px] shadow-[0_24px_80px_rgba(139,123,181,0.18)] border border-[#E8E4DE] overflow-hidden w-full max-w-[420px] mx-auto">
         {/* Header bar */}
-        <div className="bg-gradient-to-r from-rosewood to-blush px-5 py-4 flex items-center justify-between">
+        <div className="bg-gradient-to-r from-[#8B7BB5] to-[#A89FCC] px-5 py-4 flex items-center justify-between">
           <div>
-            <p className="text-white/80 text-xs font-medium">Good morning</p>
+            <p className="text-white/70 text-xs font-medium">Good morning</p>
             <p className="text-white font-semibold text-sm">User 🌸</p>
           </div>
           <div className="bg-white/20 rounded-full px-3 py-1">
@@ -70,40 +72,40 @@ function DashboardMockup() {
 
         <div className="p-4 space-y-3">
           {/* Cycle card */}
-          <div className="bg-vanilla/40 rounded-2xl p-4 border border-misty/30">
+          <div className="bg-gradient-to-br from-[#F7F4FB] to-[#FAF9F6] rounded-2xl p-4 border border-[#EAE6F4]">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-midnight/70 text-xs font-medium mb-1">Cycle Overview</p>
-                <p className="text-midnight font-bold text-2xl">Day 18</p>
-                <p className="text-midnight/70 text-xs mt-0.5">Avg. cycle: 38 days</p>
+                <p className="text-[#7A7880] text-xs font-medium mb-1">Cycle Overview</p>
+                <p className="text-[#29272D] font-bold text-2xl">Day 18</p>
+                <p className="text-[#7A7880] text-xs mt-0.5">Avg. cycle: 38 days</p>
               </div>
               <div className="flex gap-3">
-                <ProgressRing pct={47} color="#B46A72" size={52} label="Cycle" />
-                <ProgressRing pct={72} color="#A8B58A" size={52} label="Activity" />
+                <ProgressRing pct={47} color="#8B7BB5" size={52} label="Cycle" />
+                <ProgressRing pct={72} color="#A8BFA3" size={52} label="Activity" />
               </div>
             </div>
             <div className="mt-3 flex gap-2">
               {['Flow', 'Fertile', 'Luteal', 'Pre-period'].map((phase, i) => (
-                <div key={phase} className={`flex-1 h-1.5 rounded-full ${i === 2 ? 'bg-rosewood' : i < 2 ? 'bg-rosewood/30' : 'bg-misty/30'}`} />
+                <div key={phase} className={`flex-1 h-1.5 rounded-full ${i === 2 ? 'bg-[#8B7BB5]' : i < 2 ? 'bg-[#8B7BB5]/30' : 'bg-[#E8E4DE]'}`} />
               ))}
             </div>
-            <p className="text-rosewood text-xs font-medium mt-1.5">Next period est. ~20 days</p>
+            <p className="text-[#8B7BB5] text-xs font-medium mt-1.5">Next period est. ~20 days</p>
           </div>
 
           {/* Today's goals */}
-          <div className="bg-white rounded-2xl p-4 border border-misty/30">
-            <p className="text-midnight font-semibold text-sm mb-2.5">Today's Goals</p>
+          <div className="bg-white rounded-2xl p-4 border border-[#E8E4DE]">
+            <p className="text-[#29272D] font-semibold text-sm mb-2.5">Today's Goals</p>
             <div className="space-y-2">
               {[
-                { label: '25 min walk', done: true, color: '#A8B58A' },
-                { label: 'Protein-rich breakfast', done: true, color: '#A8B58A' },
-                { label: '7+ hours sleep', done: false, color: '#B46A72' },
+                { label: '25 min walk', done: true, color: '#A8BFA3' },
+                { label: 'Protein-rich breakfast', done: true, color: '#A8BFA3' },
+                { label: '7+ hours sleep', done: false, color: '#8B7BB5' },
               ].map(g => (
                 <div key={g.label} className="flex items-center gap-2.5">
-                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${g.done ? 'border-sage bg-sage' : 'border-misty/50'}`}>
+                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${g.done ? 'border-[#A8BFA3] bg-[#A8BFA3]' : 'border-[#D5CFEA]'}`}>
                     {g.done && <svg width="8" height="8" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="white" strokeWidth="1.5" strokeLinecap="round" /></svg>}
                   </div>
-                  <span className={`text-xs ${g.done ? 'text-midnight/50 line-through' : 'text-midnight font-medium'}`}>{g.label}</span>
+                  <span className={`text-xs ${g.done ? 'text-[#7A7880] line-through' : 'text-[#29272D] font-medium'}`}>{g.label}</span>
                 </div>
               ))}
             </div>
@@ -112,26 +114,26 @@ function DashboardMockup() {
           {/* Health stats row */}
           <div className="grid grid-cols-4 gap-2">
             {[
-              { label: 'Sleep', val: '6.5h', sub: 'Low', color: '#B46A72' },
-              { label: 'Steps', val: '4.2k', sub: 'Good', color: '#A8B58A' },
-              { label: 'Water', val: '1.8L', sub: 'OK', color: '#A9B7C6' },
-              { label: 'Mood', val: '😊', sub: 'Good', color: '#A8B58A' },
+              { label: 'Sleep', val: '6.5h', sub: 'Low', color: '#D99AA5' },
+              { label: 'Steps', val: '4.2k', sub: 'Good', color: '#A8BFA3' },
+              { label: 'Water', val: '1.8L', sub: 'OK', color: '#8B7BB5' },
+              { label: 'Mood', val: '😊', sub: 'Good', color: '#A8BFA3' },
             ].map(s => (
-              <div key={s.label} className="bg-vanilla/50 rounded-xl p-2.5 border border-misty/30 text-center">
-                <p className="text-midnight font-bold text-sm">{s.val}</p>
-                <p className="text-midnight/70 text-[10px] mt-0.5">{s.label}</p>
+              <div key={s.label} className="bg-[#FAF9F6] rounded-xl p-2.5 border border-[#E8E4DE] text-center">
+                <p className="text-[#29272D] font-bold text-sm">{s.val}</p>
+                <p className="text-[#7A7880] text-[10px] mt-0.5">{s.label}</p>
                 <p className="text-[10px] font-medium mt-0.5" style={{ color: s.color }}>{s.sub}</p>
               </div>
             ))}
           </div>
 
           {/* Insight */}
-          <div className="bg-gradient-to-r from-blush/20 to-vanilla/50 rounded-2xl p-3.5 border border-blush/40">
+          <div className="bg-gradient-to-r from-[#EAE6F4] to-[#F4EEF0] rounded-2xl p-3.5 border border-[#DDD7EF]">
             <div className="flex gap-2.5">
-              <div className="w-6 h-6 rounded-full bg-rosewood flex items-center justify-center flex-shrink-0 mt-0.5">
+              <div className="w-6 h-6 rounded-full bg-[#8B7BB5] flex items-center justify-center flex-shrink-0 mt-0.5">
                 <Icon path={icons.sparkle} size={12} className="text-white" />
               </div>
-              <p className="text-midnight text-xs leading-relaxed">Your recent cycles have been longer than your previous average. Keep tracking and consider discussing this with your doctor.</p>
+              <p className="text-[#29272D] text-xs leading-relaxed">Your recent cycles have been longer than your previous average. Keep tracking and consider discussing this with your doctor.</p>
             </div>
           </div>
         </div>
@@ -148,38 +150,43 @@ function Navbar({ onNavigate, onContactClick, onLoginClick }) {
   const links = ['How It Works', 'Features', 'Why HerBalance', 'FAQ']
 
   return (
-    <nav className="border-b border-misty/30 bg-white sticky top-0 z-40">
+    <nav className="border-b border-[#E8E4DE] bg-white sticky top-0 z-40">
       <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
-        <div className="text-xl font-bold text-midnight tracking-tight font-display">HerBalance</div>
+        <div className="text-xl font-bold text-[#29272D] tracking-tight font-display">HerBalance</div>
         
         {/* Desktop Links */}
         <div className="hidden md:flex items-center gap-8">
           {links.map(link => (
-            <a key={link} href={`#${link.toLowerCase().replace(/\s+/g, '-')}`} className="text-sm font-medium text-midnight/70 hover:text-rosewood transition-colors">
+            <a key={link} href={`#${link.toLowerCase().replace(/\s+/g, '-')}`} className="text-sm font-medium text-[#7A7880] hover:text-[#29272D] transition-colors">
               {link}
             </a>
           ))}
         </div>
         
         <div className="hidden md:flex items-center gap-3">
-          <button onClick={onLoginClick} className="text-sm font-medium text-midnight/70 hover:text-rosewood transition-colors px-3 py-1.5">
+          {/* 🟢 NAYA: Log In button par onLoginClick laga diya */}
+          <button onClick={onLoginClick} className="text-sm font-medium text-[#7A7880] hover:text-[#29272D] transition-colors px-3 py-1.5">
             Log In
           </button>
-          <button onClick={() => onNavigate('assessment')} className="text-sm font-semibold bg-midnight text-white px-5 py-2.5 rounded-xl hover:bg-midnight/90 transition-all">
+          <button onClick={() => onNavigate('assessment')} className="text-sm font-semibold bg-[#29272D] text-white px-5 py-2.5 rounded-xl hover:bg-[#1A181D] transition-all">
             Take Assessment
           </button>
         </div>
 
-        <div className="flex items-center space-x-6"> 
-          <a 
-            href="https://www.linkedin.com/in/pragati-tiwari-sde24/" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="text-midnight/70 hover:text-rosewood font-semibold transition-colors duration-300"
-          >
-            Contact Us
-          </a>
-        </div>
+        <div className="flex items-center space-x-6"> {/* space-x-6 dono ke beech mein gap banayega */}
+  
+  {/* Contact Us Link */}
+  <a 
+    href="https://www.linkedin.com/in/pragati-tiwari-sde24/" 
+    target="_blank" 
+    rel="noopener noreferrer"
+    className="text-gray-600 hover:text-pink-600 font-semibold transition-colors duration-300"
+  >
+    Contact Us
+  </a>
+
+  
+</div>
       </div>
     </nav>
   )
@@ -201,21 +208,21 @@ function FAQ() {
   return (
     <section id="faq" className="py-24 px-5 max-w-3xl mx-auto">
       <div className="text-center mb-14">
-        <h2 className="text-3xl md:text-4xl font-bold text-midnight mb-4" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Frequently asked questions</h2>
-        <p className="text-midnight/70 text-lg">Everything you need to know about HerBalance.</p>
+        <h2 className="text-3xl md:text-4xl font-bold text-[#29272D] mb-4" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Frequently asked questions</h2>
+        <p className="text-[#7A7880] text-lg">Everything you need to know about HerBalance.</p>
       </div>
       <div className="space-y-3">
         {faqs.map((f, i) => (
-          <div key={i} className="bg-white rounded-2xl border border-misty/30 overflow-hidden">
+          <div key={i} className="bg-white rounded-2xl border border-[#E8E4DE] overflow-hidden">
             <button className="w-full flex items-center justify-between p-5 text-left" onClick={() => setOpen(open === i ? null : i)}>
-              <span className="font-semibold text-midnight text-sm pr-4">{f.q}</span>
-              <div className={`flex-shrink-0 w-6 h-6 rounded-full border border-misty/50 flex items-center justify-center transition-transform ${open === i ? 'rotate-180' : ''}`}>
-                <Icon path={icons.chevronDown} size={14} className="text-midnight/70" />
+              <span className="font-semibold text-[#29272D] text-sm pr-4">{f.q}</span>
+              <div className={`flex-shrink-0 w-6 h-6 rounded-full border border-[#E8E4DE] flex items-center justify-center transition-transform ${open === i ? 'rotate-180' : ''}`}>
+                <Icon path={icons.chevronDown} size={14} className="text-[#7A7880]" />
               </div>
             </button>
             {open === i && (
               <div className="px-5 pb-5">
-                <p className="text-midnight/70 text-sm leading-relaxed">{f.a}</p>
+                <p className="text-[#7A7880] text-sm leading-relaxed">{f.a}</p>
               </div>
             )}
           </div>
@@ -230,15 +237,19 @@ export default function App({ onNavigate }) {
   const [showContact, setShowContact] = useState(false);
   const [currentPage, setCurrentPage] = useState('landing');
   
+  // 🟢 NAYA: Modal (Popup) aur User ki detail yaad rakhne ke liye
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [user, setUser] = useState(null);
 
+  // 🟢 NAYA: Jab Login successful ho jaye
   const handleLoginSuccess = (userId, userName) => {
-    setUser({ id: userId, name: userName });
-    setShowAuthModal(false);
-    setCurrentPage('dashboard');
+    setUser({ id: userId, name: userName }); // User ka naam save kar liya
+    setShowAuthModal(false); // Pop-up band kar diya
+    setCurrentPage('dashboard'); // Dashboard page par bhej diya
   };
 
+  // 🟢 NAYA: Dashboard Page View (Login ke baad ye dikhega)
+  // 🟢 NAYA: Asli Premium Dashboard
   if (currentPage === 'dashboard') {
     return (
       <Dashboard 
@@ -251,7 +262,7 @@ export default function App({ onNavigate }) {
       />
     );
   }
-  
+  // Assessment Form Page
   if(currentPage === 'assessment') {
     return <Assessment onback={() => setCurrentPage('landing')} />;
   }
@@ -259,7 +270,8 @@ export default function App({ onNavigate }) {
   const handleStartJourney = () => setCurrentPage('assessment');
 
   return (
-    <div className="min-h-screen bg-vanilla">
+    <div className="min-h-screen bg-[#FAF9F6]">
+      {/* 🟢 NAYA: Navbar ko Login modal open karne ki permission de di */}
       <Navbar 
         onNavigate={onNavigate} 
         onContactClick={() => setShowContact(true)} 
@@ -271,28 +283,28 @@ export default function App({ onNavigate }) {
         <div className="grid md:grid-cols-2 gap-12 items-center">
           {/* Left */}
           <div className="space-y-6">
-            <div className="inline-flex items-center gap-2 bg-blush/40 text-rosewood text-xs font-semibold px-4 py-2 rounded-full border border-blush/60">
+            <div className="inline-flex items-center gap-2 bg-[#EAE6F4] text-[#8B7BB5] text-xs font-semibold px-4 py-2 rounded-full">
               <Icon path={icons.sparkle} size={13} />
               Your health. Your patterns. Your journey.
             </div>
-            <h1 className="text-4xl md:text-[52px] font-extrabold text-midnight leading-[1.15] tracking-tight" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+            <h1 className="text-4xl md:text-[52px] font-extrabold text-[#29272D] leading-[1.15] tracking-tight" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
               Understand your body.<br />
-              <span className="text-rosewood">Take control</span> of your PCOD journey.
+              <span className="text-[#8B7BB5]">Take control</span> of your PCOD journey.
             </h1>
-            <p className="text-midnight/70 text-lg leading-relaxed max-w-md">
+            <p className="text-[#7A7880] text-lg leading-relaxed max-w-md">
               Track your cycle, symptoms, and lifestyle — discover meaningful patterns and turn everyday health goals into simple, sustainable actions.
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
-              <button onClick={handleStartJourney} className="flex items-center justify-center gap-2 bg-rosewood text-white font-semibold px-6 py-3.5 rounded-xl hover:bg-rosewood/90 transition-all hover:shadow-lg hover:shadow-rosewood/30 active:scale-[0.98]">
+              <button onClick={handleStartJourney} className="flex items-center justify-center gap-2 bg-[#8B7BB5] text-white font-semibold px-6 py-3.5 rounded-xl hover:bg-[#7A6AA4] transition-all hover:shadow-[0_8px_24px_rgba(139,123,181,0.35)] active:scale-[0.98]">
                 🌸 Start Your PCOD Journey
               </button>
               <button 
                 onClick={() => document.getElementById('how-it-works').scrollIntoView({ behavior: 'smooth' })} 
-                className="flex items-center justify-center gap-2 text-midnight font-semibold px-6 py-3.5 rounded-xl border border-misty/40 hover:border-rosewood hover:text-rosewood transition-colors bg-white shadow-sm">
+                className="flex items-center justify-center gap-2 text-[#29272D] font-semibold px-6 py-3.5 rounded-xl border border-[#E8E4DE] hover:border-[#8B7BB5] hover:text-[#8B7BB5] transition-colors bg-white">
                 See How It Works <Icon path={icons.chevronDown} size={16} />
-              </button>        
+              </button>         
             </div>
-            <p className="text-xs text-midnight/50 flex items-center gap-1.5">
+            <p className="text-xs text-[#7A7880] flex items-center gap-1.5">
               <Icon path={icons.info} size={13} />
               Built for informed self-management — not diagnosis.
             </p>
@@ -306,9 +318,9 @@ export default function App({ onNavigate }) {
       </section>
 
       {/* ── Trust Strip ────────────────────────────────────────────────────── */}
-      <section className="border-y border-misty/30 bg-white py-8 px-5">
+      <section className="border-y border-[#E8E4DE] bg-white py-8 px-5">
         <div className="max-w-4xl mx-auto">
-          <p className="text-center text-xs font-semibold text-midnight/50 uppercase tracking-widest mb-6">Designed around the things that matter every day</p>
+          <p className="text-center text-xs font-semibold text-[#7A7880] uppercase tracking-widest mb-6">Designed around the things that matter every day</p>
           <div className="flex flex-wrap justify-center gap-8">
             {[
               { icon: '🩸', label: 'Cycle Tracking' },
@@ -318,7 +330,7 @@ export default function App({ onNavigate }) {
             ].map(item => (
               <div key={item.label} className="flex items-center gap-2.5">
                 <span className="text-xl">{item.icon}</span>
-                <span className="font-semibold text-midnight text-sm">{item.label}</span>
+                <span className="font-semibold text-[#29272D] text-sm">{item.label}</span>
               </div>
             ))}
           </div>
@@ -328,10 +340,10 @@ export default function App({ onNavigate }) {
       {/* ── Problem ────────────────────────────────────────────────────────── */}
       <section className="py-24 px-5 max-w-6xl mx-auto">
         <div className="text-center mb-14">
-          <h2 className="text-3xl md:text-4xl font-bold text-midnight mb-4" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+          <h2 className="text-3xl md:text-4xl font-bold text-[#29272D] mb-4" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
             PCOD isn't just about your period.
           </h2>
-          <p className="text-midnight/70 text-lg max-w-xl mx-auto leading-relaxed">
+          <p className="text-[#7A7880] text-lg max-w-xl mx-auto leading-relaxed">
             Understanding recurring patterns can be difficult when symptoms, lifestyle, and health information are scattered across different places.
           </p>
         </div>
@@ -341,39 +353,39 @@ export default function App({ onNavigate }) {
             { num: '02', title: 'Too Much Information', body: "Generic health advice doesn't always fit your lifestyle, food habits, or daily routine in the Indian context." },
             { num: '03', title: 'Hard to Stay Consistent', body: 'Knowing what to do is easier than turning it into sustainable daily habits that actually stick over weeks and months.' },
           ].map(c => (
-            <div key={c.num} className="bg-white rounded-2xl border border-misty/30 p-7 hover:border-blush/60 hover:shadow-xl hover:shadow-blush/10 transition-all">
-              <span className="text-4xl font-extrabold text-misty/20" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{c.num}</span>
-              <h3 className="font-bold text-midnight text-lg mt-2 mb-3" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{c.title}</h3>
-              <p className="text-midnight/70 text-sm leading-relaxed">{c.body}</p>
+            <div key={c.num} className="bg-white rounded-2xl border border-[#E8E4DE] p-7 hover:border-[#8B7BB5]/30 hover:shadow-[0_8px_32px_rgba(139,123,181,0.08)] transition-all">
+              <span className="text-4xl font-extrabold text-[#F0EDE8]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{c.num}</span>
+              <h3 className="font-bold text-[#29272D] text-lg mt-2 mb-3" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{c.title}</h3>
+              <p className="text-[#7A7880] text-sm leading-relaxed">{c.body}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* ── Solution / Timeline ─────────────────────────────────────────────── */}
-      <section id="how-it-works" className="py-24 px-5 bg-white border-y border-misty/30">
+      <section id="how-it-works" className="py-24 px-5 bg-white border-y border-[#E8E4DE]">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-midnight mb-4" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+            <h2 className="text-3xl md:text-4xl font-bold text-[#29272D] mb-4" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
               One place to understand your health journey.
             </h2>
           </div>
           <div className="relative">
             {/* Connector line */}
-            <div className="hidden md:block absolute top-8 left-[12.5%] right-[12.5%] h-px bg-gradient-to-r from-rosewood via-sage to-blush" />
+            <div className="hidden md:block absolute top-8 left-[12.5%] right-[12.5%] h-px bg-gradient-to-r from-[#8B7BB5] via-[#A8BFA3] to-[#D99AA5]" />
             <div className="grid md:grid-cols-4 gap-8">
               {[
-                { step: 'Track', desc: 'Log your cycle, symptoms, sleep, activity and lifestyle.', color: '#B46A72', bg: '#F7C8D330' },
-                { step: 'Understand', desc: 'See trends and recurring patterns in your personal data.', color: '#A9B7C6', bg: '#A9B7C620' },
-                { step: 'Act', desc: 'Receive personalized lifestyle suggestions and daily goals.', color: '#A8B58A', bg: '#A8B58A20' },
-                { step: 'Monitor', desc: 'Follow progress and prepare useful summaries for healthcare conversations.', color: '#B46A72', bg: '#F7C8D340' },
+                { step: 'Track', desc: 'Log your cycle, symptoms, sleep, activity and lifestyle.', color: '#8B7BB5', bg: '#EAE6F4' },
+                { step: 'Understand', desc: 'See trends and recurring patterns in your personal data.', color: '#9BADC4', bg: '#E8EFF5' },
+                { step: 'Act', desc: 'Receive personalized lifestyle suggestions and daily goals.', color: '#A8BFA3', bg: '#E8F0E7' },
+                { step: 'Monitor', desc: 'Follow progress and prepare useful summaries for healthcare conversations.', color: '#D99AA5', bg: '#F5E8EB' },
               ].map((item, i) => (
                 <div key={item.step} className="flex flex-col items-center text-center">
                   <div className="w-16 h-16 rounded-2xl flex items-center justify-center font-bold text-lg mb-5 relative z-10" style={{ backgroundColor: item.bg, color: item.color, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                     {i + 1}
                   </div>
-                  <h3 className="font-bold text-midnight text-lg mb-2" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{item.step}</h3>
-                  <p className="text-midnight/70 text-sm leading-relaxed">{item.desc}</p>
+                  <h3 className="font-bold text-[#29272D] text-lg mb-2" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{item.step}</h3>
+                  <p className="text-[#7A7880] text-sm leading-relaxed">{item.desc}</p>
                 </div>
               ))}
             </div>
@@ -384,7 +396,7 @@ export default function App({ onNavigate }) {
       {/* ── Features ────────────────────────────────────────────────────────── */}
       <section id="features" className="py-24 px-5 max-w-6xl mx-auto">
         <div className="text-center mb-14">
-          <h2 className="text-3xl md:text-4xl font-bold text-midnight mb-4" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+          <h2 className="text-3xl md:text-4xl font-bold text-[#29272D] mb-4" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
             Everything you need, in one place.
           </h2>
         </div>
@@ -397,54 +409,54 @@ export default function App({ onNavigate }) {
             { icon: '📊', title: 'Health Insights', desc: 'Understand trends in your own data without turning them into a medical diagnosis.' },
             { icon: '🤖', title: 'AI Health Companion', desc: 'Ask questions, understand your logs and get guidance designed to support informed, not alarming, decisions.' },
           ].map(f => (
-            <div key={f.title} className="bg-white rounded-2xl border border-misty/30 p-6 hover:border-rosewood/40 hover:shadow-lg hover:shadow-rosewood/5 transition-all group">
+            <div key={f.title} className="bg-white rounded-2xl border border-[#E8E4DE] p-6 hover:border-[#8B7BB5]/30 hover:shadow-[0_8px_32px_rgba(139,123,181,0.09)] transition-all group">
               <span className="text-2xl mb-4 block">{f.icon}</span>
-              <h3 className="font-bold text-midnight text-base mb-2 group-hover:text-rosewood transition-colors" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{f.title}</h3>
-              <p className="text-midnight/70 text-sm leading-relaxed">{f.desc}</p>
+              <h3 className="font-bold text-[#29272D] text-base mb-2 group-hover:text-[#8B7BB5] transition-colors" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{f.title}</h3>
+              <p className="text-[#7A7880] text-sm leading-relaxed">{f.desc}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* ── Product Preview ──────────────────────────────────────────────────── */}
-      <section className="py-24 px-5 bg-gradient-to-b from-white to-vanilla border-y border-misty/30">
+      <section className="py-24 px-5 bg-gradient-to-b from-[#F7F4FB] to-[#FAF9F6] border-y border-[#E8E4DE]">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-14">
-            <h2 className="text-3xl md:text-4xl font-bold text-midnight mb-4" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+            <h2 className="text-3xl md:text-4xl font-bold text-[#29272D] mb-4" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
               Your health journey, at a glance.
             </h2>
-            <p className="text-midnight/70 text-lg max-w-md mx-auto">A clear picture of your health patterns — all in one thoughtfully designed dashboard.</p>
+            <p className="text-[#7A7880] text-lg max-w-md mx-auto">A clear picture of your health patterns — all in one thoughtfully designed dashboard.</p>
           </div>
 
-          <div className="bg-white rounded-3xl border border-misty/30 shadow-2xl shadow-rosewood/10 overflow-hidden max-w-4xl mx-auto">
+          <div className="bg-white rounded-3xl border border-[#E8E4DE] shadow-[0_32px_96px_rgba(139,123,181,0.12)] overflow-hidden max-w-4xl mx-auto">
             {/* Browser chrome */}
-            <div className="bg-vanilla/50 border-b border-misty/30 px-5 py-3.5 flex items-center gap-3">
+            <div className="bg-[#F7F4FB] border-b border-[#E8E4DE] px-5 py-3.5 flex items-center gap-3">
               <div className="flex gap-1.5">
-                <div className="w-3 h-3 rounded-full bg-rosewood/80" />
-                <div className="w-3 h-3 rounded-full bg-misty" />
-                <div className="w-3 h-3 rounded-full bg-sage" />
+                <div className="w-3 h-3 rounded-full bg-[#D99AA5]" />
+                <div className="w-3 h-3 rounded-full bg-[#C9C5E0]" />
+                <div className="w-3 h-3 rounded-full bg-[#A8BFA3]" />
               </div>
-              <div className="flex-1 bg-white rounded-lg px-4 py-1.5 text-xs text-midnight/50 font-medium border border-misty/30">app.herbalance.in/dashboard</div>
+              <div className="flex-1 bg-white rounded-lg px-4 py-1.5 text-xs text-[#7A7880] font-medium border border-[#E8E4DE]">app.herbalance.in/dashboard</div>
             </div>
 
             <div className="p-6 md:p-8">
               {/* Greeting */}
               <div className="flex items-start justify-between mb-6">
                 <div>
-                  <h3 className="text-xl font-bold text-midnight" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Good morning 🌸</h3>
-                  <p className="text-midnight/70 text-sm mt-0.5">Sunday, 20 September 2026</p>
+                  <h3 className="text-xl font-bold text-[#29272D]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Good morning 🌸</h3>
+                  <p className="text-[#7A7880] text-sm mt-0.5">Sunday, 20 September 2026</p>
                 </div>
-                <div className="bg-blush/20 rounded-xl px-4 py-2 text-right border border-blush/40">
-                  <p className="text-xs text-rosewood font-medium">Cycle Day</p>
-                  <p className="text-2xl font-extrabold text-rosewood" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>18</p>
-                  <p className="text-xs text-midnight/50">Avg: 38 days</p>
+                <div className="bg-[#EAE6F4] rounded-xl px-4 py-2 text-right">
+                  <p className="text-xs text-[#8B7BB5] font-medium">Cycle Day</p>
+                  <p className="text-2xl font-extrabold text-[#8B7BB5]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>18</p>
+                  <p className="text-xs text-[#7A7880]">Avg: 38 days</p>
                 </div>
               </div>
 
               <div className="grid md:grid-cols-3 gap-5">
                 {/* Goals */}
-                <div className="bg-vanilla/40 rounded-2xl border border-misty/30 p-5">
-                  <p className="font-semibold text-midnight text-sm mb-3" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Today's Goals</p>
+                <div className="bg-[#FAF9F6] rounded-2xl border border-[#E8E4DE] p-5">
+                  <p className="font-semibold text-[#29272D] text-sm mb-3" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Today's Goals</p>
                   <div className="space-y-3">
                     {[
                       { t: '25 min walk', done: true },
@@ -453,31 +465,31 @@ export default function App({ onNavigate }) {
                       { t: 'Evening meditation', done: false },
                     ].map(g => (
                       <div key={g.t} className="flex items-center gap-2.5">
-                        <div className={`w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center border-2 ${g.done ? 'bg-sage border-sage' : 'border-misty/50'}`}>
+                        <div className={`w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center border-2 ${g.done ? 'bg-[#A8BFA3] border-[#A8BFA3]' : 'border-[#D5CFEA]'}`}>
                           {g.done && <svg width="8" height="8" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="white" strokeWidth="1.5" strokeLinecap="round" /></svg>}
                         </div>
-                        <span className={`text-xs ${g.done ? 'text-midnight/50 line-through' : 'text-midnight'}`}>{g.t}</span>
+                        <span className={`text-xs ${g.done ? 'text-[#7A7880] line-through' : 'text-[#29272D]'}`}>{g.t}</span>
                       </div>
                     ))}
                   </div>
                 </div>
 
                 {/* Health overview */}
-                <div className="bg-vanilla/40 rounded-2xl border border-misty/30 p-5">
-                  <p className="font-semibold text-midnight text-sm mb-3" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Health Overview</p>
+                <div className="bg-[#FAF9F6] rounded-2xl border border-[#E8E4DE] p-5">
+                  <p className="font-semibold text-[#29272D] text-sm mb-3" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Health Overview</p>
                   <div className="space-y-2.5">
                     {[
-                      { label: 'Cycle', status: 'Needs attention', color: '#B46A72', bar: 40 },
-                      { label: 'Activity', status: 'On track', color: '#A8B58A', bar: 72 },
-                      { label: 'Sleep', status: 'Improving', color: '#A9B7C6', bar: 58 },
-                      { label: 'Symptoms', status: 'Stable', color: '#A8B58A', bar: 80 },
+                      { label: 'Cycle', status: 'Needs attention', color: '#D99AA5', bar: 40 },
+                      { label: 'Activity', status: 'On track', color: '#A8BFA3', bar: 72 },
+                      { label: 'Sleep', status: 'Improving', color: '#8B7BB5', bar: 58 },
+                      { label: 'Symptoms', status: 'Stable', color: '#A8BFA3', bar: 80 },
                     ].map(h => (
                       <div key={h.label}>
                         <div className="flex justify-between items-center mb-1">
-                          <span className="text-xs font-medium text-midnight">{h.label}</span>
+                          <span className="text-xs font-medium text-[#29272D]">{h.label}</span>
                           <span className="text-xs" style={{ color: h.color }}>{h.status}</span>
                         </div>
-                        <div className="h-1.5 bg-misty/30 rounded-full">
+                        <div className="h-1.5 bg-[#E8E4DE] rounded-full">
                           <div className="h-1.5 rounded-full transition-all" style={{ width: `${h.bar}%`, backgroundColor: h.color }} />
                         </div>
                       </div>
@@ -487,22 +499,22 @@ export default function App({ onNavigate }) {
 
                 {/* Insight */}
                 <div className="flex flex-col gap-4">
-                  <div className="bg-gradient-to-br from-blush/30 to-vanilla/60 rounded-2xl border border-blush/40 p-5 flex-1">
+                  <div className="bg-gradient-to-br from-[#EAE6F4] to-[#F4EEF0] rounded-2xl border border-[#DDD7EF] p-5 flex-1">
                     <div className="flex gap-2 mb-2.5">
-                      <div className="w-6 h-6 rounded-lg bg-rosewood flex items-center justify-center flex-shrink-0">
+                      <div className="w-6 h-6 rounded-lg bg-[#8B7BB5] flex items-center justify-center flex-shrink-0">
                         <Icon path={icons.sparkle} size={12} className="text-white" />
                       </div>
-                      <p className="text-xs font-semibold text-rosewood">Personalized Insight</p>
+                      <p className="text-xs font-semibold text-[#8B7BB5]">Personalized Insight</p>
                     </div>
-                    <p className="text-xs text-midnight leading-relaxed">Your recent cycles have been longer than your previous average. Keep tracking this pattern and consider discussing persistent changes with a healthcare professional.</p>
+                    <p className="text-xs text-[#29272D] leading-relaxed">Your recent cycles have been longer than your previous average. Keep tracking this pattern and consider discussing persistent changes with a healthcare professional.</p>
                   </div>
-                  <div className="bg-white rounded-2xl border border-misty/30 p-4 flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-sage/20 flex items-center justify-center flex-shrink-0">
-                      <Icon path={icons.doc} size={16} className="text-sage" />
+                  <div className="bg-white rounded-2xl border border-[#E8E4DE] p-4 flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-[#E8F0E7] flex items-center justify-center flex-shrink-0">
+                      <Icon path={icons.doc} size={16} className="text-[#A8BFA3]" />
                     </div>
                     <div>
-                      <p className="text-xs font-semibold text-midnight">Doctor Report</p>
-                      <p className="text-xs text-midnight/60">Ready to generate</p>
+                      <p className="text-xs font-semibold text-[#29272D]">Doctor Report</p>
+                      <p className="text-xs text-[#7A7880]">Ready to generate</p>
                     </div>
                   </div>
                 </div>
@@ -515,7 +527,7 @@ export default function App({ onNavigate }) {
       {/* ── How It Works ────────────────────────────────────────────────────── */}
       <section className="py-24 px-5 max-w-5xl mx-auto">
         <div className="text-center mb-14">
-          <h2 className="text-3xl md:text-4xl font-bold text-midnight mb-4" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Start in minutes.</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-[#29272D] mb-4" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Start in minutes.</h2>
         </div>
         <div className="grid md:grid-cols-3 gap-8 mb-12">
           {[
@@ -524,31 +536,31 @@ export default function App({ onNavigate }) {
             { n: '03', title: 'Understand your patterns', desc: 'Get personalized insights and simple actions based on your logged information over time.' },
           ].map(s => (
             <div key={s.n} className="relative">
-              <div className="text-6xl font-extrabold text-misty/20 mb-4 select-none" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{s.n}</div>
-              <h3 className="font-bold text-midnight text-lg mb-2" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{s.title}</h3>
-              <p className="text-midnight/70 text-sm leading-relaxed">{s.desc}</p>
+              <div className="text-6xl font-extrabold text-[#F0EDE8] mb-4 select-none" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{s.n}</div>
+              <h3 className="font-bold text-[#29272D] text-lg mb-2" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{s.title}</h3>
+              <p className="text-[#7A7880] text-sm leading-relaxed">{s.desc}</p>
             </div>
           ))}
         </div>
         <div className="text-center">
-          <button onClick={onNavigate} className="inline-flex items-center gap-2 bg-rosewood text-white font-semibold px-8 py-4 rounded-xl hover:bg-rosewood/90 transition-all hover:shadow-lg hover:shadow-rosewood/30 text-base">
+          <button onClick={onNavigate} className="inline-flex items-center gap-2 bg-[#8B7BB5] text-white font-semibold px-8 py-4 rounded-xl hover:bg-[#7A6AA4] transition-all hover:shadow-[0_8px_32px_rgba(139,123,181,0.35)] text-base">
             🌸 Start Your PCOD Journey <Icon path={icons.arrow} size={18} />
           </button>
         </div>
       </section>
 
       {/* ── India First ──────────────────────────────────────────────────────── */}
-      <section className="py-24 px-5 bg-white border-y border-misty/30">
+      <section className="py-24 px-5 bg-white border-y border-[#E8E4DE]">
         <div className="max-w-6xl mx-auto">
           <div className="grid md:grid-cols-2 gap-14 items-center">
             <div>
-              <div className="inline-flex items-center gap-2 bg-sage/20 text-sage text-xs font-semibold px-3 py-1.5 rounded-full mb-6">
+              <div className="inline-flex items-center gap-2 bg-[#E8F0E7] text-[#6A9F65] text-xs font-semibold px-3 py-1.5 rounded-full mb-6">
                 🇮🇳 Made for India
               </div>
-              <h2 className="text-3xl md:text-4xl font-bold text-midnight mb-4" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+              <h2 className="text-3xl md:text-4xl font-bold text-[#29272D] mb-4" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                 Built for real life in India.
               </h2>
-              <p className="text-midnight/70 text-lg leading-relaxed mb-8">
+              <p className="text-[#7A7880] text-lg leading-relaxed mb-8">
                 Health guidance should fit your life — not force your life to fit a generic plan.
               </p>
               <div className="grid grid-cols-2 gap-4">
@@ -560,16 +572,16 @@ export default function App({ onNavigate }) {
                   { icon: '🌐', label: 'Hindi + English' },
                   { icon: '📱', label: 'Mobile-First' },
                 ].map(item => (
-                  <div key={item.label} className="flex items-center gap-3 p-3 rounded-xl bg-vanilla/40 border border-misty/30">
+                  <div key={item.label} className="flex items-center gap-3 p-3 rounded-xl bg-[#FAF9F6] border border-[#E8E4DE]">
                     <span className="text-xl">{item.icon}</span>
-                    <span className="text-sm font-medium text-midnight">{item.label}</span>
+                    <span className="text-sm font-medium text-[#29272D]">{item.label}</span>
                   </div>
                 ))}
               </div>
             </div>
             <div className="space-y-4">
-              <div className="bg-vanilla/40 rounded-2xl border border-misty/30 p-6">
-                <p className="text-xs font-semibold text-midnight/50 uppercase tracking-widest mb-3">Sample Meal Suggestion</p>
+              <div className="bg-[#FAF9F6] rounded-2xl border border-[#E8E4DE] p-6">
+                <p className="text-xs font-semibold text-[#7A7880] uppercase tracking-widest mb-3">Sample Meal Suggestion</p>
                 <div className="space-y-3">
                   {[
                     { time: 'Breakfast', meal: 'Moong dal chilla + curd + methi tea', note: 'High protein, anti-inflammatory' },
@@ -577,10 +589,10 @@ export default function App({ onNavigate }) {
                     { time: 'Snack', meal: 'Handful of seeds mix + buttermilk', note: 'Good fats + probiotics' },
                   ].map(m => (
                     <div key={m.time} className="flex gap-4 items-start">
-                      <span className="text-xs font-semibold text-rosewood w-16 flex-shrink-0 mt-0.5">{m.time}</span>
+                      <span className="text-xs font-semibold text-[#8B7BB5] w-16 flex-shrink-0 mt-0.5">{m.time}</span>
                       <div>
-                        <p className="text-sm font-medium text-midnight">{m.meal}</p>
-                        <p className="text-xs text-midnight/60">{m.note}</p>
+                        <p className="text-sm font-medium text-[#29272D]">{m.meal}</p>
+                        <p className="text-xs text-[#7A7880]">{m.note}</p>
                       </div>
                     </div>
                   ))}
@@ -595,52 +607,52 @@ export default function App({ onNavigate }) {
       <section className="py-24 px-5 max-w-6xl mx-auto">
         <div className="grid md:grid-cols-2 gap-14 items-center">
           <div>
-            <h2 className="text-3xl md:text-4xl font-bold text-midnight mb-4" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+            <h2 className="text-3xl md:text-4xl font-bold text-[#29272D] mb-4" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
               Ask. Understand.<br />Take the next step.
             </h2>
-            <p className="text-midnight/70 text-lg leading-relaxed mb-6">
+            <p className="text-[#7A7880] text-lg leading-relaxed mb-6">
               Your AI health companion helps you make sense of your logs, find patterns, and know the right questions to ask your doctor.
             </p>
-            <div className="flex items-start gap-3 p-4 bg-blush/20 rounded-2xl border border-blush/40">
-              <Icon path={icons.info} size={16} className="text-rosewood flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-midnight leading-relaxed">The AI companion provides information and support only. It is not a diagnostic tool and cannot replace professional medical advice.</p>
+            <div className="flex items-start gap-3 p-4 bg-[#EAE6F4] rounded-2xl border border-[#DDD7EF]">
+              <Icon path={icons.info} size={16} className="text-[#8B7BB5] flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-[#29272D] leading-relaxed">The AI companion provides information and support only. It is not a diagnostic tool and cannot replace professional medical advice.</p>
             </div>
           </div>
 
           {/* Chat mockup */}
-          <div className="bg-white rounded-2xl border border-misty/30 shadow-2xl shadow-rosewood/10 overflow-hidden">
-            <div className="bg-gradient-to-r from-rosewood to-blush px-5 py-4 flex items-center gap-3">
+          <div className="bg-white rounded-2xl border border-[#E8E4DE] shadow-[0_8px_40px_rgba(139,123,181,0.10)] overflow-hidden">
+            <div className="bg-gradient-to-r from-[#8B7BB5] to-[#A89FCC] px-5 py-4 flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
                 <Icon path={icons.sparkle} size={16} className="text-white" />
               </div>
               <div>
                 <p className="text-white font-semibold text-sm">HerBalance AI</p>
-                <p className="text-white/80 text-xs">Health companion · Not a doctor</p>
+                <p className="text-white/70 text-xs">Health companion · Not a doctor</p>
               </div>
               <div className="ml-auto w-2 h-2 bg-green-300 rounded-full" />
             </div>
             <div className="p-5 space-y-4 min-h-[280px]">
               {/* User message */}
               <div className="flex justify-end">
-                <div className="bg-rosewood text-white text-sm rounded-2xl rounded-tr-sm px-4 py-3 max-w-[80%] leading-relaxed">
+                <div className="bg-[#8B7BB5] text-white text-sm rounded-2xl rounded-tr-sm px-4 py-3 max-w-[80%] leading-relaxed">
                   My period is late and my last few cycles have been irregular. What should I track?
                 </div>
               </div>
               {/* AI message */}
               <div className="flex gap-3">
-                <div className="w-7 h-7 rounded-full bg-blush/30 flex items-center justify-center flex-shrink-0 mt-1">
-                  <Icon path={icons.sparkle} size={13} className="text-rosewood" />
+                <div className="w-7 h-7 rounded-full bg-[#EAE6F4] flex items-center justify-center flex-shrink-0 mt-1">
+                  <Icon path={icons.sparkle} size={13} className="text-[#8B7BB5]" />
                 </div>
-                <div className="bg-vanilla/40 border border-misty/30 text-midnight text-sm rounded-2xl rounded-tl-sm px-4 py-3 max-w-[85%] leading-relaxed">
+                <div className="bg-[#FAF9F6] border border-[#E8E4DE] text-[#29272D] text-sm rounded-2xl rounded-tl-sm px-4 py-3 max-w-[85%] leading-relaxed">
                   Let's start by logging the change and looking at your recent cycle pattern. Irregular periods can have several causes, so tracking alone cannot determine a diagnosis. If the pattern continues, consider discussing it with a healthcare professional.
                 </div>
               </div>
             </div>
             <div className="px-5 pb-5 flex gap-2">
-              <button className="flex-1 bg-white border border-misty/50 text-midnight text-xs font-semibold py-2.5 px-4 rounded-xl hover:border-rosewood hover:text-rosewood transition-colors">
+              <button className="flex-1 bg-[#FAF9F6] border border-[#E8E4DE] text-[#29272D] text-xs font-semibold py-2.5 px-4 rounded-xl hover:border-[#8B7BB5] hover:text-[#8B7BB5] transition-colors">
                 Log This
               </button>
-              <button className="flex-1 bg-rosewood text-white text-xs font-semibold py-2.5 px-4 rounded-xl hover:bg-rosewood/90 transition-colors">
+              <button className="flex-1 bg-[#8B7BB5] text-white text-xs font-semibold py-2.5 px-4 rounded-xl hover:bg-[#7A6AA4] transition-colors">
                 Questions for My Doctor
               </button>
             </div>
@@ -649,19 +661,19 @@ export default function App({ onNavigate }) {
       </section>
 
       {/* ── Doctor Report ────────────────────────────────────────────────────── */}
-      <section className="py-24 px-5 bg-gradient-to-b from-white to-vanilla border-y border-misty/30">
+      <section className="py-24 px-5 bg-gradient-to-b from-[#F7F4FB] to-[#FAF9F6] border-y border-[#E8E4DE]">
         <div className="max-w-6xl mx-auto">
           <div className="grid md:grid-cols-2 gap-14 items-center">
             {/* Report mockup */}
-            <div className="bg-white rounded-2xl border border-misty/30 shadow-2xl shadow-rosewood/10 overflow-hidden">
-              <div className="bg-gradient-to-r from-rosewood/10 to-sage/10 border-b border-misty/30 px-6 py-5">
+            <div className="bg-white rounded-2xl border border-[#E8E4DE] shadow-[0_8px_40px_rgba(139,123,181,0.10)] overflow-hidden">
+              <div className="bg-gradient-to-r from-[#8B7BB5]/10 to-[#A8BFA3]/10 border-b border-[#E8E4DE] px-6 py-5">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-rosewood flex items-center justify-center">
+                  <div className="w-9 h-9 rounded-xl bg-[#8B7BB5] flex items-center justify-center">
                     <Icon path={icons.doc} size={18} className="text-white" />
                   </div>
                   <div>
-                    <p className="font-bold text-midnight text-sm" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>My Health Summary</p>
-                    <p className="text-xs text-midnight/50">Generated · Sep 2026</p>
+                    <p className="font-bold text-[#29272D] text-sm" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>My Health Summary</p>
+                    <p className="text-xs text-[#7A7880]">Generated · Sep 2026</p>
                   </div>
                 </div>
               </div>
@@ -673,22 +685,22 @@ export default function App({ onNavigate }) {
                   { label: 'Questions to Discuss', val: '3 flagged for doctor visit', status: 'purple' },
                   { label: 'Medication Log', val: 'None recorded', status: 'gray' },
                 ].map(r => (
-                  <div key={r.label} className="flex items-start justify-between gap-4 py-2.5 border-b border-misty/20 last:border-0">
-                    <p className="text-xs font-medium text-midnight">{r.label}</p>
-                    <p className="text-xs text-midnight/60 text-right">{r.val}</p>
+                  <div key={r.label} className="flex items-start justify-between gap-4 py-2.5 border-b border-[#F0EDE8] last:border-0">
+                    <p className="text-xs font-medium text-[#29272D]">{r.label}</p>
+                    <p className="text-xs text-[#7A7880] text-right">{r.val}</p>
                   </div>
                 ))}
-                <button className="w-full mt-2 bg-rosewood text-white text-sm font-semibold py-3 rounded-xl hover:bg-rosewood/90 transition-colors">
+                <button className="w-full mt-2 bg-[#8B7BB5] text-white text-sm font-semibold py-3 rounded-xl hover:bg-[#7A6AA4] transition-colors">
                   Create My Health Report
                 </button>
               </div>
             </div>
 
             <div>
-              <h2 className="text-3xl md:text-4xl font-bold text-midnight mb-4" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+              <h2 className="text-3xl md:text-4xl font-bold text-[#29272D] mb-4" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                 Make your doctor visits more useful.
               </h2>
-              <p className="text-midnight/70 text-lg leading-relaxed mb-6">
+              <p className="text-[#7A7880] text-lg leading-relaxed mb-6">
                 Turn months of scattered information into a simple, structured summary you can discuss with your healthcare professional.
               </p>
               <div className="space-y-3">
@@ -699,10 +711,10 @@ export default function App({ onNavigate }) {
                   'Medication and supplement log',
                 ].map(item => (
                   <div key={item} className="flex items-center gap-3">
-                    <div className="w-5 h-5 rounded-full bg-sage/20 flex items-center justify-center flex-shrink-0">
-                      <Icon path={icons.check} size={11} className="text-sage" />
+                    <div className="w-5 h-5 rounded-full bg-[#E8F0E7] flex items-center justify-center flex-shrink-0">
+                      <Icon path={icons.check} size={11} className="text-[#A8BFA3]" />
                     </div>
-                    <span className="text-sm text-midnight font-medium">{item}</span>
+                    <span className="text-sm text-[#29272D] font-medium">{item}</span>
                   </div>
                 ))}
               </div>
@@ -714,10 +726,10 @@ export default function App({ onNavigate }) {
       {/* ── Privacy ──────────────────────────────────────────────────────────── */}
       <section className="py-24 px-5 max-w-5xl mx-auto">
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-midnight mb-4" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+          <h2 className="text-3xl md:text-4xl font-bold text-[#29272D] mb-4" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
             Your health data deserves privacy.
           </h2>
-          <p className="text-midnight/70 text-lg max-w-md mx-auto">We take a thoughtful, privacy-first approach to everything we build.</p>
+          <p className="text-[#7A7880] text-lg max-w-md mx-auto">We take a thoughtful, privacy-first approach to everything we build.</p>
         </div>
         <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-5">
           {[
@@ -726,12 +738,12 @@ export default function App({ onNavigate }) {
             { icon: icons.doc, label: 'Minimal Data', desc: 'We collect only what is necessary for the experience to work.' },
             { icon: icons.user, label: 'You\'re in Control', desc: 'Access, edit, or delete your data at any time.' },
           ].map(p => (
-            <div key={p.label} className="bg-white rounded-2xl border border-misty/30 p-6 text-center">
-              <div className="w-11 h-11 rounded-xl bg-blush/30 flex items-center justify-center mx-auto mb-4">
-                <Icon path={p.icon} size={20} className="text-rosewood" />
+            <div key={p.label} className="bg-white rounded-2xl border border-[#E8E4DE] p-6 text-center">
+              <div className="w-11 h-11 rounded-xl bg-[#EAE6F4] flex items-center justify-center mx-auto mb-4">
+                <Icon path={p.icon} size={20} className="text-[#8B7BB5]" />
               </div>
-              <h3 className="font-bold text-midnight text-sm mb-2" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{p.label}</h3>
-              <p className="text-midnight/70 text-xs leading-relaxed">{p.desc}</p>
+              <h3 className="font-bold text-[#29272D] text-sm mb-2" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{p.label}</h3>
+              <p className="text-[#7A7880] text-xs leading-relaxed">{p.desc}</p>
             </div>
           ))}
         </div>
@@ -741,38 +753,38 @@ export default function App({ onNavigate }) {
       <FAQ />
 
       {/* ── Final CTA ────────────────────────────────────────────────────────── */}
-      <section className="py-24 px-5 bg-gradient-to-br from-blush/20 via-vanilla to-sage/10 border-y border-misty/30">
+      <section className="py-24 px-5 bg-gradient-to-br from-[#EAE6F4] via-[#F4EEF0] to-[#E8F0E7] border-y border-[#DDD7EF]">
         <div className="max-w-2xl mx-auto text-center">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-rosewood to-blush flex items-center justify-center mx-auto mb-6 shadow-xl shadow-rosewood/20">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#8B7BB5] to-[#A89FCC] flex items-center justify-center mx-auto mb-6 shadow-[0_8px_24px_rgba(139,123,181,0.30)]">
             <Icon path={icons.heart} size={24} className="text-white" />
           </div>
-          <h2 className="text-3xl md:text-5xl font-extrabold text-midnight mb-5 leading-tight" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+          <h2 className="text-3xl md:text-5xl font-extrabold text-[#29272D] mb-5 leading-tight" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
             Start understanding your health,<br className="hidden md:block" /> one day at a time.
           </h2>
-          <p className="text-midnight/70 text-lg leading-relaxed mb-8 max-w-md mx-auto">
+          <p className="text-[#7A7880] text-lg leading-relaxed mb-8 max-w-md mx-auto">
             Track your patterns. Build sustainable habits. Make more informed health decisions.
           </p>
-          <button onClick={onNavigate} className="inline-flex items-center gap-2 bg-rosewood text-white font-bold px-8 py-4 rounded-xl text-lg hover:bg-rosewood/90 transition-all hover:shadow-xl hover:shadow-rosewood/30 active:scale-[0.98]">
+          <button onClick={onNavigate} className="inline-flex items-center gap-2 bg-[#8B7BB5] text-white font-bold px-8 py-4 rounded-xl text-lg hover:bg-[#7A6AA4] transition-all hover:shadow-[0_12px_40px_rgba(139,123,181,0.40)] active:scale-[0.98]">
             🌸 Start Your PCOD Journey
           </button>
-          <p className="text-xs text-midnight/50 mt-6 max-w-sm mx-auto leading-relaxed">
+          <p className="text-xs text-[#7A7880] mt-6 max-w-sm mx-auto leading-relaxed">
             This platform is designed for education, tracking and self-management support. It does not provide medical diagnosis or replace professional medical advice.
           </p>
         </div>
       </section>
 
       {/* ── Footer ───────────────────────────────────────────────────────────── */}
-      <footer className="bg-midnight text-white py-14 px-5">
+      <footer className="bg-[#29272D] text-white py-14 px-5">
         <div className="max-w-6xl mx-auto">
           <div className="grid md:grid-cols-4 gap-10 mb-10">
             <div className="md:col-span-1">
               <div className="flex items-center gap-2.5 mb-4">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-rosewood to-blush flex items-center justify-center">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#8B7BB5] to-[#A89FCC] flex items-center justify-center">
                   <Icon path={icons.heart} size={15} className="text-white" />
                 </div>
                 <span className="font-bold text-white text-lg" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>HerBalance</span>
               </div>
-              <p className="text-white/60 text-xs leading-relaxed">
+              <p className="text-white/50 text-xs leading-relaxed">
                 For educational and self-management support only. Not a substitute for professional medical diagnosis or treatment.
               </p>
             </div>
@@ -782,18 +794,18 @@ export default function App({ onNavigate }) {
               { heading: 'Legal', links: ['Privacy', 'Terms', 'Disclaimer'] },
             ].map(col => (
               <div key={col.heading}>
-                <p className="font-semibold text-white/90 text-xs uppercase tracking-widest mb-4">{col.heading}</p>
+                <p className="font-semibold text-white/80 text-xs uppercase tracking-widest mb-4">{col.heading}</p>
                 <div className="space-y-2.5">
                   {col.links.map(l => (
-                    <a key={l} href="#" className="block text-white/60 text-sm hover:text-white transition-colors">{l}</a>
+                    <a key={l} href="#" className="block text-white/50 text-sm hover:text-white/80 transition-colors">{l}</a>
                   ))}
                 </div>
               </div>
             ))}
           </div>
           <div className="border-t border-white/10 pt-6 flex flex-col md:flex-row items-center justify-between gap-3">
-            <p className="text-white/50 text-xs">© 2026 HerBalance. All rights reserved.</p>
-            <p className="text-white/50 text-xs text-center md:text-right max-w-md">
+            <p className="text-white/40 text-xs">© 2026 HerBalance. All rights reserved.</p>
+            <p className="text-white/40 text-xs text-center md:text-right max-w-md">
               This platform does not diagnose, treat, cure, or prevent any medical condition including PCOD/PCOS.
             </p>
           </div>
@@ -801,49 +813,50 @@ export default function App({ onNavigate }) {
       </footer>
 
       {/* ── Mobile sticky CTA ────────────────────────────────────────────────── */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-misty/30 px-5 py-3.5 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] z-40">
-        <button onClick={onNavigate} className="w-full bg-rosewood text-white font-bold py-3.5 rounded-xl text-sm">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#E8E4DE] px-5 py-3.5 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] z-40">
+        <button onClick={onNavigate} className="w-full bg-[#8B7BB5] text-white font-bold py-3.5 rounded-xl text-sm">
           🌸 Start Your PCOD Journey
         </button>
       </div>
 
       {/* ── Contact Us Modal ─────────────────────────────────────────────────── */}
       {showContact && (
-        <div className="fixed inset-0 bg-midnight/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={() => setShowContact(false)}>
+        <div className="fixed inset-0 bg-[#29272D]/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={() => setShowContact(false)}>
           <div 
             className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl relative animate-in fade-in zoom-in duration-200"
             onClick={e => e.stopPropagation()} 
           >
-            <button onClick={() => setShowContact(false)} className="absolute top-5 right-5 text-midnight/50 hover:text-midnight bg-vanilla hover:bg-misty/30 rounded-full p-1.5 transition-colors">
+            <button onClick={() => setShowContact(false)} className="absolute top-5 right-5 text-[#7A7880] hover:text-[#29272D] bg-[#F0EDE8] hover:bg-[#E8E4DE] rounded-full p-1.5 transition-colors">
               <Icon path={icons.x} size={18} />
             </button>
             
-            <div className="w-14 h-14 rounded-2xl bg-blush/30 flex items-center justify-center mb-5">
-               <Icon path={icons.user} size={28} className="text-rosewood" />
+            <div className="w-14 h-14 rounded-2xl bg-[#EAE6F4] flex items-center justify-center mb-5">
+               <Icon path={icons.user} size={28} className="text-[#8B7BB5]" />
             </div>
             
-            <h3 className="text-2xl font-bold text-midnight mb-1" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Get in Touch</h3>
-            <p className="text-midnight/70 text-sm mb-6">Have questions about the project? Feel free to reach out.</p>
+            <h3 className="text-2xl font-bold text-[#29272D] mb-1" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Get in Touch</h3>
+            <p className="text-[#7A7880] text-sm mb-6">Have questions about the project? Feel free to reach out.</p>
             
-            <div className="space-y-4 bg-vanilla/50 border border-misty/30 p-4 rounded-2xl">
+            <div className="space-y-4 bg-[#FAF9F6] border border-[#E8E4DE] p-4 rounded-2xl">
               <div>
-                <p className="text-[10px] font-bold text-rosewood uppercase tracking-wider mb-0.5">Developer</p>
-                <p className="text-midnight font-semibold">Pragati Tiwari</p>
+                <p className="text-[10px] font-bold text-[#8B7BB5] uppercase tracking-wider mb-0.5">Developer</p>
+                <p className="text-[#29272D] font-semibold">Pragati Tiwari</p>
               </div>
               <div>
-                <p className="text-[10px] font-bold text-rosewood uppercase tracking-wider mb-0.5">Email</p>
-                <a href="mailto:pragati015tiwari@gmail.com" className="text-midnight font-medium text-sm hover:text-rosewood transition-colors">
+                <p className="text-[10px] font-bold text-[#8B7BB5] uppercase tracking-wider mb-0.5">Email</p>
+                <a href="mailto:pragati015tiwari@gmail.com" className="text-[#29272D] font-medium text-sm hover:text-[#8B7BB5] transition-colors">
                   pragati015tiwari@gmail.com
                 </a>
               </div>
             </div>
             
-            <button onClick={() => setShowContact(false)} className="w-full mt-6 bg-midnight text-white font-semibold py-3 rounded-xl hover:bg-midnight/90 transition-colors">
+            <button onClick={() => setShowContact(false)} className="w-full mt-6 bg-[#29272D] text-white font-semibold py-3 rounded-xl hover:bg-black transition-colors">
               Close
             </button>
           </div>
         </div>
       )}
+      {/* 🟢 NAYA: Login / Signup Modal */}
       <AuthModal 
         isOpen={showAuthModal} 
         onClose={() => setShowAuthModal(false)} 
