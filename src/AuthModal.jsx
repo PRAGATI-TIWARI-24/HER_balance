@@ -59,28 +59,28 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-[#29272D]/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-midnight/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       {/* Pop-up Box */}
-      <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-xl relative animate-in fade-in zoom-in duration-200">
+      <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl shadow-rosewood/10 relative animate-in fade-in zoom-in duration-200">
         
         {/* Close (X) Button */}
         <button 
           onClick={onClose}
-          className="absolute top-5 right-6 text-[#7A7880] hover:text-[#29272D] text-2xl font-bold"
+          className="absolute top-5 right-6 text-midnight/50 hover:text-midnight text-2xl font-bold transition-colors"
         >
           ✕
         </button>
 
-        <h2 className="text-3xl font-bold text-[#29272D] mb-2 font-display">
+        <h2 className="text-3xl font-bold text-midnight mb-2 font-display">
           {isLogin ? "Welcome Back! 🌸" : "Join HerBalance ✨"}
         </h2>
-        <p className="text-[#7A7880] mb-6">
+        <p className="text-midnight/70 mb-6">
           {isLogin ? "Log in to access your personalized dashboard." : "Create an account to start your health journey."}
         </p>
 
         {/* Error Message Dikhane ke liye */}
         {error && (
-          <div className="bg-red-50 text-red-500 p-3 rounded-xl text-sm mb-5 border border-red-100 font-medium">
+          <div className="bg-rosewood/10 text-rosewood p-3 rounded-xl text-sm mb-5 border border-rosewood/20 font-medium">
             {error}
           </div>
         )}
@@ -89,43 +89,43 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
           {/* Agar Signup hai toh Name wala box bhi dikhao */}
           {!isLogin && (
             <div>
-              <label className="block text-sm font-medium text-[#29272D] mb-1">Full Name</label>
+              <label className="block text-sm font-medium text-midnight mb-1">Full Name</label>
               <input 
                 type="text" name="name" value={formData.name} onChange={handleChange} required={!isLogin}
-                className="w-full border border-[#E8E4DE] rounded-xl p-3 bg-[#FAF9F6] focus:border-[#8B7BB5] outline-none transition-colors" 
+                className="w-full border border-misty/50 rounded-xl p-3 bg-vanilla/40 focus:border-rosewood focus:ring-2 focus:ring-blush outline-none transition-all text-midnight" 
                 placeholder="e.g. Priya Sharma" 
               />
             </div>
           )}
           
           <div>
-            <label className="block text-sm font-medium text-[#29272D] mb-1">Email Address</label>
+            <label className="block text-sm font-medium text-midnight mb-1">Email Address</label>
             <input 
               type="email" name="email" value={formData.email} onChange={handleChange} required
-              className="w-full border border-[#E8E4DE] rounded-xl p-3 bg-[#FAF9F6] focus:border-[#8B7BB5] outline-none transition-colors" 
+              className="w-full border border-misty/50 rounded-xl p-3 bg-vanilla/40 focus:border-rosewood focus:ring-2 focus:ring-blush outline-none transition-all text-midnight" 
               placeholder="priya@example.com" 
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-[#29272D] mb-1">Password</label>
+            <label className="block text-sm font-medium text-midnight mb-1">Password</label>
             <input 
               type="password" name="password" value={formData.password} onChange={handleChange} required
-              className="w-full border border-[#E8E4DE] rounded-xl p-3 bg-[#FAF9F6] focus:border-[#8B7BB5] outline-none transition-colors" 
+              className="w-full border border-misty/50 rounded-xl p-3 bg-vanilla/40 focus:border-rosewood focus:ring-2 focus:ring-blush outline-none transition-all text-midnight" 
               placeholder="••••••••" 
             />
           </div>
 
           <button 
             type="submit" disabled={loading}
-            className="w-full bg-[#8B7BB5] text-white font-bold py-3.5 rounded-xl hover:bg-[#7A6AA4] transition-all mt-2"
+            className="w-full bg-rosewood text-white font-bold py-3.5 rounded-xl hover:bg-rosewood/90 shadow-lg shadow-rosewood/30 transition-all mt-2"
           >
             {loading ? "Please wait..." : (isLogin ? "Log In" : "Create Account")}
           </button>
         </form>
 
         {/* Switch between Login and Signup */}
-        <div className="mt-6 text-center text-sm text-[#7A7880]">
+        <div className="mt-6 text-center text-sm text-midnight/70">
           {isLogin ? "Don't have an account? " : "Already have an account? "}
           <button 
             type="button"
@@ -133,7 +133,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
               setIsLogin(!isLogin);
               setError('');
             }}
-            className="text-[#8B7BB5] font-bold hover:underline"
+            className="text-rosewood font-bold hover:underline transition-all"
           >
             {isLogin ? "Sign up" : "Log in"}
           </button>

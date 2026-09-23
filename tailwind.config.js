@@ -7,17 +7,18 @@ export default {
   theme: {
     extend: {
       colors: {
-        health: {
-          bg: '#F8FAFC',
-          card: '#FFFFFF',
-          primary: '#0F766E',
-          accent: '#E11D48',
-          textMain: '#1E293B',
-          textMuted: '#64748B',
-          warning: '#F59E0B',
-          success: '#10B981',
-        }
-      },
+        vanilla: '#FFF7E6',
+        blush: '#F7C8D3',
+        rosewood: '#B46A72',
+        sage: '#A8B58A',
+        misty: '#A9B7C6',
+        midnight: '#2D3A47',
+      }
+    },
+  },
+  plugins: [],
+  theme: {
+    extend: {
       borderRadius: {
         '2xl': '1rem',
         '3xl': '1.5rem',

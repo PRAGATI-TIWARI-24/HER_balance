@@ -3,16 +3,17 @@
 @import 'tailwindcss';
 
 :root {
-  --color-background: #FAF9F6;
-  --color-foreground: #29272D;
-  --color-primary: #8B7BB5;
-  --color-primary-light: #A89FCC;
-  --color-secondary: #A8BFA3;
-  --color-accent: #D99AA5;
+  /* New Premium Palette */
+  --color-background: #FFF7E6; /* Vanilla Cream */
+  --color-foreground: #2D3A47; /* Midnight Lagoon */
+  --color-primary: #B46A72;    /* Rosewood */
+  --color-primary-light: #F7C8D3; /* Blush Petal */
+  --color-secondary: #A8B58A;  /* Sage Leaf */
+  --color-accent: #A9B7C6;     /* Misty Sky */
   --color-card: #FFFFFF;
-  --color-muted: #F0EDE8;
-  --color-muted-fg: #7A7880;
-  --color-border: #E8E4DE;
+  --color-muted: #FFF7E6;
+  --color-muted-fg: rgba(45, 58, 71, 0.7); /* Midnight 70% */
+  --color-border: rgba(169, 183, 198, 0.3); /* Misty Sky 30% */
 
   --font-sans: 'Inter', sans-serif;
   --font-display: 'Plus Jakarta Sans', sans-serif;
@@ -32,21 +33,21 @@ html {
 }
 
 body {
-  background-color: #FAF9F6;
-  color: #29272D;
-  font-family: 'Inter', sans-serif;
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: var(--font-display);
 }
 
 ::-webkit-scrollbar {
   width: 6px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #D5CFEA;
+  background: var(--color-primary-light); /* Scrollbar ab soft pink (Blush) hogi */
   border-radius: 3px;
 }
 ::-webkit-scrollbar-track {
