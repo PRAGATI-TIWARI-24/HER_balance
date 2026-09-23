@@ -53,7 +53,7 @@ def get_db():
 # --- 🧠 AI MODEL LOADING (XGBoost) ---
 print("Loading HerBalance XGBoost AI Brain...")
 try:
-    model = joblib.load('ml_model/xgboost_model.pkl')
+    model = joblib.load('xgboost_model.pkl')
     print("XGBoost Model loaded successfully! 🚀")
 except Exception as e:
     print(f"Error loading model: {e}")
