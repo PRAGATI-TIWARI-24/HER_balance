@@ -172,6 +172,21 @@ function Navbar({ onNavigate, onContactClick, onLoginClick }) {
             Take Assessment
           </button>
         </div>
+
+        <div className="flex items-center space-x-6"> {/* space-x-6 dono ke beech mein gap banayega */}
+  
+  {/* Contact Us Link */}
+  <a 
+    href="https://www.linkedin.com/in/pragati-tiwari-sde24/" 
+    target="_blank" 
+    rel="noopener noreferrer"
+    className="text-gray-600 hover:text-pink-600 font-semibold transition-colors duration-300"
+  >
+    Contact Us
+  </a>
+
+  
+</div>
       </div>
     </nav>
   )
