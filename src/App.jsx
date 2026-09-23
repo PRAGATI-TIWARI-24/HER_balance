@@ -3,6 +3,7 @@ import Assessment from "./Test";
 import { useState } from 'react';
 import AuthModal from './AuthModal';
 import Dashboard from './Dashboard';
+import {useRef, useEffect } from 'react';
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
 const Icon = ({ path, size = 20, className = '' }) => (
@@ -230,6 +231,144 @@ function FAQ() {
       </div>
     </section>
   )
+}
+// ─── Asli AI Chat Component ──────────────────────────────────────────────────
+function AICompanionChat({ icons }) {
+  const [messages, setMessages] = useState([
+    { sender: 'ai', text: "Hi! I'm HerBalance AI. How are you feeling today? Share your symptoms, or ask me anything about PCOD/PCOS. 🌸" }
+  ]);
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef(null);
+
+  // Naya message aane par auto-scroll karne ke liye
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const handleSend = async () => {
+    if (!input.trim()) return;
+
+    const userText = input.trim();
+    // User ka message screen par turant dikhao
+    setMessages(prev => [...prev, { sender: 'user', text: userText }]);
+    setInput("");
+    setIsLoading(true); // Loading animation chalu (Bouncing dots)
+
+    try {
+      const response = await fetch("https://her-balance.onrender.com/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: userText })
+      });
+
+      if (!response.ok) throw new Error("Server error");
+      
+      // Streaming data padhne ke liye setup
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let isFirstChunk = true;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break; // Jab AI chup ho jaye toh ruk jao
+        
+        // Chunk (hissa) ko text mein convert karo
+        const chunk = decoder.decode(value, { stream: true });
+        
+        if (isFirstChunk) {
+          // Jaise hi pehla word aaye, dots hatao aur chat bubble create karo
+          setIsLoading(false);
+          setMessages(prev => [...prev, { sender: 'ai', text: chunk }]);
+          isFirstChunk = false;
+        } else {
+          // Uske baad wale har word ko pichle bubble mein jodte jao (Typing effect)
+          setMessages(prev => {
+            const newMessages = [...prev];
+            const lastIndex = newMessages.length - 1;
+            newMessages[lastIndex] = {
+              ...newMessages[lastIndex],
+              text: newMessages[lastIndex].text + chunk
+            };
+            return newMessages;
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Chat error:", error);
+      setMessages(prev => [...prev, { sender: 'ai', text: "Oops! AI backend is unreachable right now." }]);
+      setIsLoading(false);
+    }
+  };
+  return (
+    <div className="bg-white rounded-2xl border border-[#E8E4DE] shadow-[0_8px_40px_rgba(139,123,181,0.10)] overflow-hidden flex flex-col h-[450px]">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-[#8B7BB5] to-[#A89FCC] px-5 py-4 flex items-center gap-3 shrink-0">
+        <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+          <Icon path={icons.sparkle} size={16} className="text-white" />
+        </div>
+        <div>
+          <p className="text-white font-semibold text-sm">HerBalance AI</p>
+          <p className="text-white/70 text-xs">Health companion · Not a doctor</p>
+        </div>
+        <div className="ml-auto w-2 h-2 bg-green-300 rounded-full animate-pulse" />
+      </div>
+      
+      {/* Messages Area */}
+      <div className="flex-1 p-5 overflow-y-auto space-y-4 bg-[#FAF9F6]">
+        {messages.map((msg, idx) => (
+          <div key={idx} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start gap-3'}`}>
+            {msg.sender === 'ai' && (
+              <div className="w-7 h-7 rounded-full bg-[#EAE6F4] flex items-center justify-center flex-shrink-0 mt-1">
+                <Icon path={icons.sparkle} size={13} className="text-[#8B7BB5]" />
+              </div>
+            )}
+            <div className={`text-sm rounded-2xl px-4 py-3 max-w-[85%] leading-relaxed ${
+              msg.sender === 'user' 
+                ? 'bg-[#8B7BB5] text-white rounded-tr-sm' 
+                : 'bg-white border border-[#E8E4DE] text-[#29272D] rounded-tl-sm'
+            }`}>
+              {msg.text}
+            </div>
+          </div>
+        ))}
+        
+        {/* Loading Spinner / Typing indicator */}
+        {isLoading && (
+          <div className="flex justify-start gap-3">
+            <div className="w-7 h-7 rounded-full bg-[#EAE6F4] flex items-center justify-center flex-shrink-0 mt-1">
+              <Icon path={icons.sparkle} size={13} className="text-[#8B7BB5]" />
+            </div>
+            <div className="bg-white border border-[#E8E4DE] rounded-2xl rounded-tl-sm px-4 py-3 flex items-center gap-1.5">
+              <span className="w-2 h-2 bg-[#8B7BB5]/50 rounded-full animate-bounce"></span>
+              <span className="w-2 h-2 bg-[#8B7BB5]/50 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></span>
+              <span className="w-2 h-2 bg-[#8B7BB5]/50 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></span>
+            </div>
+          </div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input Area */}
+      <div className="p-4 bg-white border-t border-[#E8E4DE] flex gap-2 shrink-0">
+        <input 
+          type="text" 
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+          placeholder="Ask about symptoms, diet, or habits..." 
+          className="flex-1 bg-[#FAF9F6] border border-[#E8E4DE] rounded-xl px-4 py-3 text-sm outline-none focus:border-[#8B7BB5] text-[#29272D]"
+        />
+        <button 
+          onClick={handleSend}
+          disabled={isLoading || !input.trim()}
+          className="bg-[#8B7BB5] text-white px-5 py-3 rounded-xl hover:bg-[#7A6AA4] transition-colors disabled:opacity-50 font-semibold"
+        >
+          Send
+        </button>
+      </div>
+    </div>
+  );
 }
 
 // ─── Main App ─────────────────────────────────────────────────────────────────
@@ -619,44 +758,9 @@ export default function App({ onNavigate }) {
             </div>
           </div>
 
-          {/* Chat mockup */}
-          <div className="bg-white rounded-2xl border border-[#E8E4DE] shadow-[0_8px_40px_rgba(139,123,181,0.10)] overflow-hidden">
-            <div className="bg-gradient-to-r from-[#8B7BB5] to-[#A89FCC] px-5 py-4 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-                <Icon path={icons.sparkle} size={16} className="text-white" />
-              </div>
-              <div>
-                <p className="text-white font-semibold text-sm">HerBalance AI</p>
-                <p className="text-white/70 text-xs">Health companion · Not a doctor</p>
-              </div>
-              <div className="ml-auto w-2 h-2 bg-green-300 rounded-full" />
-            </div>
-            <div className="p-5 space-y-4 min-h-[280px]">
-              {/* User message */}
-              <div className="flex justify-end">
-                <div className="bg-[#8B7BB5] text-white text-sm rounded-2xl rounded-tr-sm px-4 py-3 max-w-[80%] leading-relaxed">
-                  My period is late and my last few cycles have been irregular. What should I track?
-                </div>
-              </div>
-              {/* AI message */}
-              <div className="flex gap-3">
-                <div className="w-7 h-7 rounded-full bg-[#EAE6F4] flex items-center justify-center flex-shrink-0 mt-1">
-                  <Icon path={icons.sparkle} size={13} className="text-[#8B7BB5]" />
-                </div>
-                <div className="bg-[#FAF9F6] border border-[#E8E4DE] text-[#29272D] text-sm rounded-2xl rounded-tl-sm px-4 py-3 max-w-[85%] leading-relaxed">
-                  Let's start by logging the change and looking at your recent cycle pattern. Irregular periods can have several causes, so tracking alone cannot determine a diagnosis. If the pattern continues, consider discussing it with a healthcare professional.
-                </div>
-              </div>
-            </div>
-            <div className="px-5 pb-5 flex gap-2">
-              <button className="flex-1 bg-[#FAF9F6] border border-[#E8E4DE] text-[#29272D] text-xs font-semibold py-2.5 px-4 rounded-xl hover:border-[#8B7BB5] hover:text-[#8B7BB5] transition-colors">
-                Log This
-              </button>
-              <button className="flex-1 bg-[#8B7BB5] text-white text-xs font-semibold py-2.5 px-4 rounded-xl hover:bg-[#7A6AA4] transition-colors">
-                Questions for My Doctor
-              </button>
-            </div>
-          </div>
+          {/* 🟢 NAYA ASLI CHAT COMPONENT YAHAN AAYEGA */}
+          <AICompanionChat icons={icons} />
+          
         </div>
       </section>
 
