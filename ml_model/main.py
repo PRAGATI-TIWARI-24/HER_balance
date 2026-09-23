@@ -9,7 +9,8 @@ HTTPException = fastapi.HTTPException
 from starlette.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
+import joblib
+import xgboost as xgb
 from sqlalchemy.orm import Session
 import bcrypt  # Nayi security library
 
@@ -49,33 +50,13 @@ def get_db():
     finally:
         db.close()
 
-
-# --- 🧠 AI MODEL TRAINING (In-Memory) ---
-print("Initializing HerBalance AI Brain...")
+# --- 🧠 AI MODEL LOADING (XGBoost) ---
+print("Loading HerBalance XGBoost AI Brain...")
 try:
-    try:
-        df = pd.read_excel('PCOS_data_without_infertility.xlsx', sheet_name="Full_new")
-    except:
-        df = pd.read_excel('PCOS_data_without_infertility.xlsx')
-        
-    selected_columns = [
-        'PCOS (Y/N)', ' Age (yrs)', 'Weight (Kg)', 'BMI', 'Cycle(R/I)', 
-        'Cycle length(days)', 'Weight gain(Y/N)', 'hair growth(Y/N)', 
-        'Skin darkening (Y/N)', 'Hair loss(Y/N)', 'Pimples(Y/N)', 
-        'Fast food (Y/N)', 'Reg.Exercise(Y/N)'
-    ]
-    df_app = df[selected_columns].copy()
-    df_app['Fast food (Y/N)'] = df_app['Fast food (Y/N)'].fillna(df_app['Fast food (Y/N)'].mode()[0]).astype(int)
-    df_app['Cycle(R/I)'] = df_app['Cycle(R/I)'].map({2: 0, 4: 1})
-    
-    X = df_app.drop('PCOS (Y/N)', axis=1)
-    y = df_app['PCOS (Y/N)']
-    
-    model = RandomForestClassifier(random_state=42)
-    model.fit(X, y)
-    print("Model trained and loaded into memory successfully! 🚀")
+    model = joblib.load('ml_model/xgboost_model.pkl')
+    print("XGBoost Model loaded successfully! 🚀")
 except Exception as e:
-    print(f"Error during training: {e}")
+    print(f"Error loading model: {e}")
 
 
 # --- 📝 SCHEMAS (Data Structures) ---
