@@ -1,5 +1,4 @@
 import importlib
-
 # Load FastAPI dynamically so static analyzers do not report a missing import
 # when the selected Python interpreter has not indexed site-packages yet.
 fastapi = importlib.import_module("fastapi")
@@ -13,6 +12,7 @@ import joblib
 import xgboost as xgb
 from sqlalchemy.orm import Session
 import bcrypt  # Nayi security library
+import os
 
 # Database imports
 from database import SessionLocal, User, AssessmentHistory
@@ -52,11 +52,16 @@ def get_db():
 
 # --- 🧠 AI MODEL LOADING (XGBoost) ---
 print("Loading HerBalance XGBoost AI Brain...")
-try:
-    model = joblib.load('xgboost_model.pkl')
-    print("XGBoost Model loaded successfully! 🚀")
-except Exception as e:
-    print(f"Error loading model: {e}")
+
+# Ye code apne aap main.py ka current folder pata kar lega
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+model_path = os.path.join(BASE_DIR, 'xgboost_model.pkl')
+
+print(f"Model yahan dhoondha ja raha hai: {model_path}")
+
+# Model load karna
+model = joblib.load(model_path)
+print("XGBoost Model loaded successfully! 🚀")
 
 
 # --- 📝 SCHEMAS (Data Structures) ---
