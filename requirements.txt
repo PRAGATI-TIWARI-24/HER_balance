@@ -11,3 +11,4 @@ starlette
 openpyxl
 xgboost
 google-generativeai
+dotenv
