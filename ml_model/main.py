@@ -146,7 +146,7 @@ def predict_risk(data: PatientData):
     return {
         "status": "success",
         "risk_flag": int(prediction),
-        "probability_percentage": round(probability * 100, 2)
+        "probability_percentage": float(round(probability*100,2))
     }
 
 if __name__ == "__main__":
