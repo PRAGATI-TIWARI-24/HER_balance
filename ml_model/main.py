@@ -20,7 +20,7 @@ from dotenv import load_dotenv
 from fastapi.responses import StreamingResponse
 
 # .env file se secret keys load karne ke liye
-load_dotenv()
+load_dotenv(override=True)
 
 # Database imports (Ensure your database.py is correctly set up)
 from database import SessionLocal, User, AssessmentHistory
