@@ -153,7 +153,16 @@ function Navbar({ onNavigate, onContactClick, onLoginClick }) {
   return (
     <nav className="border-b border-[#E8E4DE] bg-white sticky top-0 z-40">
       <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
-        <div className="text-xl font-bold text-[#29272D] tracking-tight font-display">HerBalance</div>
+        <div className="flex items-center gap-3">
+  {/* Ye line tumhara naya logo dikhayegi */}
+  <img
+    src="/pcod_logo.jpeg"
+    alt="HerBalance Logo"
+    className="h-12 w-12 rounded-full object-cover shadow-sm"
+  />
+  {/* Ye tumhara text hai */}
+  <h1 className="text-2xl font-bold text-[#B46A72]">HerBalance</h1>
+</div>
         
         {/* Desktop Links */}
         <div className="hidden md:flex items-center gap-8">
@@ -169,9 +178,7 @@ function Navbar({ onNavigate, onContactClick, onLoginClick }) {
           <button onClick={onLoginClick} className="text-sm font-medium text-[#7A7880] hover:text-[#29272D] transition-colors px-3 py-1.5">
             Log In
           </button>
-          <button onClick={() => onNavigate('assessment')} className="text-sm font-semibold bg-[#29272D] text-white px-5 py-2.5 rounded-xl hover:bg-[#1A181D] transition-all">
-            Take Assessment
-          </button>
+          
         </div>
 
         <div className="flex items-center space-x-6"> {/* space-x-6 dono ke beech mein gap banayega */}
