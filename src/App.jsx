@@ -1,9 +1,11 @@
-
 import Assessment from "./Test";
 import { useState } from 'react';
 import AuthModal from './AuthModal';
 import Dashboard from './Dashboard';
-import {useRef, useEffect } from 'react';
+import ScrollToTop from './components/ScrollToTop';
+
+import { useRef, useEffect } from 'react';
+
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
 const Icon = ({ path, size = 20, className = '' }) => (
@@ -263,7 +265,7 @@ function AICompanionChat({ icons }) {
     setIsLoading(true); // Loading animation chalu (Bouncing dots)
 
     try {
-      const response = await fetch("https://her-balance.onrender.com/chat", {
+      const response = await fetch("http://127.0.0.1:8000/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: userText })
@@ -417,6 +419,9 @@ export default function App({ onNavigate }) {
 
   return (
     <div className="min-h-screen bg-[#FAF9F6]">
+      {/* 🟢 ScrollToTop component add kar diya gaya hai */}
+      <ScrollToTop />
+
       {/* 🟢 NAYA: Navbar ko Login modal open karne ki permission de di */}
       <Navbar 
         onNavigate={onNavigate} 
@@ -546,19 +551,42 @@ export default function App({ onNavigate }) {
             Everything you need, in one place.
           </h2>
         </div>
+        
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {[
-            { icon: '🩸', title: 'Smart Cycle Tracking', desc: 'Track periods, cycle length and changes over time to understand your unique rhythm.' },
+            { icon: '🩸', title: 'Smart Cycle Tracking', desc: 'Track periods, cycle length and changes over time to understand your unique rhythm.', isLocked: true },
             { icon: '🌸', title: 'Symptom Journal', desc: 'Record symptoms such as acne, hair fall, fatigue and more in a structured, searchable log.' },
-            { icon: '🥗', title: 'Personalized Nutrition', desc: 'Discover practical Indian food choices — vegetarian, eggetarian, and regional options — that fit your lifestyle.' },
+            // Yahan humne isLocked: true lagaya hai
+            { icon: '🥗', title: 'Personalized Nutrition', desc: 'Discover practical Indian food choices — vegetarian, eggetarian, and regional options — that fit your lifestyle.', isLocked: true },
             { icon: '🏃', title: 'Lifestyle Goals', desc: 'Build manageable habits around movement, sleep and daily wellbeing at your own pace.' },
             { icon: '📊', title: 'Health Insights', desc: 'Understand trends in your own data without turning them into a medical diagnosis.' },
             { icon: '🤖', title: 'AI Health Companion', desc: 'Ask questions, understand your logs and get guidance designed to support informed, not alarming, decisions.' },
           ].map(f => (
-            <div key={f.title} className="bg-white rounded-2xl border border-[#E8E4DE] p-6 hover:border-[#8B7BB5]/30 hover:shadow-[0_8px_32px_rgba(139,123,181,0.09)] transition-all group">
+            <div 
+              key={f.title} 
+              // Agar isLocked true hai, toh click karne par seedha dashboard khulega
+              onClick={() => f.isLocked ? setIsLoggedIn(true) : null}
+              className={`bg-white rounded-2xl border border-[#E8E4DE] p-6 transition-all group relative
+                ${f.isLocked ? 'cursor-pointer hover:border-[#A8B58A] hover:shadow-md' : 'hover:border-[#8B7BB5]/30 hover:shadow-[0_8px_32px_rgba(139,123,181,0.09)]'} 
+              `}
+            >
               <span className="text-2xl mb-4 block">{f.icon}</span>
-              <h3 className="font-bold text-[#29272D] text-base mb-2 group-hover:text-[#8B7BB5] transition-colors" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{f.title}</h3>
+              
+              <h3 className="font-bold text-[#29272D] text-base mb-2 group-hover:text-[#8B7BB5] transition-colors" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                {f.title}
+              </h3>
+              
               <p className="text-[#7A7880] text-sm leading-relaxed">{f.desc}</p>
+              
+              {/* Locked Features ke liye special UI Message */}
+              {f.isLocked && (
+                <div className="mt-5 pt-4 border-t border-gray-100">
+                   <div className="flex items-center justify-between text-xs font-semibold text-[#A8B58A] group-hover:text-white group-hover:bg-[#A8B58A] bg-[#A8B58A]/10 px-3 py-2 rounded-lg transition-colors duration-300">
+                     <span>🔒 Login to continue to your dashboard</span>
+                     <span>→</span>
+                   </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -974,7 +1002,7 @@ export default function App({ onNavigate }) {
         onLoginSuccess={handleLoginSuccess}
       />
 
+      
     </div>
-  )
-  
+  );
 }

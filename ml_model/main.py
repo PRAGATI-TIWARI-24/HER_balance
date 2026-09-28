@@ -22,6 +22,13 @@ from fastapi.responses import StreamingResponse
 # .env file se secret keys load karne ke liye
 load_dotenv(override=True)
 
+my_api_key = os.getenv("GEMINI_API_KEY")
+genai.configure(api_key=my_api_key)
+
+# Debugging ke liye check karte hain ki key aayi ya nahi (Terminal mein dikhega)
+print("Dhyan se dekho! Nayi Key ka pehla hissa:", str(my_api_key)[:10])
+
+
 # Database imports (Ensure your database.py is correctly set up)
 from database import SessionLocal, User, AssessmentHistory
 
@@ -207,3 +214,34 @@ async def ai_health_companion(chat: ChatMessage):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=False)
+
+# --- Naya Holistic Dietitian Feature ---
+
+# 1. Ye define karta hai ki user kya kya data bhejegi
+class LifestyleRequest(BaseModel):
+    diet: str
+    sleep: str
+    stress: str
+
+# 2. Ye humara naya rasta (endpoint) hai
+@app.post("/holistic-check")
+async def holistic_check(req: LifestyleRequest):
+    try:
+        # Hum AI ko ek strict prompt de rahe hain madam ki tip ke hisaab se
+        ai_prompt = f"""
+        You are an empathetic, expert PCOS Dietitian and Holistic Health Coach.
+        Analyze this user's daily log:
+        - Diet: {req.diet}
+        - Sleep: {req.sleep}
+        - Stress Level: {req.stress}
+        
+        Give a short, friendly, and highly practical tip (3-4 sentences max) explaining how their specific diet, sleep, and stress are interacting to affect their PCOS symptoms. Don't be robotic, talk like a caring human expert.
+        """
+        
+        # AI se answer maang rahe hain (Ensure karo ki 'model' tumhare purane code mein defined hai)
+        response = ai_companion_model.generate_content(ai_prompt)
+        
+        return {"reply": response.text}
+        
+    except Exception as e:
+        return {"reply": f"Asli Error ye hai: {str(e)}"}
