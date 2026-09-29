@@ -8,6 +8,9 @@ export default function Dashboard({ user, onLogout }) {
   // ─── Main View Navigation Tab ───
   const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' | 'analytics'
 
+  // ─── Feature 5: Doctor PDF Modal State ───
+  const [showPdfModal, setShowPdfModal] = useState(false);
+
   // ─── Push Notification State ───
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
@@ -124,7 +127,7 @@ export default function Dashboard({ user, onLogout }) {
 
   const waterSchedule = ["8 AM", "10 AM", "12 PM", "2 PM", "4 PM", "6 PM", "8 PM", "10 PM"];
 
-  // ─── Mock Weekly Analytics Data (Calculated dynamically) ───
+  // Mock Weekly Analytics Data
   const weeklyWaterData = [
     { day: 'Mon', glasses: 6 },
     { day: 'Tue', glasses: 8 },
@@ -296,6 +299,11 @@ export default function Dashboard({ user, onLogout }) {
     setLoading(false);
   };
 
+  // Trigger Print to PDF
+  const handlePrintPdf = () => {
+    window.print();
+  };
+
   return (
     <div className="min-h-screen bg-[#FAF9F6] p-4 md:p-8 animate-in fade-in duration-500 relative">
       
@@ -309,6 +317,14 @@ export default function Dashboard({ user, onLogout }) {
         </div>
         
         <div className="flex flex-wrap items-center gap-3">
+          {/* Feature 5 Button */}
+          <button
+            onClick={() => setShowPdfModal(true)}
+            className="bg-[#29272D] text-white hover:bg-black px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
+          >
+            📄 Doctor PDF Report
+          </button>
+
           <button
             onClick={handleEnableNotifications}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 border ${
@@ -336,7 +352,7 @@ export default function Dashboard({ user, onLogout }) {
         </div>
       </div>
 
-      {/* ── Tab Switcher (Dashboard vs Analytics) ── */}
+      {/* ── Tab Switcher ── */}
       <div className="max-w-6xl mx-auto mb-6 bg-white p-1.5 rounded-2xl border border-[#E8E4DE] flex gap-2 shadow-sm w-full sm:w-fit">
         <button
           onClick={() => setActiveTab('dashboard')}
@@ -372,7 +388,7 @@ export default function Dashboard({ user, onLogout }) {
             </div>
           </div>
           <button
-            onClick={() => setShowSosModal(false)}
+            onClick={() => setShowSosModal(true)}
             className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition-colors whitespace-nowrap"
           >
             Open Relief Box 🌸
@@ -873,7 +889,6 @@ export default function Dashboard({ user, onLogout }) {
       {activeTab === 'analytics' && (
         <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in duration-300">
           
-          {/* Top Summary Metric Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="bg-white p-5 rounded-3xl border border-[#E8E4DE] shadow-sm flex items-center gap-4">
               <div className="w-12 h-12 rounded-2xl bg-purple-50 text-[#8B7BB5] flex items-center justify-center text-2xl font-bold">
@@ -910,7 +925,6 @@ export default function Dashboard({ user, onLogout }) {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
-            {/* 1. Weekly Water Intake Bar Chart */}
             <div className="bg-white p-6 rounded-3xl shadow-sm border border-[#E8E4DE]">
               <div className="flex justify-between items-center mb-6">
                 <div>
@@ -924,7 +938,6 @@ export default function Dashboard({ user, onLogout }) {
                 </span>
               </div>
 
-              {/* Bar Chart Graphics */}
               <div className="flex items-end justify-between h-44 pt-4 px-2 border-b border-[#E8E4DE]">
                 {weeklyWaterData.map((item, idx) => {
                   const heightPercentage = Math.min((item.glasses / 8) * 100, 100);
@@ -952,7 +965,6 @@ export default function Dashboard({ user, onLogout }) {
               </div>
             </div>
 
-            {/* 2. Top Symptom Frequency Breakdown */}
             <div className="bg-white p-6 rounded-3xl shadow-sm border border-[#E8E4DE]">
               <div className="flex justify-between items-center mb-6">
                 <div>
@@ -991,7 +1003,6 @@ export default function Dashboard({ user, onLogout }) {
 
           </div>
 
-          {/* 3. Holistic Health & Lifestyle Summary Card */}
           <div className="bg-gradient-to-r from-purple-900 to-[#29272D] text-white p-6 rounded-3xl shadow-md flex flex-col md:flex-row justify-between items-center gap-6">
             <div className="space-y-2 text-center md:text-left">
               <span className="bg-purple-500/30 text-purple-200 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
@@ -1011,6 +1022,138 @@ export default function Dashboard({ user, onLogout }) {
             </button>
           </div>
 
+        </div>
+      )}
+
+      {/* ── 📄 FEATURE 5: DOCTOR MEDICAL PDF REPORT MODAL ── */}
+      {showPdfModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white w-full max-w-2xl rounded-3xl p-6 sm:p-8 shadow-2xl border border-[#E8E4DE] max-h-[90vh] overflow-y-auto relative">
+            
+            <button
+              onClick={() => setShowPdfModal(false)}
+              className="no-print absolute top-4 right-4 text-[#7A7880] hover:text-[#29272D] font-bold text-lg bg-[#FAF9F6] w-8 h-8 rounded-full flex items-center justify-center border border-[#E8E4DE]"
+            >
+              ✕
+            </button>
+
+            {/* Printable Container */}
+            <div id="printable-doctor-report" className="space-y-6">
+              
+              {/* Report Header */}
+              <div className="border-b border-[#E8E4DE] pb-4 flex justify-between items-start">
+                <div>
+                  <h2 className="text-2xl font-bold text-[#29272D] flex items-center gap-2">
+                    🩺 Gynecological & Hormonal Health Summary
+                  </h2>
+                  <p className="text-xs text-[#7A7880] mt-1">Generated via Self-Care Health Tracker App</p>
+                </div>
+                <div className="text-right">
+                  <span className="bg-purple-100 text-[#8B7BB5] text-[10px] font-bold px-3 py-1 rounded-full uppercase">
+                    Patient Clinical Summary
+                  </span>
+                  <p className="text-xs text-[#7A7880] mt-2">Date: {new Date().toLocaleDateString()}</p>
+                </div>
+              </div>
+
+              {/* Patient Basic Profile */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-[#FAF9F6] p-4 rounded-2xl border border-[#E8E4DE] text-xs">
+                <div>
+                  <p className="text-[#7A7880] font-semibold">Patient Name</p>
+                  <p className="font-bold text-[#29272D]">{user?.name || 'User Profile'}</p>
+                </div>
+                <div>
+                  <p className="text-[#7A7880] font-semibold">Cycle Phase</p>
+                  <p className="font-bold text-[#8B7BB5]">{currentPhase}</p>
+                </div>
+                <div>
+                  <p className="text-[#7A7880] font-semibold">Overall Status</p>
+                  <p className={`font-bold ${symptomStatus === 'Needs Attention' ? 'text-rose-600' : 'text-emerald-600'}`}>
+                    {symptomStatus}
+                  </p>
+                </div>
+              </div>
+
+              {/* Cycle & Symptom Summary Table */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-bold text-[#7A7880] uppercase tracking-wider">1. Menstrual Cycle Overview</h4>
+                <div className="border border-[#E8E4DE] rounded-2xl p-4 space-y-2 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-[#7A7880]">Last Period Start Date:</span>
+                    <span className="font-bold text-[#29272D]">{lastDate || 'Not Configured'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-[#7A7880]">Average Cycle Duration:</span>
+                    <span className="font-bold text-[#29272D]">{cycleLength} Days</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-[#7A7880]">Logged Period Flow Today:</span>
+                    <span className="font-bold text-[#8B7BB5]">{selectedFlow}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Logged Symptoms Section */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-bold text-[#7A7880] uppercase tracking-wider">2. Logged Physical & Mental Symptoms</h4>
+                <div className="border border-[#E8E4DE] rounded-2xl p-4 text-xs space-y-2">
+                  <p className="text-[#7A7880]">Symptoms reported in recent journal entries:</p>
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {loggedSymptomsList.length > 0 ? (
+                      loggedSymptomsList.map((sym, i) => (
+                        <span key={i} className="bg-rose-50 text-rose-700 border border-rose-200 px-2.5 py-1 rounded-lg font-semibold">
+                          {sym}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-[#7A7880] italic">No acute symptoms reported today.</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Active Supplements Section */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-bold text-[#7A7880] uppercase tracking-wider">3. Active Medications & Supplements</h4>
+                <div className="border border-[#E8E4DE] rounded-2xl p-4 text-xs">
+                  {medications.length > 0 ? (
+                    <ul className="list-disc list-inside space-y-1">
+                      {medications.map((m) => (
+                        <li key={m.id} className="text-[#29272D]">
+                          <span className="font-bold">{m.name}</span> — {m.time} schedule ({m.taken ? 'Taken Today' : 'Pending'})
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-[#7A7880] italic">No active supplements added in app.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Doctor Note Disclaimer */}
+              <p className="text-[10px] text-[#7A7880] italic border-t border-[#E8E4DE] pt-3">
+                Note: This document is an aggregated summary of patient-reported self-tracking logs intended solely to assist clinical consultations.
+              </p>
+
+            </div>
+
+            {/* Action Buttons (Hidden on Print) */}
+            <div className="no-print mt-6 flex gap-3">
+              <button
+                onClick={handlePrintPdf}
+                className="flex-1 bg-[#8B7BB5] hover:bg-[#726496] text-white font-bold py-3 rounded-2xl text-xs transition-colors shadow-sm flex items-center justify-center gap-2"
+              >
+                <span>🖨️ Save as PDF / Print Report</span>
+              </button>
+              <button
+                onClick={() => setShowPdfModal(false)}
+                className="border border-[#E8E4DE] text-[#7A7880] hover:text-[#29272D] px-5 py-3 rounded-2xl text-xs font-semibold"
+              >
+                Close
+              </button>
+            </div>
+
+          </div>
         </div>
       )}
 

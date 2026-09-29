@@ -14,11 +14,12 @@ from sqlalchemy.orm import Session
 import bcrypt  # Nayi security library
 import os
 
+
 # Nayi libraries AI aur environment variables ke liye
 import google.generativeai as genai
 from dotenv import load_dotenv
 from fastapi.responses import StreamingResponse
-
+from fastapi.middleware.cors import CORSMiddleware
 # .env file se secret keys load karne ke liye
 load_dotenv(override=True)
 
