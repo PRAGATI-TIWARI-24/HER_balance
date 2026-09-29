@@ -37,11 +37,15 @@ app = FastAPI(title="HerBalance Backend API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173","https://her-balance-theta.vercel.app/"],  # Frontend ke liye allow kar rahe hain 
+    allow_origins=["http://localhost:5173","https://her-balance-theta.vercel.app",""],  # Frontend ke liye allow kar rahe hain 
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST","OPTIONS", "PUT", "DELETE"],
     allow_headers=["*"],
 )
+
+from fastapi import Response
+
+
 
 # --- 🔒 SECURITY: Password Encryption Setup (Updated) ---
 def get_password_hash(password: str):
@@ -213,8 +217,10 @@ async def ai_health_companion(chat: ChatMessage):
     # Server-Sent Events (SSE) ki tarah data bhejna
     return StreamingResponse(generate_stream(), media_type="text/plain")
 if __name__ == "__main__":
+    import os
     import uvicorn
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=False)
+    port= int(os.getenv("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
 
 # --- Naya Holistic Dietitian Feature ---
 
