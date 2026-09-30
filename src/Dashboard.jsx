@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import html2pdf from 'html2pdf.js';
 
-// ── Supabase Client Import ──
-import { supabase } from './supabaseClient';
+// ── Safe Supabase Client Import ──
+import { supabase, isSupabaseConfigured } from './supabaseClient';
 
 // ── Native Background Notifications Import ──
 import { 
@@ -20,7 +20,7 @@ export default function Dashboard({ user, onLogout }) {
   const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' | 'analytics'
 
   // ─── Cloud Sync Status Indicator ───
-  const [syncStatus, setSyncStatus] = useState('Synced ☁️'); // 'Syncing...', 'Synced ☁️', 'Local Mode 💾'
+  const [syncStatus, setSyncStatus] = useState('Local Mode 💾'); // 'Syncing... ⏳', 'Cloud Synced ☁️', 'Local Mode 💾'
 
   // ─── Feature 5: Doctor PDF Modal State ───
   const [showPdfModal, setShowPdfModal] = useState(false);
@@ -146,7 +146,7 @@ export default function Dashboard({ user, onLogout }) {
   ];
 
   // ════════════════════════════════════════════════════════════════
-  // ── SUPABASE FETCH ON LOAD ──
+  // ── SAFE SUPABASE FETCH ON LOAD ──
   // ════════════════════════════════════════════════════════════════
   useEffect(() => {
     requestNotificationPermission().then((granted) => {
@@ -154,13 +154,19 @@ export default function Dashboard({ user, onLogout }) {
     });
 
     const fetchSupabaseData = async () => {
+      // Guard Check: Agar Supabase configure na ho toh return karein
+      if (!isSupabaseConfigured || !supabase) {
+        setSyncStatus('Local Mode 💾');
+        return;
+      }
+
       try {
         setSyncStatus('Syncing... ⏳');
         const { data, error } = await supabase
           .from('user_health_data')
           .select('*')
           .eq('user_id', userKey)
-          .single();
+          .maybeSingle(); // maybeSingle() error throw nahi karta agar table khali ho
 
         if (data && !error) {
           if (data.last_date) {
@@ -191,9 +197,15 @@ export default function Dashboard({ user, onLogout }) {
   }, [userKey]);
 
   // ════════════════════════════════════════════════════════════════
-  // ── SUPABASE AUTO-SAVE FUNCTION ──
+  // ── SAFE SUPABASE AUTO-SAVE FUNCTION ──
   // ════════════════════════════════════════════════════════════════
   const pushToSupabase = async (overrideData = {}) => {
+    // Guard Check: Agar Supabase configured nahi hai toh silent save karein
+    if (!isSupabaseConfigured || !supabase) {
+      setSyncStatus('Local Mode 💾');
+      return;
+    }
+
     try {
       setSyncStatus('Saving... ⏳');
       const payload = {
@@ -562,7 +574,7 @@ export default function Dashboard({ user, onLogout }) {
               {syncStatus}
             </span>
           </div>
-          <p className="text-[#7A7880] mt-1 text-sm">Welcome to your cloud-synced health overview.</p>
+          <p className="text-[#7A7880] mt-1 text-sm">Welcome to your personal health overview.</p>
         </div>
         
         <div className="flex flex-wrap items-center gap-3">
@@ -657,7 +669,7 @@ export default function Dashboard({ user, onLogout }) {
       {activeTab === 'dashboard' && (
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           
-          {/* 1. UPGRADED SMART CYCLE TRACKER CARD */}
+          {/* 1. SMART CYCLE TRACKER CARD */}
           <div className="bg-white p-6 rounded-3xl shadow-sm border border-[#E8E4DE] hover:shadow-md transition-shadow">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-bold text-[#29272D] flex items-center gap-2">
