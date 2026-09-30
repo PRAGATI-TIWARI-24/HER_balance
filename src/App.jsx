@@ -144,62 +144,109 @@ function DashboardMockup() {
     </div>
   )
 }
-const handleComingSoon = () => {
-  alert("✨ We are building this! Dashboard & Login features will be available soon. 🌸");
-};
-// ─── Navbar ───────────────────────────────────────────────────────────────────
+
+// ─── Responsive Navbar (Desktop: Full Navigation | Mobile: Hamburger Menu) ────
 function Navbar({ onNavigate, onContactClick, onLoginClick }) {
-  const [open, setOpen] = useState(false)
-  const links = ['How It Works', 'Features', 'Why HerBalance', 'FAQ']
+  const [open, setOpen] = useState(false);
+  const links = ['How It Works', 'Features', 'Why HerBalance', 'FAQ'];
 
   return (
     <nav className="border-b border-[#E8E4DE] bg-white sticky top-0 z-40">
-      <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-  {/* Ye line tumhara naya logo dikhayegi */}
-  <img
-    src="/pcod_logo.jpeg"
-    alt="HerBalance Logo"
-    className="h-12 w-12 rounded-full object-cover shadow-sm"
-  />
-  {/* Ye tumhara text hai */}
-  <h1 className="text-2xl font-bold text-[#B46A72]">HerBalance</h1>
-</div>
+      <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between gap-2">
         
-        {/* Desktop Links */}
-        <div className="hidden md:flex items-center gap-8">
+        {/* Left: Brand Logo & Title */}
+        <div className="flex items-center gap-2.5 shrink-0">
+          <img
+            src="/pcod_logo.jpeg"
+            alt="HerBalance Logo"
+            className="h-9 w-9 sm:h-11 sm:w-11 rounded-full object-cover shadow-sm shrink-0"
+          />
+          <h1 className="text-lg sm:text-2xl font-bold text-[#B46A72] tracking-tight shrink-0">
+            HerBalance
+          </h1>
+        </div>
+        
+        {/* Desktop Links (Visible only on screens md and above) */}
+        <div className="hidden md:flex items-center gap-7">
           {links.map(link => (
-            <a key={link} href={`#${link.toLowerCase().replace(/\s+/g, '-')}`} className="text-sm font-medium text-[#7A7880] hover:text-[#29272D] transition-colors">
+            <a 
+              key={link} 
+              href={`#${link.toLowerCase().replace(/\s+/g, '-')}`} 
+              className="text-sm font-medium text-[#7A7880] hover:text-[#29272D] transition-colors"
+            >
               {link}
             </a>
           ))}
         </div>
         
-        <div className="hidden md:flex items-center gap-3">
-          {/* 🟢 NAYA: Log In button par onLoginClick laga diya */}
-          <button onClick={onLoginClick} className="text-sm font-medium text-[#7A7880] hover:text-[#29272D] transition-colors px-3 py-1.5">
+        {/* Desktop Right Side Buttons */}
+        <div className="hidden md:flex items-center gap-4 shrink-0">
+          <button 
+            onClick={onLoginClick} 
+            className="text-sm font-semibold text-[#8B7BB5] bg-[#EAE6F4] hover:bg-[#8B7BB5] hover:text-white transition-all px-4 py-2 rounded-xl"
+          >
             Log In
           </button>
-          
+
+          <a 
+            href="https://www.linkedin.com/in/pragati-tiwari-sde24/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-sm text-gray-600 hover:text-pink-600 font-semibold transition-colors"
+          >
+            Contact Us
+          </a>
         </div>
 
-        <div className="flex items-center space-x-6"> {/* space-x-6 dono ke beech mein gap banayega */}
-  
-  {/* Contact Us Link */}
-  <a 
-    href="https://www.linkedin.com/in/pragati-tiwari-sde24/" 
-    target="_blank" 
-    rel="noopener noreferrer"
-    className="text-gray-600 hover:text-pink-600 font-semibold transition-colors duration-300"
-  >
-    Contact Us
-  </a>
+        {/* Mobile Right: Compact Login + Hamburger Button */}
+        <div className="flex items-center gap-2 md:hidden">
+          <button 
+            onClick={onLoginClick} 
+            className="text-xs font-semibold text-[#8B7BB5] bg-[#EAE6F4] px-3 py-1.5 rounded-lg shrink-0"
+          >
+            Log In
+          </button>
 
-  
-</div>
+          <button 
+            onClick={() => setOpen(!open)}
+            className="p-1.5 rounded-lg border border-[#E8E4DE] text-[#29272D] hover:bg-[#FAF9F6] active:bg-[#F0EDE8] transition-colors"
+            aria-label="Toggle Menu"
+          >
+            <Icon path={open ? icons.x : icons.menu} size={22} />
+          </button>
+        </div>
+
       </div>
+
+      {/* Mobile Dropdown Menu (Opened when hamburger icon is clicked) */}
+      {open && (
+        <div className="md:hidden bg-white border-t border-[#E8E4DE] px-5 py-4 space-y-3 shadow-lg animate-in slide-in-from-top-2">
+          {links.map(link => (
+            <a 
+              key={link} 
+              href={`#${link.toLowerCase().replace(/\s+/g, '-')}`} 
+              onClick={() => setOpen(false)}
+              className="block text-sm font-medium text-[#29272D] hover:text-[#8B7BB5] py-1.5 border-b border-gray-50"
+            >
+              {link}
+            </a>
+          ))}
+
+          <div className="pt-2">
+            <a 
+              href="https://www.linkedin.com/in/pragati-tiwari-sde24/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              onClick={() => setOpen(false)}
+              className="block text-sm text-gray-600 hover:text-pink-600 font-semibold py-1.5"
+            >
+              Contact Us (LinkedIn)
+            </a>
+          </div>
+        </div>
+      )}
     </nav>
-  )
+  );
 }
 
 // ─── FAQ ──────────────────────────────────────────────────────────────────────
@@ -241,6 +288,7 @@ function FAQ() {
     </section>
   )
 }
+
 // ─── Asli AI Chat Component ──────────────────────────────────────────────────
 function AICompanionChat({ icons }) {
   const [messages, setMessages] = useState([
@@ -250,7 +298,6 @@ function AICompanionChat({ icons }) {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
 
-  // Naya message aane par auto-scroll karne ke liye
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -259,10 +306,9 @@ function AICompanionChat({ icons }) {
     if (!input.trim()) return;
 
     const userText = input.trim();
-    // User ka message screen par turant dikhao
     setMessages(prev => [...prev, { sender: 'user', text: userText }]);
     setInput("");
-    setIsLoading(true); // Loading animation chalu (Bouncing dots)
+    setIsLoading(true);
 
     try {
       const response = await fetch("https://her-balance.onrender.com/chat", {
@@ -273,25 +319,21 @@ function AICompanionChat({ icons }) {
 
       if (!response.ok) throw new Error("Server error");
       
-      // Streaming data padhne ke liye setup
       const reader = response.body.getReader();
       const decoder = new TextDecoder("utf-8");
       let isFirstChunk = true;
 
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break; // Jab AI chup ho jaye toh ruk jao
+        if (done) break;
         
-        // Chunk (hissa) ko text mein convert karo
         const chunk = decoder.decode(value, { stream: true });
         
         if (isFirstChunk) {
-          // Jaise hi pehla word aaye, dots hatao aur chat bubble create karo
           setIsLoading(false);
           setMessages(prev => [...prev, { sender: 'ai', text: chunk }]);
           isFirstChunk = false;
         } else {
-          // Uske baad wale har word ko pichle bubble mein jodte jao (Typing effect)
           setMessages(prev => {
             const newMessages = [...prev];
             const lastIndex = newMessages.length - 1;
@@ -309,9 +351,9 @@ function AICompanionChat({ icons }) {
       setIsLoading(false);
     }
   };
+
   return (
     <div className="bg-white rounded-2xl border border-[#E8E4DE] shadow-[0_8px_40px_rgba(139,123,181,0.10)] overflow-hidden flex flex-col h-[450px]">
-      {/* Header */}
       <div className="bg-gradient-to-r from-[#8B7BB5] to-[#A89FCC] px-5 py-4 flex items-center gap-3 shrink-0">
         <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
           <Icon path={icons.sparkle} size={16} className="text-white" />
@@ -323,7 +365,6 @@ function AICompanionChat({ icons }) {
         <div className="ml-auto w-2 h-2 bg-green-300 rounded-full animate-pulse" />
       </div>
       
-      {/* Messages Area */}
       <div className="flex-1 p-5 overflow-y-auto space-y-4 bg-[#FAF9F6]">
         {messages.map((msg, idx) => (
           <div key={idx} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start gap-3'}`}>
@@ -342,7 +383,6 @@ function AICompanionChat({ icons }) {
           </div>
         ))}
         
-        {/* Loading Spinner / Typing indicator */}
         {isLoading && (
           <div className="flex justify-start gap-3">
             <div className="w-7 h-7 rounded-full bg-[#EAE6F4] flex items-center justify-center flex-shrink-0 mt-1">
@@ -358,7 +398,6 @@ function AICompanionChat({ icons }) {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Area */}
       <div className="p-4 bg-white border-t border-[#E8E4DE] flex gap-2 shrink-0">
         <input 
           type="text" 
@@ -385,19 +424,15 @@ export default function App({ onNavigate }) {
   const [showContact, setShowContact] = useState(false);
   const [currentPage, setCurrentPage] = useState('landing');
   
-  // 🟢 NAYA: Modal (Popup) aur User ki detail yaad rakhne ke liye
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [user, setUser] = useState(null);
 
-  // 🟢 NAYA: Jab Login successful ho jaye
   const handleLoginSuccess = (userId, userName) => {
-    setUser({ id: userId, name: userName }); // User ka naam save kar liya
-    setShowAuthModal(false); // Pop-up band kar diya
-    setCurrentPage('dashboard'); // Dashboard page par bhej diya
+    setUser({ id: userId, name: userName });
+    setShowAuthModal(false);
+    setCurrentPage('dashboard');
   };
 
-  // 🟢 NAYA: Dashboard Page View (Login ke baad ye dikhega)
-  // 🟢 NAYA: Asli Premium Dashboard
   if (currentPage === 'dashboard') {
     return (
       <Dashboard 
@@ -410,7 +445,7 @@ export default function App({ onNavigate }) {
       />
     );
   }
-  // Assessment Form Page
+
   if(currentPage === 'assessment') {
     return <Assessment onback={() => setCurrentPage('landing')} />;
   }
@@ -419,10 +454,8 @@ export default function App({ onNavigate }) {
 
   return (
     <div className="min-h-screen bg-[#FAF9F6]">
-      {/* 🟢 ScrollToTop component add kar diya gaya hai */}
       <ScrollToTop />
 
-      {/* 🟢 NAYA: Navbar ko Login modal open karne ki permission de di */}
       <Navbar 
         onNavigate={onNavigate} 
         onContactClick={() => setShowContact(true)} 
@@ -432,7 +465,6 @@ export default function App({ onNavigate }) {
       {/* ── Hero ──────────────────────────────────────────────────────────── */}
       <section className="max-w-6xl mx-auto px-5 pt-16 pb-20 md:pt-24 md:pb-28">
         <div className="grid md:grid-cols-2 gap-12 items-center">
-          {/* Left */}
           <div className="space-y-6">
             <div className="inline-flex items-center gap-2 bg-[#EAE6F4] text-[#8B7BB5] text-xs font-semibold px-4 py-2 rounded-full">
               <Icon path={icons.sparkle} size={13} />
@@ -461,7 +493,6 @@ export default function App({ onNavigate }) {
             </p>
           </div>
 
-          {/* Right */}
           <div className="flex justify-center md:justify-end">
             <DashboardMockup />
           </div>
@@ -522,7 +553,6 @@ export default function App({ onNavigate }) {
             </h2>
           </div>
           <div className="relative">
-            {/* Connector line */}
             <div className="hidden md:block absolute top-8 left-[12.5%] right-[12.5%] h-px bg-gradient-to-r from-[#8B7BB5] via-[#A8BFA3] to-[#D99AA5]" />
             <div className="grid md:grid-cols-4 gap-8">
               {[
@@ -556,7 +586,6 @@ export default function App({ onNavigate }) {
           {[
             { icon: '🩸', title: 'Smart Cycle Tracking', desc: 'Track periods, cycle length and changes over time to understand your unique rhythm.', isLocked: true },
             { icon: '🌸', title: 'Symptom Journal', desc: 'Record symptoms such as acne, hair fall, fatigue and more in a structured, searchable log.' },
-            // Yahan humne isLocked: true lagaya hai
             { icon: '🥗', title: 'Personalized Nutrition', desc: 'Discover practical Indian food choices — vegetarian, eggetarian, and regional options — that fit your lifestyle.', isLocked: true },
             { icon: '🏃', title: 'Lifestyle Goals', desc: 'Build manageable habits around movement, sleep and daily wellbeing at your own pace.' },
             { icon: '📊', title: 'Health Insights', desc: 'Understand trends in your own data without turning them into a medical diagnosis.' },
@@ -564,8 +593,7 @@ export default function App({ onNavigate }) {
           ].map(f => (
             <div 
               key={f.title} 
-              // Agar isLocked true hai, toh click karne par seedha dashboard khulega
-              onClick={() => f.isLocked ? setIsLoggedIn(true) : null}
+              onClick={() => f.isLocked ? setShowAuthModal(true) : null}
               className={`bg-white rounded-2xl border border-[#E8E4DE] p-6 transition-all group relative
                 ${f.isLocked ? 'cursor-pointer hover:border-[#A8B58A] hover:shadow-md' : 'hover:border-[#8B7BB5]/30 hover:shadow-[0_8px_32px_rgba(139,123,181,0.09)]'} 
               `}
@@ -578,7 +606,6 @@ export default function App({ onNavigate }) {
               
               <p className="text-[#7A7880] text-sm leading-relaxed">{f.desc}</p>
               
-              {/* Locked Features ke liye special UI Message */}
               {f.isLocked && (
                 <div className="mt-5 pt-4 border-t border-gray-100">
                    <div className="flex items-center justify-between text-xs font-semibold text-[#A8B58A] group-hover:text-white group-hover:bg-[#A8B58A] bg-[#A8B58A]/10 px-3 py-2 rounded-lg transition-colors duration-300">
@@ -603,7 +630,6 @@ export default function App({ onNavigate }) {
           </div>
 
           <div className="bg-white rounded-3xl border border-[#E8E4DE] shadow-[0_32px_96px_rgba(139,123,181,0.12)] overflow-hidden max-w-4xl mx-auto">
-            {/* Browser chrome */}
             <div className="bg-[#F7F4FB] border-b border-[#E8E4DE] px-5 py-3.5 flex items-center gap-3">
               <div className="flex gap-1.5">
                 <div className="w-3 h-3 rounded-full bg-[#D99AA5]" />
@@ -614,7 +640,6 @@ export default function App({ onNavigate }) {
             </div>
 
             <div className="p-6 md:p-8">
-              {/* Greeting */}
               <div className="flex items-start justify-between mb-6">
                 <div>
                   <h3 className="text-xl font-bold text-[#29272D]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Good morning 🌸</h3>
@@ -628,7 +653,6 @@ export default function App({ onNavigate }) {
               </div>
 
               <div className="grid md:grid-cols-3 gap-5">
-                {/* Goals */}
                 <div className="bg-[#FAF9F6] rounded-2xl border border-[#E8E4DE] p-5">
                   <p className="font-semibold text-[#29272D] text-sm mb-3" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Today's Goals</p>
                   <div className="space-y-3">
@@ -648,7 +672,6 @@ export default function App({ onNavigate }) {
                   </div>
                 </div>
 
-                {/* Health overview */}
                 <div className="bg-[#FAF9F6] rounded-2xl border border-[#E8E4DE] p-5">
                   <p className="font-semibold text-[#29272D] text-sm mb-3" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Health Overview</p>
                   <div className="space-y-2.5">
@@ -671,7 +694,6 @@ export default function App({ onNavigate }) {
                   </div>
                 </div>
 
-                {/* Insight */}
                 <div className="flex flex-col gap-4">
                   <div className="bg-gradient-to-br from-[#EAE6F4] to-[#F4EEF0] rounded-2xl border border-[#DDD7EF] p-5 flex-1">
                     <div className="flex gap-2 mb-2.5">
@@ -793,7 +815,6 @@ export default function App({ onNavigate }) {
             </div>
           </div>
 
-          {/* 🟢 NAYA ASLI CHAT COMPONENT YAHAN AAYEGA */}
           <AICompanionChat icons={icons} />
           
         </div>
@@ -803,7 +824,6 @@ export default function App({ onNavigate }) {
       <section className="py-24 px-5 bg-gradient-to-b from-[#F7F4FB] to-[#FAF9F6] border-y border-[#E8E4DE]">
         <div className="max-w-6xl mx-auto">
           <div className="grid md:grid-cols-2 gap-14 items-center">
-            {/* Report mockup */}
             <div className="bg-white rounded-2xl border border-[#E8E4DE] shadow-[0_8px_40px_rgba(139,123,181,0.10)] overflow-hidden">
               <div className="bg-gradient-to-r from-[#8B7BB5]/10 to-[#A8BFA3]/10 border-b border-[#E8E4DE] px-6 py-5">
                 <div className="flex items-center gap-3">
@@ -995,14 +1015,14 @@ export default function App({ onNavigate }) {
           </div>
         </div>
       )}
-      {/* 🟢 NAYA: Login / Signup Modal */}
+
+      {/* ── Login / Signup Modal ── */}
       <AuthModal 
         isOpen={showAuthModal} 
         onClose={() => setShowAuthModal(false)} 
         onLoginSuccess={handleLoginSuccess}
       />
 
-      
     </div>
   );
 }
