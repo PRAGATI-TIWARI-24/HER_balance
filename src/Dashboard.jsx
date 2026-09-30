@@ -1,4 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import html2pdf from 'html2pdf.js';
+
+// ── Supabase Client Import ──
+import { supabase } from './supabaseClient';
 
 // ── Native Background Notifications Import ──
 import { 
@@ -9,11 +13,14 @@ import {
 
 export default function Dashboard({ user, onLogout }) {
   
-  // ─── LocalStorage Key Prefix ───
+  // ─── LocalStorage Key Prefix / User ID ───
   const userKey = user?.id || user?.email || 'guest_user';
 
   // ─── Main View Navigation Tab ───
   const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' | 'analytics'
+
+  // ─── Cloud Sync Status Indicator ───
+  const [syncStatus, setSyncStatus] = useState('Synced ☁️'); // 'Syncing...', 'Synced ☁️', 'Local Mode 💾'
 
   // ─── Feature 5: Doctor PDF Modal State ───
   const [showPdfModal, setShowPdfModal] = useState(false);
@@ -21,7 +28,7 @@ export default function Dashboard({ user, onLogout }) {
   // ─── Push Notification State ───
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
-  // ─── SOS Emergency Contact States (Saved in LocalStorage) ───
+  // ─── SOS Emergency Contact States ───
   const [sosContactName, setSosContactName] = useState(() => {
     return localStorage.getItem(`${userKey}_sosContactName`) || '';
   });
@@ -30,83 +37,12 @@ export default function Dashboard({ user, onLogout }) {
   });
   const [isEditingSosContact, setIsEditingSosContact] = useState(false);
 
-  useEffect(() => {
-    requestNotificationPermission().then((granted) => {
-      if (granted) setNotificationsEnabled(true);
-    });
-  }, []);
-
-  // ── Save Emergency Contact Handler ──
-  const handleSaveSosContact = (e) => {
-    e.preventDefault();
-    localStorage.setItem(`${userKey}_sosContactName`, sosContactName);
-    localStorage.setItem(`${userKey}_sosContactNumber`, sosContactNumber);
-    setIsEditingSosContact(false);
-    alert("Emergency Contact details save ho gayi hain! 🌸");
-  };
-
-  // ── Trigger WhatsApp SOS Message ──
-  const handleSendWhatsAppSos = () => {
-    if (!sosContactNumber.trim()) {
-      alert("Pehle apna emergency contact number add karein!");
-      setIsEditingSosContact(true);
-      return;
-    }
-
-    let cleanNumber = sosContactNumber.replace(/[^0-9]/g, '');
-    if (cleanNumber.length === 10) {
-      cleanNumber = '91' + cleanNumber;
-    }
-
-    const message = encodeURIComponent(
-      `Hi ${sosContactName || 'there'}, mujhe iss waqt severe PCOD cramps/pain ho raha hai aur help chahiye. Please check on me or help me get medication. (Sent via HerBalance App SOS Relief)`
-    );
-
-    window.open(`https://wa.me/${cleanNumber}?text=${message}`, '_blank');
-  };
-
-  // ── Trigger Native Phone Call ──
-  const handleMakeSosCall = () => {
-    if (!sosContactNumber.trim()) {
-      alert("Pehle apna emergency contact number add karein!");
-      setIsEditingSosContact(true);
-      return;
-    }
-    const cleanNumber = sosContactNumber.replace(/[^0-9+]/g, '');
-    window.location.href = `tel:${cleanNumber}`;
-  };
-
-  // ── Setup Reminders Handler ──
-  const handleSetupReminders = async () => {
-    const granted = await requestNotificationPermission();
-    if (granted) {
-      setNotificationsEnabled(true);
-      await sendInstantNotification(
-        "Reminders Enabled! 🔔",
-        "Aapko daily routine, water aur medicine ke timely background reminders milte rahenge. 🌸"
-      );
-      await scheduleDailyReminder(
-        101, 
-        "HerBalance Morning Routine 🌸", 
-        "Good morning! Don't forget your daily water intake, supplements, and mood check.", 
-        9, 
-        0
-      );
-      alert("Reminders Setup Done! Roz subah 9:00 AM ka background reminder set ho gaya hai. 🌸");
-    } else {
-      alert("Notification permission allow nahi hui. Device settings se permission enable karein.");
-    }
-  };
-
-  const triggerNotification = async (title, body) => {
-    try {
-      await sendInstantNotification(title, body);
-    } catch (e) {
-      if ("Notification" in window && Notification.permission === "granted") {
-        new Notification(title, { body });
-      }
-    }
-  };
+  // ─── Lab Report Analyzer States ───
+  const [showLabModal, setShowLabModal] = useState(false);
+  const [labValues, setLabValues] = useState(() => {
+    const saved = localStorage.getItem(`${userKey}_labValues`);
+    return saved ? JSON.parse(saved) : { lh: '', fsh: '', testosterone: '', tsh: '' };
+  });
 
   // ─── 1. AI Diet Tracker States ───
   const [diet, setDiet] = useState("");
@@ -209,6 +145,91 @@ export default function Dashboard({ user, onLogout }) {
     { name: 'Mood Swings', count: 2, color: 'bg-indigo-400' }
   ];
 
+  // ════════════════════════════════════════════════════════════════
+  // ── SUPABASE FETCH ON LOAD ──
+  // ════════════════════════════════════════════════════════════════
+  useEffect(() => {
+    requestNotificationPermission().then((granted) => {
+      if (granted) setNotificationsEnabled(true);
+    });
+
+    const fetchSupabaseData = async () => {
+      try {
+        setSyncStatus('Syncing... ⏳');
+        const { data, error } = await supabase
+          .from('user_health_data')
+          .select('*')
+          .eq('user_id', userKey)
+          .single();
+
+        if (data && !error) {
+          if (data.last_date) {
+            setLastDate(data.last_date);
+            setIsCycleSetup(true);
+          }
+          if (data.cycle_length) setCycleLength(data.cycle_length);
+          if (data.symptoms) setLoggedSymptomsList(data.symptoms);
+          if (data.symptom_status) setSymptomStatus(data.symptom_status);
+          if (data.medications) setMedications(data.medications);
+          if (data.water_count !== undefined) setWaterCount(data.water_count);
+          if (data.exercise_mins !== undefined) setExerciseMins(data.exercise_mins);
+          if (data.logged_sleep !== undefined) setLoggedSleep(data.logged_sleep);
+          if (data.sos_name) setSosContactName(data.sos_name);
+          if (data.sos_number) setSosContactNumber(data.sos_number);
+          if (data.lab_values) setLabValues(data.lab_values);
+          setSyncStatus('Cloud Synced ☁️');
+        } else {
+          setSyncStatus('Local Mode 💾');
+        }
+      } catch (err) {
+        console.error('Supabase fetch failed:', err);
+        setSyncStatus('Local Mode 💾');
+      }
+    };
+
+    fetchSupabaseData();
+  }, [userKey]);
+
+  // ════════════════════════════════════════════════════════════════
+  // ── SUPABASE AUTO-SAVE FUNCTION ──
+  // ════════════════════════════════════════════════════════════════
+  const pushToSupabase = async (overrideData = {}) => {
+    try {
+      setSyncStatus('Saving... ⏳');
+      const payload = {
+        user_id: userKey,
+        last_date: lastDate,
+        cycle_length: Number(cycleLength),
+        symptoms: loggedSymptomsList,
+        symptom_status: symptomStatus,
+        medications: medications,
+        water_count: waterCount,
+        exercise_mins: exerciseMins,
+        logged_sleep: loggedSleep,
+        sos_name: sosContactName,
+        sos_number: sosContactNumber,
+        lab_values: labValues,
+        updated_at: new Date().toISOString(),
+        ...overrideData
+      };
+
+      const { error } = await supabase
+        .from('user_health_data')
+        .upsert(payload, { onConflict: 'user_id' });
+
+      if (!error) {
+        setSyncStatus('Cloud Synced ☁️');
+      } else {
+        console.error('Supabase save error:', error);
+        setSyncStatus('Local Mode 💾');
+      }
+    } catch (err) {
+      console.error('Supabase sync failed:', err);
+      setSyncStatus('Local Mode 💾');
+    }
+  };
+
+  // ── LocalStorage Updates ──
   useEffect(() => {
     const today = new Date().toDateString();
     localStorage.setItem(`${userKey}_logDate`, today);
@@ -223,6 +244,98 @@ export default function Dashboard({ user, onLogout }) {
     localStorage.setItem(`${userKey}_medications`, JSON.stringify(medications));
   }, [medications, userKey]);
 
+  // ── Save Emergency Contact Handler ──
+  const handleSaveSosContact = (e) => {
+    e.preventDefault();
+    localStorage.setItem(`${userKey}_sosContactName`, sosContactName);
+    localStorage.setItem(`${userKey}_sosContactNumber`, sosContactNumber);
+    setIsEditingSosContact(false);
+    pushToSupabase({ sos_name: sosContactName, sos_number: sosContactNumber });
+    alert("Emergency Contact details save ho gayi hain! 🌸");
+  };
+
+  // ── Trigger WhatsApp SOS Message ──
+  const handleSendWhatsAppSos = () => {
+    if (!sosContactNumber.trim()) {
+      alert("Pehle apna emergency contact number add karein!");
+      setIsEditingSosContact(true);
+      return;
+    }
+
+    let cleanNumber = sosContactNumber.replace(/[^0-9]/g, '');
+    if (cleanNumber.length === 10) {
+      cleanNumber = '91' + cleanNumber;
+    }
+
+    const message = encodeURIComponent(
+      `Hi ${sosContactName || 'there'}, mujhe iss waqt severe PCOD cramps/pain ho raha hai aur help chahiye. Please check on me or help me get medication. (Sent via HerBalance App SOS Relief)`
+    );
+
+    window.open(`https://wa.me/${cleanNumber}?text=${message}`, '_blank');
+  };
+
+  // ── Trigger Native Phone Call ──
+  const handleMakeSosCall = () => {
+    if (!sosContactNumber.trim()) {
+      alert("Pehle apna emergency contact number add karein!");
+      setIsEditingSosContact(true);
+      return;
+    }
+    const cleanNumber = sosContactNumber.replace(/[^0-9+]/g, '');
+    window.location.href = `tel:${cleanNumber}`;
+  };
+
+  // ── Save Lab Report Handler ──
+  const handleSaveLabValues = (e) => {
+    e.preventDefault();
+    localStorage.setItem(`${userKey}_labValues`, JSON.stringify(labValues));
+    pushToSupabase({ lab_values: labValues });
+    alert("Lab test report values save ho gayi hain! 🌸");
+  };
+
+  // ── Lab Report Calculations ──
+  const lhNum = parseFloat(labValues.lh);
+  const fshNum = parseFloat(labValues.fsh);
+  const testNum = parseFloat(labValues.testosterone);
+  const tshNum = parseFloat(labValues.tsh);
+
+  const lhFshRatio = (lhNum && fshNum) ? (lhNum / fshNum).toFixed(1) : null;
+  const isRatioHigh = lhFshRatio && parseFloat(lhFshRatio) >= 2.0;
+  const isTestosteroneHigh = testNum && testNum > 45;
+  const isTshAbnormal = tshNum && (tshNum < 0.4 || tshNum > 4.5);
+
+  // ── Setup Reminders Handler ──
+  const handleSetupReminders = async () => {
+    const granted = await requestNotificationPermission();
+    if (granted) {
+      setNotificationsEnabled(true);
+      await sendInstantNotification(
+        "Reminders Enabled! 🔔",
+        "Aapko daily routine, water aur medicine ke timely background reminders milte rahenge. 🌸"
+      );
+      await scheduleDailyReminder(
+        101, 
+        "HerBalance Morning Routine 🌸", 
+        "Good morning! Don't forget your daily water intake, supplements, and mood check.", 
+        9, 
+        0
+      );
+      alert("Reminders Setup Done! Roz subah 9:00 AM ka background reminder set ho gaya hai. 🌸");
+    } else {
+      alert("Notification permission allow nahi hui. Device settings se permission enable karein.");
+    }
+  };
+
+  const triggerNotification = async (title, body) => {
+    try {
+      await sendInstantNotification(title, body);
+    } catch (e) {
+      if ("Notification" in window && Notification.permission === "granted") {
+        new Notification(title, { body });
+      }
+    }
+  };
+
   const handleAddMedication = (e) => {
     e.preventDefault();
     if (!newMedName.trim()) return;
@@ -232,28 +345,32 @@ export default function Dashboard({ user, onLogout }) {
       time: newMedTime,
       taken: false
     };
-    setMedications(prev => [...prev, newMed]);
+    const updated = [...medications, newMed];
+    setMedications(updated);
     setNewMedName('');
+    pushToSupabase({ medications: updated });
     triggerNotification("New Medicine Added 💊", `${newMed.name} ko aapke daily schedule me add kar diya gaya hai.`);
   };
 
   const handleToggleMed = (id) => {
-    setMedications(prev =>
-      prev.map(m => {
-        if (m.id === id) {
-          const updatedState = !m.taken;
-          if (updatedState) {
-            triggerNotification("Medicine Logged! ✅", `Shabash! Aapne ${m.name} dose complete kar li.`);
-          }
-          return { ...m, taken: updatedState };
+    const updated = medications.map(m => {
+      if (m.id === id) {
+        const updatedState = !m.taken;
+        if (updatedState) {
+          triggerNotification("Medicine Logged! ✅", `Shabash! Aapne ${m.name} dose complete kar li.`);
         }
-        return m;
-      })
-    );
+        return { ...m, taken: updatedState };
+      }
+      return m;
+    });
+    setMedications(updated);
+    pushToSupabase({ medications: updated });
   };
 
   const handleDeleteMed = (id) => {
-    setMedications(prev => prev.filter(m => m.id !== id));
+    const updated = medications.filter(m => m.id !== id);
+    setMedications(updated);
+    pushToSupabase({ medications: updated });
   };
 
   const isWaterDone = waterCount >= 8;
@@ -265,14 +382,22 @@ export default function Dashboard({ user, onLogout }) {
     if (waterCount < 8) {
       const nextCount = waterCount + 1;
       setWaterCount(nextCount);
+      pushToSupabase({ water_count: nextCount });
       if (nextCount === 8) {
         triggerNotification("🎉 Hydro Goal Crushed!", "Aapne aaj ke 8 glasses water target poora kar liya!");
       }
     }
   };
 
+  // ── Smart PCOD Cycle & Phase Logic ──
   let daysRemainingText = "-- Days";
   let currentPhase = "Follicular";
+  let delayDays = 0;
+  let smartInsight = {
+    badge: "Normal Rhythm",
+    color: "text-emerald-700 bg-emerald-50 border-emerald-200",
+    tip: "Aapka cycle on track hai. Hydration aur regular sleep maintain rakhein."
+  };
 
   if (isCycleSetup && lastDate) {
     const lastPDate = new Date(lastDate);
@@ -293,10 +418,43 @@ export default function Dashboard({ user, onLogout }) {
 
     if (diffDays > 0) {
       daysRemainingText = `${diffDays} Days`;
+      if (currentPhase === "Luteal") {
+        smartInsight = {
+          badge: "Luteal Prep 🌸",
+          color: "text-purple-700 bg-purple-50 border-purple-200",
+          tip: "Period aane wala hai. Warm fluids lein, sodium intake control karein taaki bloating na ho."
+        };
+      } else if (currentPhase === "Ovulation") {
+        smartInsight = {
+          badge: "Ovulation Window ✨",
+          color: "text-teal-700 bg-teal-50 border-teal-200",
+          tip: "Energy peak par rehti hai. Light strength workout aur fiber-rich foods helpful rahenge."
+        };
+      }
     } else if (diffDays === 0) {
       daysRemainingText = "Today";
+      smartInsight = {
+        badge: "Due Today 🩸",
+        color: "text-rose-700 bg-rose-50 border-rose-200",
+        tip: "Aaj period expected hai. Warm water bag aur loose comfortable wear ready rakhein."
+      };
     } else {
-      daysRemainingText = `${Math.abs(diffDays)} Days Late`;
+      delayDays = Math.abs(diffDays);
+      daysRemainingText = `${delayDays} Days Late`;
+
+      if (delayDays <= 14) {
+        smartInsight = {
+          badge: "Mild PCOD Delay ⚠️",
+          color: "text-amber-800 bg-amber-50 border-amber-200",
+          tip: `${delayDays} din delay common hai PCOD mein. Cortisol/stress kam karein, chamomile tea aur gentle yoga follow karein.`
+        };
+      } else {
+        smartInsight = {
+          badge: "Missed Cycle Alert 🚨",
+          color: "text-rose-800 bg-rose-50 border-rose-200",
+          tip: `Period ${delayDays} din se zyada late hai. Gynecologist se consultation aur ultrasound/hormone checkup schedule karein.`
+        };
+      }
     }
   }
 
@@ -308,6 +466,8 @@ export default function Dashboard({ user, onLogout }) {
     localStorage.setItem(`${userKey}_lastDate`, date);
     localStorage.setItem(`${userKey}_cycleLength`, length);
     localStorage.setItem(`${userKey}_isCycleSetup`, 'true');
+
+    pushToSupabase({ last_date: date, cycle_length: Number(length) });
   };
 
   const toggleSymptom = (symptom) => {
@@ -339,6 +499,11 @@ export default function Dashboard({ user, onLogout }) {
     localStorage.setItem(`${userKey}_symptomStatus`, updatedStatus);
     localStorage.setItem(`${userKey}_loggedSymptomsList`, JSON.stringify(selectedSymptoms));
 
+    pushToSupabase({ 
+      symptoms: selectedSymptoms, 
+      symptom_status: updatedStatus 
+    });
+
     setJournalSavedMsg(true);
     setTimeout(() => setJournalSavedMsg(false), 3000);
   };
@@ -354,13 +519,27 @@ export default function Dashboard({ user, onLogout }) {
       const data = await response.json();
       setAiTip(data.reply);
     } catch (error) {
-      setAiTip("Backend connect nahi hua. Apna uvicorn server check karein.");
+      setAiTip("Backend connect nahi hua. Apna server status check karein.");
     }
     setLoading(false);
   };
 
   const handlePrintPdf = () => {
-    window.print();
+    const element = document.getElementById('printable-doctor-report');
+    if (!element) {
+      alert("Report content load nahi hua!");
+      return;
+    }
+
+    const opt = {
+      margin:       [8, 8, 8, 8],
+      filename:     `HerBalance_Medical_Report_${user?.name || 'Patient'}.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true, logging: false },
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    html2pdf().set(opt).from(element).save();
   };
 
   return (
@@ -369,13 +548,31 @@ export default function Dashboard({ user, onLogout }) {
       {/* ── Header Section ── */}
       <div className="max-w-6xl mx-auto flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 mt-2">
         <div>
-          <h1 className="text-3xl font-bold text-[#29272D]">
-            Hello, <span className="text-[#8B7BB5]">{user?.name || 'Beautiful'}</span> 🌸
-          </h1>
-          <p className="text-[#7A7880] mt-1 text-sm">Welcome to your personal health overview.</p>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold text-[#29272D]">
+              Hello, <span className="text-[#8B7BB5]">{user?.name || 'Beautiful'}</span> 🌸
+            </h1>
+            <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${
+              syncStatus.includes('Cloud Synced') 
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                : syncStatus.includes('Syncing') 
+                  ? 'bg-amber-50 text-amber-700 border-amber-200' 
+                  : 'bg-slate-100 text-[#7A7880] border-[#E8E4DE]'
+            }`}>
+              {syncStatus}
+            </span>
+          </div>
+          <p className="text-[#7A7880] mt-1 text-sm">Welcome to your cloud-synced health overview.</p>
         </div>
         
         <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => setShowLabModal(true)}
+            className="bg-teal-50 border border-teal-200 text-teal-700 hover:bg-teal-100 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
+          >
+            🧪 Lab Analyzer
+          </button>
+
           <button
             onClick={() => setShowPdfModal(true)}
             className="bg-[#29272D] text-white hover:bg-black px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
@@ -460,7 +657,7 @@ export default function Dashboard({ user, onLogout }) {
       {activeTab === 'dashboard' && (
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           
-          {/* 1. CYCLE TRACKER CARD */}
+          {/* 1. UPGRADED SMART CYCLE TRACKER CARD */}
           <div className="bg-white p-6 rounded-3xl shadow-sm border border-[#E8E4DE] hover:shadow-md transition-shadow">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-bold text-[#29272D] flex items-center gap-2">
@@ -507,12 +704,20 @@ export default function Dashboard({ user, onLogout }) {
               <div className="space-y-4">
                 <div className="bg-[#FAF9F6] rounded-2xl p-5 text-center border border-[#E8E4DE]">
                   <p className="text-xs text-[#7A7880] font-medium mb-1">Next period in</p>
-                  <p className={`text-3xl font-extrabold ${daysRemainingText.includes('Late') ? 'text-red-500' : 'text-[#8B7BB5]'}`}>
+                  <p className={`text-3xl font-extrabold ${daysRemainingText.includes('Late') ? 'text-rose-600' : 'text-[#8B7BB5]'}`}>
                     {daysRemainingText}
                   </p>
                   <p className="text-xs text-[#8B7BB5] font-semibold mt-2">
-                    Phase: <span className="underline">{currentPhase}</span>
+                    Phase: <span className="underline font-bold">{currentPhase}</span>
                   </p>
+                </div>
+
+                {/* Smart Hormonal Insight Card */}
+                <div className={`p-3 rounded-2xl border text-xs leading-relaxed space-y-1 ${smartInsight.color}`}>
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-[11px] uppercase tracking-wider">{smartInsight.badge}</span>
+                  </div>
+                  <p className="text-[11px] opacity-90">{smartInsight.tip}</p>
                 </div>
 
                 {loggedSymptomsList.length > 0 && (
@@ -614,7 +819,7 @@ export default function Dashboard({ user, onLogout }) {
               onClick={handleSaveSymptomJournal}
               className="w-full bg-[#8B7BB5] hover:bg-[#726496] text-white font-semibold py-2.5 rounded-xl text-xs transition-colors shadow-sm"
             >
-              {journalSavedMsg ? '✓ Journal Logged & Saved!' : 'Save & Sync Cycle Tracker'}
+              {journalSavedMsg ? '✓ Journal Logged & Synced!' : 'Save & Sync Cycle Tracker'}
             </button>
           </div>
 
@@ -716,7 +921,7 @@ export default function Dashboard({ user, onLogout }) {
                     <textarea
                       className="w-full mt-1 p-2.5 text-sm border border-[#E8E4DE] rounded-xl bg-[#FAFAFA] focus:ring-1 focus:ring-[#8B7BB5] outline-none resize-none"
                       rows="2"
-                      placeholder="Jaise: College canteen se maggi aur cold drink..."
+                      placeholder="Jaise: Sprouted salad, nuts, aur green tea..."
                       value={diet}
                       onChange={(e) => setDiet(e.target.value)}
                     />
@@ -848,7 +1053,7 @@ export default function Dashboard({ user, onLogout }) {
                     {isWaterDone ? 'Goal Complete!' : '+1 Glass'}
                   </button>
                   <button
-                    onClick={() => setWaterCount(0)}
+                    onClick={() => { setWaterCount(0); pushToSupabase({ water_count: 0 }); }}
                     className="px-2 border border-[#E8E4DE] text-[#7A7880] text-xs rounded-xl hover:bg-white"
                     title="Reset"
                   >
@@ -879,7 +1084,11 @@ export default function Dashboard({ user, onLogout }) {
                 </div>
                 <div className="flex gap-1.5 mt-4">
                   <button
-                    onClick={() => setExerciseMins(prev => prev + 15)}
+                    onClick={() => {
+                      const next = exerciseMins + 15;
+                      setExerciseMins(next);
+                      pushToSupabase({ exercise_mins: next });
+                    }}
                     className={`flex-1 text-xs font-medium py-2 rounded-xl transition-colors ${
                       isExerciseDone ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-[#29272D] text-white hover:bg-black'
                     }`}
@@ -887,7 +1096,7 @@ export default function Dashboard({ user, onLogout }) {
                     +15 m
                   </button>
                   <button
-                    onClick={() => setExerciseMins(0)}
+                    onClick={() => { setExerciseMins(0); pushToSupabase({ exercise_mins: 0 }); }}
                     className="px-2 border border-[#E8E4DE] text-[#7A7880] text-xs rounded-xl hover:bg-white"
                     title="Reset"
                   >
@@ -918,7 +1127,11 @@ export default function Dashboard({ user, onLogout }) {
                 </div>
                 <div className="flex gap-1.5 mt-4">
                   <button
-                    onClick={() => setLoggedSleep(prev => (prev >= 12 ? 0 : prev + 1))}
+                    onClick={() => {
+                      const next = loggedSleep >= 12 ? 0 : loggedSleep + 1;
+                      setLoggedSleep(next);
+                      pushToSupabase({ logged_sleep: next });
+                    }}
                     className={`flex-1 text-xs font-medium py-2 rounded-xl transition-colors ${
                       isSleepDone ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-[#29272D] text-white hover:bg-black'
                     }`}
@@ -926,7 +1139,7 @@ export default function Dashboard({ user, onLogout }) {
                     +1 Hour
                   </button>
                   <button
-                    onClick={() => setLoggedSleep(0)}
+                    onClick={() => { setLoggedSleep(0); pushToSupabase({ logged_sleep: 0 }); }}
                     className="px-2 border border-[#E8E4DE] text-[#7A7880] text-xs rounded-xl hover:bg-white"
                     title="Reset"
                   >
@@ -1207,7 +1420,145 @@ export default function Dashboard({ user, onLogout }) {
         </div>
       )}
 
-      {/* ── SOS RELIEF MODAL POPUP (Updated with WhatsApp & Direct Call Buttons) ── */}
+      {/* ── 🧪 LAB REPORT VALUE ANALYZER MODAL ── */}
+      {showLabModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white w-full max-w-lg rounded-3xl p-6 shadow-2xl border border-teal-100 max-h-[90vh] overflow-y-auto relative">
+            <button
+              onClick={() => setShowLabModal(false)}
+              className="absolute top-4 right-4 text-[#7A7880] hover:text-[#29272D] font-bold text-lg bg-[#FAF9F6] w-8 h-8 rounded-full flex items-center justify-center border border-[#E8E4DE]"
+            >
+              ✕
+            </button>
+
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-3xl">🧪</span>
+              <div>
+                <h3 className="text-xl font-bold text-[#29272D]">PCOD Lab Report Checker</h3>
+                <p className="text-xs text-[#7A7880]">Apne latest blood test values compare karein</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleSaveLabValues} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-bold text-[#7A7880] uppercase">LH (mIU/mL)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    placeholder="e.g. 11.2"
+                    value={labValues.lh}
+                    onChange={(e) => setLabValues({ ...labValues, lh: e.target.value })}
+                    className="w-full mt-1 p-2 text-xs border border-[#E8E4DE] rounded-xl outline-none focus:ring-1 focus:ring-teal-500"
+                  />
+                  <span className="text-[9px] text-[#7A7880]">Normal: 2 - 10</span>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-[#7A7880] uppercase">FSH (mIU/mL)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    placeholder="e.g. 5.1"
+                    value={labValues.fsh}
+                    onChange={(e) => setLabValues({ ...labValues, fsh: e.target.value })}
+                    className="w-full mt-1 p-2 text-xs border border-[#E8E4DE] rounded-xl outline-none focus:ring-1 focus:ring-teal-500"
+                  />
+                  <span className="text-[9px] text-[#7A7880]">Normal: 3 - 8</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-bold text-[#7A7880] uppercase">Testosterone (ng/dL)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    placeholder="e.g. 52.0"
+                    value={labValues.testosterone}
+                    onChange={(e) => setLabValues({ ...labValues, testosterone: e.target.value })}
+                    className="w-full mt-1 p-2 text-xs border border-[#E8E4DE] rounded-xl outline-none focus:ring-1 focus:ring-teal-500"
+                  />
+                  <span className="text-[9px] text-[#7A7880]">Normal: 15 - 45</span>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-[#7A7880] uppercase">TSH (Thyroid) (uIU/mL)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    placeholder="e.g. 2.8"
+                    value={labValues.tsh}
+                    onChange={(e) => setLabValues({ ...labValues, tsh: e.target.value })}
+                    className="w-full mt-1 p-2 text-xs border border-[#E8E4DE] rounded-xl outline-none focus:ring-1 focus:ring-teal-500"
+                  />
+                  <span className="text-[9px] text-[#7A7880]">Normal: 0.4 - 4.5</span>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full bg-[#8B7BB5] hover:bg-[#726496] text-white py-2 rounded-xl text-xs font-semibold transition-colors mt-2"
+              >
+                Save Lab Values
+              </button>
+            </form>
+
+            {/* Analysis Summary Card */}
+            {(lhFshRatio || testNum || tshNum) && (
+              <div className="mt-4 p-4 rounded-2xl bg-[#FAF9F6] border border-[#E8E4DE] space-y-2.5">
+                <h4 className="text-[11px] font-bold text-[#29272D] uppercase tracking-wider">🔬 Clinical Insights</h4>
+                
+                {lhFshRatio && (
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-[#7A7880]">LH : FSH Ratio: <b>{lhFshRatio} : 1</b></span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      isRatioHigh ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
+                    }`}>
+                      {isRatioHigh ? 'Elevated (PCOD Marker)' : 'Normal (1:1)'}
+                    </span>
+                  </div>
+                )}
+
+                {testNum && (
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-[#7A7880]">Total Testosterone:</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      isTestosteroneHigh ? 'bg-rose-100 text-rose-800' : 'bg-emerald-100 text-emerald-800'
+                    }`}>
+                      {isTestosteroneHigh ? 'High (Androgen Excess)' : 'Normal'}
+                    </span>
+                  </div>
+                )}
+
+                {tshNum && (
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-[#7A7880]">Thyroid (TSH):</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      isTshAbnormal ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
+                    }`}>
+                      {isTshAbnormal ? 'Needs Attention' : 'Optimal'}
+                    </span>
+                  </div>
+                )}
+
+                <p className="text-[9px] text-[#7A7880] italic pt-1 border-t border-[#E8E4DE]">
+                  *Yeh values keval reference ke liye hain. Final diagnosis ke liye Gynecologist se consult karein.
+                </p>
+              </div>
+            )}
+
+            <button
+              onClick={() => setShowLabModal(false)}
+              className="w-full mt-4 bg-[#29272D] text-white font-semibold py-2.5 rounded-xl text-xs hover:bg-black transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── SOS RELIEF MODAL POPUP (With WhatsApp & Direct Call Buttons) ── */}
       {showSosModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
           <div className="bg-white w-full max-w-lg rounded-3xl p-6 shadow-2xl border border-rose-100 max-h-[90vh] overflow-y-auto relative">
@@ -1269,7 +1620,7 @@ export default function Dashboard({ user, onLogout }) {
               </div>
             </div>
 
-            {/* ── Emergency Action Center (WhatsApp & Direct Phone Call) ── */}
+            {/* Emergency Action Center */}
             <div className="mt-5 p-4 rounded-2xl bg-gradient-to-r from-rose-50 to-pink-50 border border-rose-200">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
@@ -1327,7 +1678,6 @@ export default function Dashboard({ user, onLogout }) {
                     </p>
                   )}
 
-                  {/* Dual Action Buttons (WhatsApp & Call) */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <button
                       onClick={handleSendWhatsAppSos}
