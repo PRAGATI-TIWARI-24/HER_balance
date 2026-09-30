@@ -21,12 +21,50 @@ export default function Dashboard({ user, onLogout }) {
   // ─── Push Notification State ───
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
+  // ─── SOS Emergency Contact States (Saved in LocalStorage) ───
+  const [sosContactName, setSosContactName] = useState(() => {
+    return localStorage.getItem(`${userKey}_sosContactName`) || '';
+  });
+  const [sosContactNumber, setSosContactNumber] = useState(() => {
+    return localStorage.getItem(`${userKey}_sosContactNumber`) || '';
+  });
+  const [isEditingSosContact, setIsEditingSosContact] = useState(false);
+
   useEffect(() => {
     // Check permission on mount
     requestNotificationPermission().then((granted) => {
       if (granted) setNotificationsEnabled(true);
     });
   }, []);
+
+  // ── Save Emergency Contact Handler ──
+  const handleSaveSosContact = (e) => {
+    e.preventDefault();
+    localStorage.setItem(`${userKey}_sosContactName`, sosContactName);
+    localStorage.setItem(`${userKey}_sosContactNumber`, sosContactNumber);
+    setIsEditingSosContact(false);
+    alert("Emergency Contact details save ho gayi hain! 🌸");
+  };
+
+  // ── Trigger WhatsApp SOS Message ──
+  const handleSendWhatsAppSos = () => {
+    if (!sosContactNumber.trim()) {
+      alert("Pehle apna emergency contact number add karein!");
+      setIsEditingSosContact(true);
+      return;
+    }
+
+    let cleanNumber = sosContactNumber.replace(/[^0-9]/g, '');
+    if (cleanNumber.length === 10) {
+      cleanNumber = '91' + cleanNumber;
+    }
+
+    const message = encodeURIComponent(
+      `Hi ${sosContactName || 'there'}, mujhe iss waqt severe PCOD cramps/pain ho raha hai aur help chahiye. Please check on me or help me get medication. (Sent via HerBalance App SOS Relief)`
+    );
+
+    window.open(`https://wa.me/${cleanNumber}?text=${message}`, '_blank');
+  };
 
   // ── Setup Reminders Handler ──
   const handleSetupReminders = async () => {
@@ -1179,7 +1217,7 @@ export default function Dashboard({ user, onLogout }) {
         </div>
       )}
 
-      {/* ── SOS RELIEF MODAL POPUP ── */}
+      {/* ── SOS RELIEF MODAL POPUP (Updated with WhatsApp Emergency Contact) ── */}
       {showSosModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
           <div className="bg-white w-full max-w-lg rounded-3xl p-6 shadow-2xl border border-rose-100 max-h-[90vh] overflow-y-auto relative">
@@ -1194,7 +1232,7 @@ export default function Dashboard({ user, onLogout }) {
               <span className="text-3xl">🌸</span>
               <div>
                 <h3 className="text-xl font-bold text-[#29272D]">SOS Cramp Relief Box</h3>
-                <p className="text-xs text-[#7A7880]">Quick natural steps for instant comfort</p>
+                <p className="text-xs text-[#7A7880]">Quick natural steps & Emergency help</p>
               </div>
             </div>
 
@@ -1210,7 +1248,7 @@ export default function Dashboard({ user, onLogout }) {
               </div>
 
               <div className="bg-amber-50 border border-amber-100 p-3.5 rounded-2xl flex items-start gap-3">
-                <span className="text-2xl">🧘‍♀️</span>
+                <span className="text-2xl">🧘‍♀️️</span>
                 <div>
                   <p className="text-xs font-bold text-amber-900">Gentle Stretch (Child's Pose)</p>
                   <p className="text-[11px] text-amber-800 mt-0.5 leading-relaxed">
@@ -1240,9 +1278,77 @@ export default function Dashboard({ user, onLogout }) {
               </div>
             </div>
 
+            {/* ── Emergency WhatsApp Contact Section ── */}
+            <div className="mt-5 p-4 rounded-2xl bg-gradient-to-r from-rose-50 to-pink-50 border border-rose-200">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">🚨</span>
+                  <span className="text-xs font-bold text-rose-950 uppercase tracking-wider">Emergency WhatsApp SOS</span>
+                </div>
+                <button
+                  onClick={() => setIsEditingSosContact(!isEditingSosContact)}
+                  className="text-[11px] font-semibold text-[#8B7BB5] hover:underline"
+                >
+                  {isEditingSosContact ? 'Cancel' : (sosContactNumber ? 'Edit Contact' : '+ Add Contact')}
+                </button>
+              </div>
+
+              {isEditingSosContact ? (
+                <form onSubmit={handleSaveSosContact} className="space-y-2 mt-2">
+                  <input
+                    type="text"
+                    placeholder="Contact Name (e.g., Mom / Partner / Doctor)"
+                    value={sosContactName}
+                    onChange={(e) => setSosContactName(e.target.value)}
+                    className="w-full p-2 text-xs border border-rose-200 rounded-xl bg-white outline-none focus:ring-1 focus:ring-rose-400"
+                    required
+                  />
+                  <input
+                    type="tel"
+                    placeholder="10-digit WhatsApp Number"
+                    value={sosContactNumber}
+                    onChange={(e) => setSosContactNumber(e.target.value)}
+                    className="w-full p-2 text-xs border border-rose-200 rounded-xl bg-white outline-none focus:ring-1 focus:ring-rose-400"
+                    required
+                  />
+                  <button
+                    type="submit"
+                    className="w-full bg-[#8B7BB5] hover:bg-[#726496] text-white py-2 rounded-xl text-xs font-semibold transition-colors"
+                  >
+                    Save Contact Details
+                  </button>
+                </form>
+              ) : (
+                <div className="mt-2 space-y-2.5">
+                  {sosContactNumber ? (
+                    <div className="flex items-center justify-between text-xs bg-white/70 p-2.5 rounded-xl border border-rose-100">
+                      <div>
+                        <p className="font-bold text-[#29272D]">{sosContactName || 'Emergency Contact'}</p>
+                        <p className="text-[11px] text-[#7A7880]">{sosContactNumber}</p>
+                      </div>
+                      <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                        Configured ✓
+                      </span>
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-rose-700 italic">
+                      Koi emergency contact set nahi hai. Severe cramps hone par turant alert bhejne ke liye contact add karein.
+                    </p>
+                  )}
+
+                  <button
+                    onClick={handleSendWhatsAppSos}
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition-all"
+                  >
+                    <span>💬 Send Urgent SOS Alert on WhatsApp</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
             <button
               onClick={() => setShowSosModal(false)}
-              className="w-full mt-6 bg-[#29272D] text-white font-semibold py-3 rounded-xl text-xs hover:bg-black transition-colors"
+              className="w-full mt-5 bg-[#29272D] text-white font-semibold py-3 rounded-xl text-xs hover:bg-black transition-colors"
             >
               I Feel Better Now / Close
             </button>
