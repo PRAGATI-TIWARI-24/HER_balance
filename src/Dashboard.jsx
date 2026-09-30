@@ -27,25 +27,31 @@ export default function Dashboard({ user, onLogout }) {
     });
   }, []);
 
-  const handleEnableNotifications = async () => {
+  // ── Setup Reminders Handler ──
+  const handleSetupReminders = async () => {
     const granted = await requestNotificationPermission();
     if (granted) {
       setNotificationsEnabled(true);
-      // Daily 9 AM Morning Routine Reminder Schedule karein
-      await scheduleDailyReminder(101, "HerBalance Routine 🌸", "Check your water intake, supplements, and diet today!", 9, 0);
-      alert("Reminders Enabled! Roz subah 9:00 AM ka background reminder set ho gaya hai. 🌸");
-    } else {
-      alert("Notification permission allow nahi hui. App settings se permission enable karein.");
-    }
-  };
 
-  // Test Notification Trigger Handler (5 second baad pop up hoga)
-  const handleTestNotification = async () => {
-    await sendInstantNotification(
-      "HerBalance Alert 🌸", 
-      "Aapka background notification perfectly work kar raha hai! Don't forget your water intake 💧"
-    );
-    alert("Test notification scheduled! Agle 5 second ke andar app ko swipe karke band (kill) karke check karein!");
+      // Instant confirmation alert
+      await sendInstantNotification(
+        "Reminders Enabled! 🔔",
+        "Aapko daily routine, water aur medicine ke timely background reminders milte rahenge. 🌸"
+      );
+
+      // Daily 9:00 AM Morning Reminder
+      await scheduleDailyReminder(
+        101, 
+        "HerBalance Morning Routine 🌸", 
+        "Good morning! Don't forget your daily water intake, supplements, and mood check.", 
+        9, 
+        0
+      );
+
+      alert("Reminders Setup Done! Roz subah 9:00 AM ka background reminder set ho gaya hai. 🌸");
+    } else {
+      alert("Notification permission allow nahi hui. Device settings se permission enable karein.");
+    }
   };
 
   const triggerNotification = async (title, body) => {
@@ -339,24 +345,16 @@ export default function Dashboard({ user, onLogout }) {
             📄 Doctor PDF Report
           </button>
 
-          {/* Test 5-Sec Notification Button */}
+          {/* Setup / Enable Reminders Button */}
           <button
-            onClick={handleTestNotification}
-            className="bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
-          >
-            ⚡ Test 5-Sec Push Notification
-          </button>
-
-          {/* Enable Daily Reminders Button */}
-          <button
-            onClick={handleEnableNotifications}
+            onClick={handleSetupReminders}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 border ${
               notificationsEnabled 
                 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
                 : 'bg-purple-50 text-[#8B7BB5] border-purple-200 hover:bg-purple-100'
             }`}
           >
-            {notificationsEnabled ? '🔔 Reminders Active' : '🔔 Enable Reminders'}
+            {notificationsEnabled ? '🔔 Reminders Active' : '🔔 Setup Reminders'}
           </button>
 
           <button
