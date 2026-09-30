@@ -31,7 +31,6 @@ export default function Dashboard({ user, onLogout }) {
   const [isEditingSosContact, setIsEditingSosContact] = useState(false);
 
   useEffect(() => {
-    // Check permission on mount
     requestNotificationPermission().then((granted) => {
       if (granted) setNotificationsEnabled(true);
     });
@@ -66,19 +65,26 @@ export default function Dashboard({ user, onLogout }) {
     window.open(`https://wa.me/${cleanNumber}?text=${message}`, '_blank');
   };
 
+  // ── Trigger Native Phone Call ──
+  const handleMakeSosCall = () => {
+    if (!sosContactNumber.trim()) {
+      alert("Pehle apna emergency contact number add karein!");
+      setIsEditingSosContact(true);
+      return;
+    }
+    const cleanNumber = sosContactNumber.replace(/[^0-9+]/g, '');
+    window.location.href = `tel:${cleanNumber}`;
+  };
+
   // ── Setup Reminders Handler ──
   const handleSetupReminders = async () => {
     const granted = await requestNotificationPermission();
     if (granted) {
       setNotificationsEnabled(true);
-
-      // Instant confirmation alert
       await sendInstantNotification(
         "Reminders Enabled! 🔔",
         "Aapko daily routine, water aur medicine ke timely background reminders milte rahenge. 🌸"
       );
-
-      // Daily 9:00 AM Morning Reminder
       await scheduleDailyReminder(
         101, 
         "HerBalance Morning Routine 🌸", 
@@ -86,7 +92,6 @@ export default function Dashboard({ user, onLogout }) {
         9, 
         0
       );
-
       alert("Reminders Setup Done! Roz subah 9:00 AM ka background reminder set ho gaya hai. 🌸");
     } else {
       alert("Notification permission allow nahi hui. Device settings se permission enable karein.");
@@ -186,7 +191,6 @@ export default function Dashboard({ user, onLogout }) {
 
   const waterSchedule = ["8 AM", "10 AM", "12 PM", "2 PM", "4 PM", "6 PM", "8 PM", "10 PM"];
 
-  // Mock Weekly Analytics Data
   const weeklyWaterData = [
     { day: 'Mon', glasses: 6 },
     { day: 'Tue', glasses: 8 },
@@ -205,7 +209,6 @@ export default function Dashboard({ user, onLogout }) {
     { name: 'Mood Swings', count: 2, color: 'bg-indigo-400' }
   ];
 
-  // Auto-Save Daily Quick Logs
   useEffect(() => {
     const today = new Date().toDateString();
     localStorage.setItem(`${userKey}_logDate`, today);
@@ -214,7 +217,6 @@ export default function Dashboard({ user, onLogout }) {
     localStorage.setItem(`${userKey}_loggedSleep`, loggedSleep);
   }, [waterCount, exerciseMins, loggedSleep, userKey]);
 
-  // Auto-Save Medications
   useEffect(() => {
     const today = new Date().toDateString();
     localStorage.setItem(`${userKey}_medDate`, today);
@@ -269,7 +271,6 @@ export default function Dashboard({ user, onLogout }) {
     }
   };
 
-  // Cycle Calculation Logic
   let daysRemainingText = "-- Days";
   let currentPhase = "Follicular";
 
@@ -358,7 +359,6 @@ export default function Dashboard({ user, onLogout }) {
     setLoading(false);
   };
 
-  // Trigger Print to PDF
   const handlePrintPdf = () => {
     window.print();
   };
@@ -376,7 +376,6 @@ export default function Dashboard({ user, onLogout }) {
         </div>
         
         <div className="flex flex-wrap items-center gap-3">
-          {/* Feature 5 Button */}
           <button
             onClick={() => setShowPdfModal(true)}
             className="bg-[#29272D] text-white hover:bg-black px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
@@ -384,7 +383,6 @@ export default function Dashboard({ user, onLogout }) {
             📄 Doctor PDF Report
           </button>
 
-          {/* Setup / Enable Reminders Button */}
           <button
             onClick={handleSetupReminders}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 border ${
@@ -1097,10 +1095,8 @@ export default function Dashboard({ user, onLogout }) {
               ✕
             </button>
 
-            {/* Printable Container */}
             <div id="printable-doctor-report" className="space-y-6">
               
-              {/* Report Header */}
               <div className="border-b border-[#E8E4DE] pb-4 flex justify-between items-start">
                 <div>
                   <h2 className="text-2xl font-bold text-[#29272D] flex items-center gap-2">
@@ -1116,7 +1112,6 @@ export default function Dashboard({ user, onLogout }) {
                 </div>
               </div>
 
-              {/* Patient Basic Profile */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-[#FAF9F6] p-4 rounded-2xl border border-[#E8E4DE] text-xs">
                 <div>
                   <p className="text-[#7A7880] font-semibold">Patient Name</p>
@@ -1134,7 +1129,6 @@ export default function Dashboard({ user, onLogout }) {
                 </div>
               </div>
 
-              {/* Cycle & Symptom Summary Table */}
               <div className="space-y-2">
                 <h4 className="text-xs font-bold text-[#7A7880] uppercase tracking-wider">1. Menstrual Cycle Overview</h4>
                 <div className="border border-[#E8E4DE] rounded-2xl p-4 space-y-2 text-xs">
@@ -1153,7 +1147,6 @@ export default function Dashboard({ user, onLogout }) {
                 </div>
               </div>
 
-              {/* Logged Symptoms Section */}
               <div className="space-y-2">
                 <h4 className="text-xs font-bold text-[#7A7880] uppercase tracking-wider">2. Logged Physical & Mental Symptoms</h4>
                 <div className="border border-[#E8E4DE] rounded-2xl p-4 text-xs space-y-2">
@@ -1172,7 +1165,6 @@ export default function Dashboard({ user, onLogout }) {
                 </div>
               </div>
 
-              {/* Active Supplements Section */}
               <div className="space-y-2">
                 <h4 className="text-xs font-bold text-[#7A7880] uppercase tracking-wider">3. Active Medications & Supplements</h4>
                 <div className="border border-[#E8E4DE] rounded-2xl p-4 text-xs">
@@ -1190,14 +1182,12 @@ export default function Dashboard({ user, onLogout }) {
                 </div>
               </div>
 
-              {/* Doctor Note Disclaimer */}
               <p className="text-[10px] text-[#7A7880] italic border-t border-[#E8E4DE] pt-3">
                 Note: This document is an aggregated summary of patient-reported self-tracking logs intended solely to assist clinical consultations.
               </p>
 
             </div>
 
-            {/* Action Buttons (Hidden on Print) */}
             <div className="no-print mt-6 flex gap-3">
               <button
                 onClick={handlePrintPdf}
@@ -1217,7 +1207,7 @@ export default function Dashboard({ user, onLogout }) {
         </div>
       )}
 
-      {/* ── SOS RELIEF MODAL POPUP (Updated with WhatsApp Emergency Contact) ── */}
+      {/* ── SOS RELIEF MODAL POPUP (Updated with WhatsApp & Direct Call Buttons) ── */}
       {showSosModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
           <div className="bg-white w-full max-w-lg rounded-3xl p-6 shadow-2xl border border-rose-100 max-h-[90vh] overflow-y-auto relative">
@@ -1236,7 +1226,8 @@ export default function Dashboard({ user, onLogout }) {
               </div>
             </div>
 
-            <div className="space-y-4">
+            {/* Relief Tips */}
+            <div className="space-y-3">
               <div className="bg-rose-50 border border-rose-100 p-3.5 rounded-2xl flex items-start gap-3">
                 <span className="text-2xl">🔥</span>
                 <div>
@@ -1248,7 +1239,7 @@ export default function Dashboard({ user, onLogout }) {
               </div>
 
               <div className="bg-amber-50 border border-amber-100 p-3.5 rounded-2xl flex items-start gap-3">
-                <span className="text-2xl">🧘‍♀️️</span>
+                <span className="text-2xl">🧘‍♀️</span>
                 <div>
                   <p className="text-xs font-bold text-amber-900">Gentle Stretch (Child's Pose)</p>
                   <p className="text-[11px] text-amber-800 mt-0.5 leading-relaxed">
@@ -1272,24 +1263,24 @@ export default function Dashboard({ user, onLogout }) {
                 <div>
                   <p className="text-xs font-bold text-purple-900">4-7-8 Pain Release Breathing</p>
                   <p className="text-[11px] text-purple-800 mt-0.5 leading-relaxed">
-                    4 sec tak naak se saans lein ➔ 7 sec hold karein ➔ 8 sec tak munh se slowly exhale karein. 4 baar repeat karein.
+                    4 sec tak naak se saans lein ➔ 7 sec hold karein ➔ 8 sec tak munh se slowly exhale karein.
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* ── Emergency WhatsApp Contact Section ── */}
+            {/* ── Emergency Action Center (WhatsApp & Direct Phone Call) ── */}
             <div className="mt-5 p-4 rounded-2xl bg-gradient-to-r from-rose-50 to-pink-50 border border-rose-200">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <span className="text-xl">🚨</span>
-                  <span className="text-xs font-bold text-rose-950 uppercase tracking-wider">Emergency WhatsApp SOS</span>
+                  <span className="text-xs font-bold text-rose-950 uppercase tracking-wider">Emergency Contact Center</span>
                 </div>
                 <button
                   onClick={() => setIsEditingSosContact(!isEditingSosContact)}
                   className="text-[11px] font-semibold text-[#8B7BB5] hover:underline"
                 >
-                  {isEditingSosContact ? 'Cancel' : (sosContactNumber ? 'Edit Contact' : '+ Add Contact')}
+                  {isEditingSosContact ? 'Cancel' : (sosContactNumber ? 'Edit' : '+ Add Contact')}
                 </button>
               </div>
 
@@ -1305,7 +1296,7 @@ export default function Dashboard({ user, onLogout }) {
                   />
                   <input
                     type="tel"
-                    placeholder="10-digit WhatsApp Number"
+                    placeholder="10-digit Phone Number"
                     value={sosContactNumber}
                     onChange={(e) => setSosContactNumber(e.target.value)}
                     className="w-full p-2 text-xs border border-rose-200 rounded-xl bg-white outline-none focus:ring-1 focus:ring-rose-400"
@@ -1319,7 +1310,7 @@ export default function Dashboard({ user, onLogout }) {
                   </button>
                 </form>
               ) : (
-                <div className="mt-2 space-y-2.5">
+                <div className="mt-2 space-y-3">
                   {sosContactNumber ? (
                     <div className="flex items-center justify-between text-xs bg-white/70 p-2.5 rounded-xl border border-rose-100">
                       <div>
@@ -1327,21 +1318,31 @@ export default function Dashboard({ user, onLogout }) {
                         <p className="text-[11px] text-[#7A7880]">{sosContactNumber}</p>
                       </div>
                       <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                        Configured ✓
+                        Ready ✓
                       </span>
                     </div>
                   ) : (
                     <p className="text-[11px] text-rose-700 italic">
-                      Koi emergency contact set nahi hai. Severe cramps hone par turant alert bhejne ke liye contact add karein.
+                      Emergency contact set nahi hai. Severe cramps ke waqt turant alert bhejne ke liye contact add karein.
                     </p>
                   )}
 
-                  <button
-                    onClick={handleSendWhatsAppSos}
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition-all"
-                  >
-                    <span>💬 Send Urgent SOS Alert on WhatsApp</span>
-                  </button>
+                  {/* Dual Action Buttons (WhatsApp & Call) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <button
+                      onClick={handleSendWhatsAppSos}
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all"
+                    >
+                      <span>💬 WhatsApp SOS</span>
+                    </button>
+                    
+                    <button
+                      onClick={handleMakeSosCall}
+                      className="w-full bg-rose-600 hover:bg-rose-700 active:scale-[0.98] text-white font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all"
+                    >
+                      <span>📞 Direct Call</span>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
