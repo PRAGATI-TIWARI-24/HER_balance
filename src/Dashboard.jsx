@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import html2pdf from 'html2pdf.js';
+
 // ── Native Background Notifications Import ──
 import { 
   requestNotificationPermission, 
@@ -320,25 +320,9 @@ export default function Dashboard({ user, onLogout }) {
     setLoading(false);
   };
 
-  // ── 📄 Mobile & Desktop PDF Generation via html2pdf.js ──
+  // Trigger Print to PDF
   const handlePrintPdf = () => {
-    const element = document.getElementById('printable-doctor-report');
-    
-    if (!element) {
-      alert("Report content load nahi hua!");
-      return;
-    }
-
-    const opt = {
-      margin:       [8, 8, 8, 8],
-      filename:     `HerBalance_Medical_Report_${user?.name || 'Patient'}.pdf`,
-      image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2, useCORS: true, logging: false },
-      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
-
-    // Phone aur Desktop dono par direct file download trigger hogi
-    html2pdf().set(opt).from(element).save();
+    window.print();
   };
 
   return (
