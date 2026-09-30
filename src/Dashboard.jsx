@@ -1,4 +1,10 @@
 import React, { useState, useEffect } from 'react';
+// ── Native Background Notifications Import ──
+import { 
+  requestNotificationPermission, 
+  sendInstantNotification, 
+  scheduleDailyReminder 
+} from './NotificationService';
 
 export default function Dashboard({ user, onLogout }) {
   
@@ -15,32 +21,40 @@ export default function Dashboard({ user, onLogout }) {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
   useEffect(() => {
-    if ("Notification" in window && Notification.permission === "granted") {
-      setNotificationsEnabled(true);
-    }
+    // Check permission on mount
+    requestNotificationPermission().then((granted) => {
+      if (granted) setNotificationsEnabled(true);
+    });
   }, []);
 
-  const handleEnableNotifications = () => {
-    if (!("Notification" in window)) {
-      alert("Aapka browser notifications support nahi karta hai.");
-      return;
+  const handleEnableNotifications = async () => {
+    const granted = await requestNotificationPermission();
+    if (granted) {
+      setNotificationsEnabled(true);
+      // Daily 9 AM Morning Routine Reminder Schedule karein
+      await scheduleDailyReminder(101, "HerBalance Routine 🌸", "Check your water intake, supplements, and diet today!", 9, 0);
+      alert("Reminders Enabled! Roz subah 9:00 AM ka background reminder set ho gaya hai. 🌸");
+    } else {
+      alert("Notification permission allow nahi hui. App settings se permission enable karein.");
     }
-
-    Notification.requestPermission().then((permission) => {
-      if (permission === "granted") {
-        setNotificationsEnabled(true);
-        new Notification("Reminders Enabled! 🔔", {
-          body: "Aapko Water aur Medicine ke timely reminders milte rahenge. 🌸",
-        });
-      } else if (permission === "denied") {
-        alert("Notification permission block kar di gayi hai. Browser settings se enable karein.");
-      }
-    });
   };
 
-  const triggerNotification = (title, body) => {
-    if ("Notification" in window && Notification.permission === "granted") {
-      new Notification(title, { body });
+  // Test Notification Trigger Handler (5 second baad pop up hoga)
+  const handleTestNotification = async () => {
+    await sendInstantNotification(
+      "HerBalance Alert 🌸", 
+      "Aapka background notification perfectly work kar raha hai! Don't forget your water intake 💧"
+    );
+    alert("Test notification scheduled! Agle 5 second ke andar app ko swipe karke band (kill) karke check karein!");
+  };
+
+  const triggerNotification = async (title, body) => {
+    try {
+      await sendInstantNotification(title, body);
+    } catch (e) {
+      if ("Notification" in window && Notification.permission === "granted") {
+        new Notification(title, { body });
+      }
     }
   };
 
@@ -325,6 +339,15 @@ export default function Dashboard({ user, onLogout }) {
             📄 Doctor PDF Report
           </button>
 
+          {/* Test 5-Sec Notification Button */}
+          <button
+            onClick={handleTestNotification}
+            className="bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
+          >
+            ⚡ Test 5-Sec Push Notification
+          </button>
+
+          {/* Enable Daily Reminders Button */}
           <button
             onClick={handleEnableNotifications}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 border ${
