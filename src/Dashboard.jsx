@@ -23,7 +23,7 @@ export default function Dashboard({ user, onLogout }) {
   // ─── Cloud Sync Status Indicator ───
   const [syncStatus, setSyncStatus] = useState('Local Mode 💾');
 
-  // ─── Feature 5: Doctor PDF Modal State ───
+  // ─── Clinical Doctor PDF Modal State ───
   const [showPdfModal, setShowPdfModal] = useState(false);
 
   // ─── Push Notification State ───
@@ -133,7 +133,7 @@ export default function Dashboard({ user, onLogout }) {
   const [symptomAnalytics, setSymptomAnalytics] = useState([]);
   const [avgMedAdherence, setAvgMedAdherence] = useState(0);
 
-  // Helper: Past 7 days structure banana
+  // Helper: Past 7 days structure
   const getLast7DaysTemplate = () => {
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const result = [];
@@ -147,10 +147,9 @@ export default function Dashboard({ user, onLogout }) {
     return result;
   };
 
-  // ── Real Data Fetch for Analytics Tab ──
+  // ── Real Data Fetch for Analytics & PDF History ──
   const fetchAnalyticsHistory = useCallback(async () => {
     if (!isSupabaseConfigured || !supabase) {
-      // Fallback local data agar offline ho
       const template = getLast7DaysTemplate();
       template[template.length - 1].glasses = waterCount;
       setWeeklyWaterData(template);
@@ -158,9 +157,9 @@ export default function Dashboard({ user, onLogout }) {
     }
 
     try {
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 30);
-      const startDateStr = sevenDaysAgo.toISOString().split('T')[0];
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const startDateStr = thirtyDaysAgo.toISOString().split('T')[0];
 
       const { data: historyLogs, error } = await supabase
         .from('daily_health_logs')
@@ -184,7 +183,7 @@ export default function Dashboard({ user, onLogout }) {
       }));
       setWeeklyWaterData(populatedWater);
 
-      // 2. Real Symptom Frequency Analysis
+      // 2. Real Multi-Day Symptom Analysis
       const counts = {};
       historyLogs.forEach(row => {
         const symList = Array.isArray(row.symptoms) ? row.symptoms : [];
@@ -228,7 +227,7 @@ export default function Dashboard({ user, onLogout }) {
   }, [userKey, waterCount, medications]);
 
   // ════════════════════════════════════════════════════════════════
-  // ── FETCH DATA ON LOAD ──
+  // ── INITIAL DATA FETCH (PROFILE + TODAY'S ROW) ──
   // ════════════════════════════════════════════════════════════════
   useEffect(() => {
     requestNotificationPermission().then((granted) => {
@@ -330,7 +329,7 @@ export default function Dashboard({ user, onLogout }) {
   };
 
   // ════════════════════════════════════════════════════════════════
-  // ── SAVE 2: TODAY'S DAILY LOG SYNC (PRESERVES HISTORICAL ROWS) ──
+  // ── SAVE 2: TODAY'S DAILY LOG SYNC (HISTORICAL ROWS PRESERVED) ──
   // ════════════════════════════════════════════════════════════════
   const pushDailyLogToSupabase = async (overrideData = {}) => {
     if (!isSupabaseConfigured || !supabase) {
@@ -357,7 +356,7 @@ export default function Dashboard({ user, onLogout }) {
 
       if (!error) {
         setSyncStatus('Cloud Synced ☁️');
-        fetchAnalyticsHistory(); // Chart turant update hoga
+        fetchAnalyticsHistory(); // Sync realtime graph
       } else {
         setSyncStatus('Local Mode 💾');
       }
@@ -666,7 +665,7 @@ export default function Dashboard({ user, onLogout }) {
 
     const opt = {
       margin:       [8, 8, 8, 8],
-      filename:     `HerBalance_Medical_Report_${user?.name || 'Patient'}.pdf`,
+      filename:     `HerBalance_Clinical_Report_${user?.name || 'Patient'}.pdf`,
       image:        { type: 'jpeg', quality: 0.98 },
       html2canvas:  { scale: 2, useCORS: true, logging: false },
       jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
@@ -758,7 +757,7 @@ export default function Dashboard({ user, onLogout }) {
         <button
           onClick={() => {
             setActiveTab('analytics');
-            fetchAnalyticsHistory(); // Switch hote hi live fetch karega
+            fetchAnalyticsHistory();
           }}
           className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
             activeTab === 'analytics'
@@ -1207,7 +1206,7 @@ export default function Dashboard({ user, onLogout }) {
               }`}>
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-2xl">{isExerciseDone ? '🏋️‍♀️️' : '🏃‍♀️'}</span>
+                    <span className="text-2xl">{isExerciseDone ? '🏋️‍♀' : '🏃‍♀️'}</span>
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                       isExerciseDone ? 'bg-emerald-200 text-emerald-800' : 'bg-[#EAE6F4] text-[#8B7BB5]'
                     }`}>
@@ -1292,7 +1291,7 @@ export default function Dashboard({ user, onLogout }) {
       )}
 
       {/* ════════════════════════════════════════════════════════════════ */}
-      {/* TAB 2: HEALTH ANALYTICS & TRENDS CHARTS (REAL DATA FROM SUPABASE)*/}
+      {/* TAB 2: HEALTH ANALYTICS & TRENDS (REAL DATA FROM SUPABASE)      */}
       {/* ════════════════════════════════════════════════════════════════ */}
       {activeTab === 'analytics' && (
         <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in duration-300">
@@ -1446,10 +1445,10 @@ export default function Dashboard({ user, onLogout }) {
         </div>
       )}
 
-      {/* ── 📄 FEATURE 5: DOCTOR MEDICAL PDF REPORT MODAL ── */}
+      {/* ── 📄 FEATURE 5: CLINICAL DOCTOR MEDICAL PDF REPORT MODAL ── */}
       {showPdfModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white w-full max-w-2xl rounded-3xl p-6 sm:p-8 shadow-2xl border border-[#E8E4DE] max-h-[90vh] overflow-y-auto relative">
+          <div className="bg-white w-full max-w-3xl rounded-3xl p-6 sm:p-8 shadow-2xl border border-[#E8E4DE] max-h-[92vh] overflow-y-auto relative">
             
             <button
               onClick={() => setShowPdfModal(false)}
@@ -1458,126 +1457,208 @@ export default function Dashboard({ user, onLogout }) {
               ✕
             </button>
 
-            <div id="printable-doctor-report" className="space-y-6">
+            {/* ── Printable Report Container ── */}
+            <div id="printable-doctor-report" className="p-4 bg-white text-[#29272D] font-sans space-y-5">
               
-              <div className="border-b border-[#E8E4DE] pb-4 flex justify-between items-start">
+              {/* Clinical Header */}
+              <div className="border-b-2 border-[#8B7BB5] pb-4 flex justify-between items-start">
                 <div>
-                  <h2 className="text-2xl font-bold text-[#29272D] flex items-center gap-2">
-                    🩺 Gynecological & Hormonal Health Summary
-                  </h2>
-                  <p className="text-xs text-[#7A7880] mt-1">Generated via Self-Care Health Tracker App</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">🩺</span>
+                    <h2 className="text-xl font-extrabold text-[#29272D] uppercase tracking-wide">
+                      HerBalance Clinical Health Summary
+                    </h2>
+                  </div>
+                  <p className="text-[11px] text-[#7A7880] mt-0.5">
+                    Continuous Hormonal Pattern & Lifestyle Tracking Record (Rotterdam PCOD Reference)
+                  </p>
                 </div>
                 <div className="text-right">
-                  <span className="bg-purple-100 text-[#8B7BB5] text-[10px] font-bold px-3 py-1 rounded-full uppercase">
-                    Patient Clinical Summary
+                  <span className="bg-purple-100 text-[#8B7BB5] text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                    Confidential Report
                   </span>
-                  <p className="text-xs text-[#7A7880] mt-2">Date: {new Date().toLocaleDateString()}</p>
+                  <p className="text-[11px] text-[#7A7880] mt-1.5 font-medium">Generated: {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-[#FAF9F6] p-4 rounded-2xl border border-[#E8E4DE] text-xs">
+              {/* Patient Demographics & Profile Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-[#FAF9F6] p-3.5 rounded-2xl border border-[#E8E4DE] text-xs">
                 <div>
-                  <p className="text-[#7A7880] font-semibold">Patient Name</p>
-                  <p className="font-bold text-[#29272D]">{user?.name || 'User Profile'}</p>
+                  <p className="text-[10px] font-bold text-[#7A7880] uppercase">Patient Identifier</p>
+                  <p className="font-bold text-[#29272D] text-sm mt-0.5">{user?.name || userKey}</p>
                 </div>
                 <div>
-                  <p className="text-[#7A7880] font-semibold">Cycle Phase</p>
-                  <p className="font-bold text-[#8B7BB5]">{currentPhase}</p>
+                  <p className="text-[10px] font-bold text-[#7A7880] uppercase">Menstrual Phase</p>
+                  <p className="font-bold text-[#8B7BB5] text-sm mt-0.5">{currentPhase}</p>
                 </div>
                 <div>
-                  <p className="text-[#7A7880] font-semibold">Overall Status</p>
-                  <p className={`font-bold ${symptomStatus === 'Needs Attention' ? 'text-rose-600' : 'text-emerald-600'}`}>
+                  <p className="text-[10px] font-bold text-[#7A7880] uppercase">Current Rhythm</p>
+                  <p className={`font-bold text-sm mt-0.5 ${daysRemainingText.includes('Late') ? 'text-rose-600' : 'text-emerald-700'}`}>
+                    {daysRemainingText}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-[#7A7880] uppercase">Clinical Status</p>
+                  <p className={`font-bold text-sm mt-0.5 ${symptomStatus === 'Needs Attention' ? 'text-rose-600' : 'text-emerald-700'}`}>
                     {symptomStatus}
                   </p>
                 </div>
               </div>
 
-              {/* Lab Report Clinical Overview in PDF */}
-              {(lhFshRatio || testNum || tshNum) && (
-                <div className="space-y-2">
-                  <h4 className="text-xs font-bold text-[#7A7880] uppercase tracking-wider">🔬 Recent Lab Hormonal Profile</h4>
-                  <div className="grid grid-cols-3 gap-2 border border-[#E8E4DE] rounded-2xl p-3 text-xs bg-[#FAF9F6]">
-                    <div>
-                      <span className="text-[#7A7880] block text-[10px]">LH : FSH RATIO</span>
-                      <span className="font-bold text-[#29272D]">{lhFshRatio ? `${lhFshRatio} : 1` : 'N/A'}</span>
-                    </div>
-                    <div>
-                      <span className="text-[#7A7880] block text-[10px]">TESTOSTERONE</span>
-                      <span className="font-bold text-[#29272D]">{testNum ? `${testNum} ng/dL` : 'N/A'}</span>
-                    </div>
-                    <div>
-                      <span className="text-[#7A7880] block text-[10px]">TSH (THYROID)</span>
-                      <span className="font-bold text-[#29272D]">{tshNum ? `${tshNum} uIU/mL` : 'N/A'}</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
+              {/* Section 1: Endocrine & Metabolic Biomarkers */}
               <div className="space-y-2">
-                <h4 className="text-xs font-bold text-[#7A7880] uppercase tracking-wider">1. Menstrual Cycle Overview</h4>
-                <div className="border border-[#E8E4DE] rounded-2xl p-4 space-y-2 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-[#7A7880]">Last Period Start Date:</span>
-                    <span className="font-bold text-[#29272D]">{lastDate || 'Not Configured'}</span>
+                <h4 className="text-xs font-bold text-[#29272D] uppercase tracking-wider flex items-center gap-1.5">
+                  <span>1. Laboratory Endocrine Profile (Blood Biomarkers)</span>
+                </h4>
+                
+                <table className="w-full text-left border-collapse border border-[#E8E4DE] rounded-xl overflow-hidden text-xs">
+                  <thead className="bg-[#F4F2F7] text-[#29272D] font-bold border-b border-[#E8E4DE]">
+                    <tr>
+                      <th className="p-2.5">Biomarker</th>
+                      <th className="p-2.5">Logged Value</th>
+                      <th className="p-2.5">Clinical Reference Range</th>
+                      <th className="p-2.5">Diagnostic Inference</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#E8E4DE]">
+                    <tr>
+                      <td className="p-2.5 font-semibold text-[#29272D]">LH : FSH Ratio</td>
+                      <td className="p-2.5 font-bold">{lhFshRatio ? `${lhFshRatio} : 1` : 'Not Logged'}</td>
+                      <td className="p-2.5 text-[#7A7880]">1:1 (Follicular phase)</td>
+                      <td className="p-2.5">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                          isRatioHigh ? 'bg-amber-100 text-amber-900' : 'bg-emerald-100 text-emerald-800'
+                        }`}>
+                          {isRatioHigh ? 'Elevated (PCOD Marker)' : (lhFshRatio ? 'Normal' : 'Pending')}
+                        </span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="p-2.5 font-semibold text-[#29272D]">Total Testosterone</td>
+                      <td className="p-2.5 font-bold">{testNum ? `${testNum} ng/dL` : 'Not Logged'}</td>
+                      <td className="p-2.5 text-[#7A7880]">15 - 45 ng/dL</td>
+                      <td className="p-2.5">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                          isTestosteroneHigh ? 'bg-rose-100 text-rose-900' : 'bg-emerald-100 text-emerald-800'
+                        }`}>
+                          {isTestosteroneHigh ? 'Hyperandrogenemia' : (testNum ? 'Normal Range' : 'Pending')}
+                        </span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="p-2.5 font-semibold text-[#29272D]">Thyroid (TSH)</td>
+                      <td className="p-2.5 font-bold">{tshNum ? `${tshNum} uIU/mL` : 'Not Logged'}</td>
+                      <td className="p-2.5 text-[#7A7880]">0.4 - 4.5 uIU/mL</td>
+                      <td className="p-2.5">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                          isTshAbnormal ? 'bg-amber-100 text-amber-900' : 'bg-emerald-100 text-emerald-800'
+                        }`}>
+                          {isTshAbnormal ? 'Borderline / Abnormal' : (tshNum ? 'Euthyroid' : 'Pending')}
+                        </span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Section 2: Menstrual Cycle Overview */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-bold text-[#29272D] uppercase tracking-wider">
+                  2. Menstrual Pattern & Cycle Dynamics
+                </h4>
+                <div className="grid grid-cols-3 gap-3 border border-[#E8E4DE] rounded-xl p-3 text-xs bg-[#FAF9F6]">
+                  <div>
+                    <span className="text-[#7A7880] block text-[10px] uppercase font-bold">LMP (Last Period)</span>
+                    <span className="font-bold text-[#29272D] text-xs">{lastDate || 'Not Configured'}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#7A7880]">Average Cycle Duration:</span>
-                    <span className="font-bold text-[#29272D]">{cycleLength} Days</span>
+                  <div>
+                    <span className="text-[#7A7880] block text-[10px] uppercase font-bold">Reported Cycle Length</span>
+                    <span className="font-bold text-[#29272D] text-xs">{cycleLength} Days {cycleLength > 35 ? '(Oligomenorrhea Risk)' : '(Normal Window)'}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#7A7880]">Logged Period Flow Today:</span>
-                    <span className="font-bold text-[#8B7BB5]">{selectedFlow}</span>
+                  <div>
+                    <span className="text-[#7A7880] block text-[10px] uppercase font-bold">Latest Logged Flow</span>
+                    <span className="font-bold text-[#8B7BB5] text-xs">{selectedFlow}</span>
                   </div>
                 </div>
               </div>
 
+              {/* Section 3: Aggregate Symptoms & Patient Trends */}
               <div className="space-y-2">
-                <h4 className="text-xs font-bold text-[#7A7880] uppercase tracking-wider">2. Logged Physical & Mental Symptoms</h4>
-                <div className="border border-[#E8E4DE] rounded-2xl p-4 text-xs space-y-2">
-                  <p className="text-[#7A7880]">Symptoms reported in recent journal entries:</p>
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    {loggedSymptomsList.length > 0 ? (
-                      loggedSymptomsList.map((sym, i) => (
-                        <span key={i} className="bg-rose-50 text-rose-700 border border-rose-200 px-2.5 py-1 rounded-lg font-semibold">
-                          {sym}
+                <h4 className="text-xs font-bold text-[#29272D] uppercase tracking-wider">
+                  3. Symptom Incidence (Database Multi-Day History)
+                </h4>
+                <div className="border border-[#E8E4DE] rounded-xl p-3.5 text-xs space-y-2.5">
+                  <div className="flex flex-wrap gap-2">
+                    {symptomAnalytics.length > 0 ? (
+                      symptomAnalytics.map((sym, idx) => (
+                        <span key={idx} className="bg-rose-50 border border-rose-200 text-rose-800 px-3 py-1 rounded-lg font-semibold flex items-center gap-1.5">
+                          <span>{sym.name}</span>
+                          <span className="bg-rose-200/80 px-1.5 py-0.2 rounded text-[10px] font-extrabold">{sym.count}x</span>
                         </span>
                       ))
                     ) : (
-                      <span className="text-[#7A7880] italic">No acute symptoms reported today.</span>
+                      <span className="text-[#7A7880] italic">No repeated symptom history recorded in current logging cycle.</span>
                     )}
                   </div>
+                  <p className="text-[10px] text-[#7A7880]">
+                    *Frequency reflects automated aggregation from daily patient-reported logs over active 30-day tracking windows.
+                  </p>
                 </div>
               </div>
 
+              {/* Section 4: Prescriptions & Daily Compliance */}
               <div className="space-y-2">
-                <h4 className="text-xs font-bold text-[#7A7880] uppercase tracking-wider">3. Active Medications & Supplements</h4>
-                <div className="border border-[#E8E4DE] rounded-2xl p-4 text-xs">
+                <h4 className="text-xs font-bold text-[#29272D] uppercase tracking-wider flex justify-between items-center">
+                  <span>4. Prescribed Medication & Supplement Compliance</span>
+                  <span className="text-[#8B7BB5] font-bold text-[11px]">Overall Adherence: {avgMedAdherence}%</span>
+                </h4>
+                <div className="border border-[#E8E4DE] rounded-xl p-3 text-xs">
                   {medications.length > 0 ? (
-                    <ul className="list-disc list-inside space-y-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {medications.map((m) => (
-                        <li key={m.id} className="text-[#29272D]">
-                          <span className="font-bold">{m.name}</span> — {m.time} schedule ({m.taken ? 'Taken Today' : 'Pending'})
-                        </li>
+                        <div key={m.id} className="flex justify-between items-center bg-[#FAF9F6] p-2 rounded-lg border border-[#E8E4DE]">
+                          <div>
+                            <span className="font-bold text-[#29272D]">{m.name}</span>
+                            <span className="text-[10px] text-[#7A7880] block">Schedule: {m.time}</span>
+                          </div>
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            m.taken ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-[#7A7880]'
+                          }`}>
+                            {m.taken ? 'Taken' : 'Pending'}
+                          </span>
+                        </div>
                       ))}
-                    </ul>
+                    </div>
                   ) : (
-                    <p className="text-[#7A7880] italic">No active supplements added in app.</p>
+                    <p className="text-[#7A7880] italic">No active supplements or medications listed by patient.</p>
                   )}
                 </div>
               </div>
 
-              <p className="text-[10px] text-[#7A7880] italic border-t border-[#E8E4DE] pt-3">
-                Note: This document is an aggregated summary of patient-reported self-tracking logs intended solely to assist clinical consultations.
-              </p>
+              {/* Clinical Verification & Emergency Caregiver Footer */}
+              <div className="border-t-2 border-[#E8E4DE] pt-4 grid grid-cols-2 gap-4 text-xs">
+                <div>
+                  <p className="text-[10px] font-bold text-[#7A7880] uppercase">Designated Emergency Caregiver</p>
+                  <p className="font-bold text-[#29272D] mt-0.5">{sosContactName || 'Not Set'} ({sosContactNumber || 'N/A'})</p>
+                  <p className="text-[9px] text-[#7A7880] mt-1 leading-tight">
+                    Disclaimer: This computer-generated summary compiles self-reported digital logs. It does not replace formal pathology diagnostics.
+                  </p>
+                </div>
+                <div className="text-right flex flex-col justify-end">
+                  <div className="inline-block border-b border-dashed border-[#7A7880] w-48 ml-auto mb-1"></div>
+                  <p className="text-[10px] font-bold text-[#7A7880] uppercase">Consulting Gynecologist Signature / Stamp</p>
+                </div>
+              </div>
 
             </div>
 
+            {/* Modal Actions */}
             <div className="no-print mt-6 flex gap-3">
               <button
                 onClick={handlePrintPdf}
                 className="flex-1 bg-[#8B7BB5] hover:bg-[#726496] text-white font-bold py-3 rounded-2xl text-xs transition-colors shadow-sm flex items-center justify-center gap-2"
               >
-                <span>🖨️ Save as PDF / Print Report</span>
+                <span>🖨️ Download / Print Clinical PDF</span>
               </button>
               <button
                 onClick={() => setShowPdfModal(false)}
