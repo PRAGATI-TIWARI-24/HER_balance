@@ -14,13 +14,14 @@ import {
 export default function Dashboard({ user, onLogout }) {
   
   // ─── LocalStorage Key Prefix / User ID ───
-  const userKey = user?.id || user?.email || 'guest_user';
+  const userKey = String(user?.id || user?.email || 'guest_user');
+  const todayDateStr = new Date().toISOString().split('T')[0]; // Format: YYYY-MM-DD
 
   // ─── Main View Navigation Tab ───
   const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' | 'analytics'
 
   // ─── Cloud Sync Status Indicator ───
-  const [syncStatus, setSyncStatus] = useState('Local Mode 💾'); // 'Syncing... ⏳', 'Cloud Synced ☁️', 'Local Mode 💾'
+  const [syncStatus, setSyncStatus] = useState('Local Mode 💾');
 
   // ─── Feature 5: Doctor PDF Modal State ───
   const [showPdfModal, setShowPdfModal] = useState(false);
@@ -56,7 +57,7 @@ export default function Dashboard({ user, onLogout }) {
     return localStorage.getItem(`${userKey}_lastDate`) || "";
   });
   const [cycleLength, setCycleLength] = useState(() => {
-    return localStorage.getItem(`${userKey}_cycleLength`) || 28;
+    return Number(localStorage.getItem(`${userKey}_cycleLength`)) || 28;
   });
   const [isCycleSetup, setIsCycleSetup] = useState(() => {
     return localStorage.getItem(`${userKey}_isCycleSetup`) === 'true';
@@ -103,7 +104,7 @@ export default function Dashboard({ user, onLogout }) {
   const flowOptions = ['None', 'Light', 'Medium', 'Heavy'];
   const moodOptions = ['😊 Calm', '😴 Tired', '😖 In Pain', '⚡ Energetic', '😡 Irritable'];
 
-  // ─── Daily Quick Logs States ───
+  // ─── Daily Quick Logs States (Per-Day Check) ───
   const [waterCount, setWaterCount] = useState(() => {
     const savedDate = localStorage.getItem(`${userKey}_logDate`);
     const today = new Date().toDateString();
@@ -146,15 +147,14 @@ export default function Dashboard({ user, onLogout }) {
   ];
 
   // ════════════════════════════════════════════════════════════════
-  // ── SAFE SUPABASE FETCH ON LOAD ──
+  // ── FETCH DATA ON LOAD (PROFILE + TODAY'S DAILY LOG) ──
   // ════════════════════════════════════════════════════════════════
   useEffect(() => {
     requestNotificationPermission().then((granted) => {
       if (granted) setNotificationsEnabled(true);
     });
 
-    const fetchSupabaseData = async () => {
-      // Guard Check: Agar Supabase configure na ho toh return karein
+    const fetchAllData = async () => {
       if (!isSupabaseConfigured || !supabase) {
         setSyncStatus('Local Mode 💾');
         return;
@@ -162,45 +162,56 @@ export default function Dashboard({ user, onLogout }) {
 
       try {
         setSyncStatus('Syncing... ⏳');
-        const { data, error } = await supabase
+
+        // 1. Fetch Profile / Settings
+        const { data: profileData } = await supabase
           .from('user_health_data')
           .select('*')
           .eq('user_id', userKey)
-          .maybeSingle(); // maybeSingle() error throw nahi karta agar table khali ho
+          .maybeSingle();
 
-        if (data && !error) {
-          if (data.last_date) {
-            setLastDate(data.last_date);
+        if (profileData) {
+          if (profileData.last_date) {
+            setLastDate(profileData.last_date);
             setIsCycleSetup(true);
           }
-          if (data.cycle_length) setCycleLength(data.cycle_length);
-          if (data.symptoms) setLoggedSymptomsList(data.symptoms);
-          if (data.symptom_status) setSymptomStatus(data.symptom_status);
-          if (data.medications) setMedications(data.medications);
-          if (data.water_count !== undefined) setWaterCount(data.water_count);
-          if (data.exercise_mins !== undefined) setExerciseMins(data.exercise_mins);
-          if (data.logged_sleep !== undefined) setLoggedSleep(data.logged_sleep);
-          if (data.sos_name) setSosContactName(data.sos_name);
-          if (data.sos_number) setSosContactNumber(data.sos_number);
-          if (data.lab_values) setLabValues(data.lab_values);
-          setSyncStatus('Cloud Synced ☁️');
-        } else {
-          setSyncStatus('Local Mode 💾');
+          if (profileData.cycle_length) setCycleLength(profileData.cycle_length);
+          if (profileData.symptom_status) setSymptomStatus(profileData.symptom_status);
+          if (profileData.sos_name) setSosContactName(profileData.sos_name);
+          if (profileData.sos_number) setSosContactNumber(profileData.sos_number);
+          if (profileData.lab_values) setLabValues(profileData.lab_values);
         }
+
+        // 2. Fetch Today's Daily Entry (History Protection)
+        const { data: todayLog } = await supabase
+          .from('daily_health_logs')
+          .select('*')
+          .eq('user_id', userKey)
+          .eq('log_date', todayDateStr)
+          .maybeSingle();
+
+        if (todayLog) {
+          if (todayLog.water_count !== undefined) setWaterCount(todayLog.water_count);
+          if (todayLog.exercise_mins !== undefined) setExerciseMins(todayLog.exercise_mins);
+          if (todayLog.logged_sleep !== undefined) setLoggedSleep(todayLog.logged_sleep);
+          if (todayLog.symptoms) setLoggedSymptomsList(todayLog.symptoms);
+          if (todayLog.medications) setMedications(todayLog.medications);
+        }
+
+        setSyncStatus('Cloud Synced ☁️');
       } catch (err) {
-        console.error('Supabase fetch failed:', err);
+        console.error('Fetch error:', err);
         setSyncStatus('Local Mode 💾');
       }
     };
 
-    fetchSupabaseData();
-  }, [userKey]);
+    fetchAllData();
+  }, [userKey, todayDateStr]);
 
   // ════════════════════════════════════════════════════════════════
-  // ── SAFE SUPABASE AUTO-SAVE FUNCTION ──
+  // ── SAVE 1: PROFILE / PERSISTENT SETTINGS SYNC ──
   // ════════════════════════════════════════════════════════════════
-  const pushToSupabase = async (overrideData = {}) => {
-    // Guard Check: Agar Supabase configured nahi hai toh silent save karein
+  const pushProfileToSupabase = async (overrideData = {}) => {
     if (!isSupabaseConfigured || !supabase) {
       setSyncStatus('Local Mode 💾');
       return;
@@ -212,12 +223,7 @@ export default function Dashboard({ user, onLogout }) {
         user_id: userKey,
         last_date: lastDate,
         cycle_length: Number(cycleLength),
-        symptoms: loggedSymptomsList,
         symptom_status: symptomStatus,
-        medications: medications,
-        water_count: waterCount,
-        exercise_mins: exerciseMins,
-        logged_sleep: loggedSleep,
         sos_name: sosContactName,
         sos_number: sosContactNumber,
         lab_values: labValues,
@@ -232,16 +238,54 @@ export default function Dashboard({ user, onLogout }) {
       if (!error) {
         setSyncStatus('Cloud Synced ☁️');
       } else {
-        console.error('Supabase save error:', error);
+        console.error('Profile save error:', error);
         setSyncStatus('Local Mode 💾');
       }
     } catch (err) {
-      console.error('Supabase sync failed:', err);
+      console.error('Profile sync failed:', err);
       setSyncStatus('Local Mode 💾');
     }
   };
 
-  // ── LocalStorage Updates ──
+  // ════════════════════════════════════════════════════════════════
+  // ── SAVE 2: TODAY'S DAILY LOG SYNC (KEEPS HISTORICAL DATES SAFE) ──
+  // ════════════════════════════════════════════════════════════════
+  const pushDailyLogToSupabase = async (overrideData = {}) => {
+    if (!isSupabaseConfigured || !supabase) {
+      setSyncStatus('Local Mode 💾');
+      return;
+    }
+
+    try {
+      setSyncStatus('Saving... ⏳');
+      const dailyPayload = {
+        user_id: userKey,
+        log_date: todayDateStr,
+        water_count: waterCount,
+        exercise_mins: exerciseMins,
+        logged_sleep: loggedSleep,
+        symptoms: loggedSymptomsList,
+        medications: medications,
+        ...overrideData
+      };
+
+      const { error } = await supabase
+        .from('daily_health_logs')
+        .upsert(dailyPayload, { onConflict: 'user_id,log_date' });
+
+      if (!error) {
+        setSyncStatus('Cloud Synced ☁️');
+      } else {
+        console.error('Daily log save error:', error);
+        setSyncStatus('Local Mode 💾');
+      }
+    } catch (err) {
+      console.error('Daily sync failed:', err);
+      setSyncStatus('Local Mode 💾');
+    }
+  };
+
+  // ── LocalStorage Synchronizations ──
   useEffect(() => {
     const today = new Date().toDateString();
     localStorage.setItem(`${userKey}_logDate`, today);
@@ -262,7 +306,7 @@ export default function Dashboard({ user, onLogout }) {
     localStorage.setItem(`${userKey}_sosContactName`, sosContactName);
     localStorage.setItem(`${userKey}_sosContactNumber`, sosContactNumber);
     setIsEditingSosContact(false);
-    pushToSupabase({ sos_name: sosContactName, sos_number: sosContactNumber });
+    pushProfileToSupabase({ sos_name: sosContactName, sos_number: sosContactNumber });
     alert("Emergency Contact details save ho gayi hain! 🌸");
   };
 
@@ -301,7 +345,7 @@ export default function Dashboard({ user, onLogout }) {
   const handleSaveLabValues = (e) => {
     e.preventDefault();
     localStorage.setItem(`${userKey}_labValues`, JSON.stringify(labValues));
-    pushToSupabase({ lab_values: labValues });
+    pushProfileToSupabase({ lab_values: labValues });
     alert("Lab test report values save ho gayi hain! 🌸");
   };
 
@@ -360,7 +404,7 @@ export default function Dashboard({ user, onLogout }) {
     const updated = [...medications, newMed];
     setMedications(updated);
     setNewMedName('');
-    pushToSupabase({ medications: updated });
+    pushDailyLogToSupabase({ medications: updated });
     triggerNotification("New Medicine Added 💊", `${newMed.name} ko aapke daily schedule me add kar diya gaya hai.`);
   };
 
@@ -376,13 +420,13 @@ export default function Dashboard({ user, onLogout }) {
       return m;
     });
     setMedications(updated);
-    pushToSupabase({ medications: updated });
+    pushDailyLogToSupabase({ medications: updated });
   };
 
   const handleDeleteMed = (id) => {
     const updated = medications.filter(m => m.id !== id);
     setMedications(updated);
-    pushToSupabase({ medications: updated });
+    pushDailyLogToSupabase({ medications: updated });
   };
 
   const isWaterDone = waterCount >= 8;
@@ -394,7 +438,7 @@ export default function Dashboard({ user, onLogout }) {
     if (waterCount < 8) {
       const nextCount = waterCount + 1;
       setWaterCount(nextCount);
-      pushToSupabase({ water_count: nextCount });
+      pushDailyLogToSupabase({ water_count: nextCount });
       if (nextCount === 8) {
         triggerNotification("🎉 Hydro Goal Crushed!", "Aapne aaj ke 8 glasses water target poora kar liya!");
       }
@@ -479,7 +523,7 @@ export default function Dashboard({ user, onLogout }) {
     localStorage.setItem(`${userKey}_cycleLength`, length);
     localStorage.setItem(`${userKey}_isCycleSetup`, 'true');
 
-    pushToSupabase({ last_date: date, cycle_length: Number(length) });
+    pushProfileToSupabase({ last_date: date, cycle_length: Number(length) });
   };
 
   const toggleSymptom = (symptom) => {
@@ -492,8 +536,7 @@ export default function Dashboard({ user, onLogout }) {
     let updatedStatus = 'Tracked';
 
     if (selectedFlow !== 'None') {
-      const todayStr = new Date().toISOString().split('T')[0];
-      saveCycleDetails(todayStr, cycleLength);
+      saveCycleDetails(todayDateStr, cycleLength);
     }
 
     const highSeveritySymptoms = ['Severe Cramps', 'Heavy Bleeding', 'Migraine'];
@@ -511,10 +554,10 @@ export default function Dashboard({ user, onLogout }) {
     localStorage.setItem(`${userKey}_symptomStatus`, updatedStatus);
     localStorage.setItem(`${userKey}_loggedSymptomsList`, JSON.stringify(selectedSymptoms));
 
-    pushToSupabase({ 
-      symptoms: selectedSymptoms, 
-      symptom_status: updatedStatus 
-    });
+    // Profile table status update
+    pushProfileToSupabase({ symptom_status: updatedStatus });
+    // Daily history table entry
+    pushDailyLogToSupabase({ symptoms: selectedSymptoms });
 
     setJournalSavedMsg(true);
     setTimeout(() => setJournalSavedMsg(false), 3000);
@@ -531,7 +574,7 @@ export default function Dashboard({ user, onLogout }) {
       const data = await response.json();
       setAiTip(data.reply);
     } catch (error) {
-      setAiTip("Backend connect nahi hua. Apna server status check karein.");
+      setAiTip("Backend connect nahi hua. Server status check karein.");
     }
     setLoading(false);
   };
@@ -574,7 +617,9 @@ export default function Dashboard({ user, onLogout }) {
               {syncStatus}
             </span>
           </div>
-          <p className="text-[#7A7880] mt-1 text-sm">Welcome to your personal health overview.</p>
+          <p className="text-[#7A7880] mt-1 text-sm">
+            Date: <b>{todayDateStr}</b> • Daily History & Health Tracker
+          </p>
         </div>
         
         <div className="flex flex-wrap items-center gap-3">
@@ -669,7 +714,7 @@ export default function Dashboard({ user, onLogout }) {
       {activeTab === 'dashboard' && (
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           
-          {/* 1. SMART CYCLE TRACKER CARD */}
+          {/* 1. CYCLE TRACKER CARD */}
           <div className="bg-white p-6 rounded-3xl shadow-sm border border-[#E8E4DE] hover:shadow-md transition-shadow">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-bold text-[#29272D] flex items-center gap-2">
@@ -724,7 +769,6 @@ export default function Dashboard({ user, onLogout }) {
                   </p>
                 </div>
 
-                {/* Smart Hormonal Insight Card */}
                 <div className={`p-3 rounded-2xl border text-xs leading-relaxed space-y-1 ${smartInsight.color}`}>
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-[11px] uppercase tracking-wider">{smartInsight.badge}</span>
@@ -831,7 +875,7 @@ export default function Dashboard({ user, onLogout }) {
               onClick={handleSaveSymptomJournal}
               className="w-full bg-[#8B7BB5] hover:bg-[#726496] text-white font-semibold py-2.5 rounded-xl text-xs transition-colors shadow-sm"
             >
-              {journalSavedMsg ? '✓ Journal Logged & Synced!' : 'Save & Sync Cycle Tracker'}
+              {journalSavedMsg ? '✓ Journal Logged & Saved!' : 'Save & Sync Cycle Tracker'}
             </button>
           </div>
 
@@ -996,7 +1040,7 @@ export default function Dashboard({ user, onLogout }) {
           <div className="bg-white p-6 rounded-3xl shadow-sm border border-[#E8E4DE] hover:shadow-md transition-shadow lg:col-span-3">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-bold text-[#29272D] flex items-center gap-2">
-                📝 Daily Quick Logs
+                📝 Daily Quick Logs ({todayDateStr})
               </h2>
               {isAllGoalsDone && (
                 <span className="text-xs font-bold bg-[#EAE6F4] text-[#8B7BB5] px-3 py-1 rounded-full animate-bounce">
@@ -1065,7 +1109,7 @@ export default function Dashboard({ user, onLogout }) {
                     {isWaterDone ? 'Goal Complete!' : '+1 Glass'}
                   </button>
                   <button
-                    onClick={() => { setWaterCount(0); pushToSupabase({ water_count: 0 }); }}
+                    onClick={() => { setWaterCount(0); pushDailyLogToSupabase({ water_count: 0 }); }}
                     className="px-2 border border-[#E8E4DE] text-[#7A7880] text-xs rounded-xl hover:bg-white"
                     title="Reset"
                   >
@@ -1082,7 +1126,7 @@ export default function Dashboard({ user, onLogout }) {
               }`}>
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-2xl">{isExerciseDone ? '🏋️‍♀️' : '🏃‍♀️'}</span>
+                    <span className="text-2xl">{isExerciseDone ? '🏋️‍♀️️' : '🏃‍♀️'}</span>
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                       isExerciseDone ? 'bg-emerald-200 text-emerald-800' : 'bg-[#EAE6F4] text-[#8B7BB5]'
                     }`}>
@@ -1099,7 +1143,7 @@ export default function Dashboard({ user, onLogout }) {
                     onClick={() => {
                       const next = exerciseMins + 15;
                       setExerciseMins(next);
-                      pushToSupabase({ exercise_mins: next });
+                      pushDailyLogToSupabase({ exercise_mins: next });
                     }}
                     className={`flex-1 text-xs font-medium py-2 rounded-xl transition-colors ${
                       isExerciseDone ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-[#29272D] text-white hover:bg-black'
@@ -1108,7 +1152,7 @@ export default function Dashboard({ user, onLogout }) {
                     +15 m
                   </button>
                   <button
-                    onClick={() => { setExerciseMins(0); pushToSupabase({ exercise_mins: 0 }); }}
+                    onClick={() => { setExerciseMins(0); pushDailyLogToSupabase({ exercise_mins: 0 }); }}
                     className="px-2 border border-[#E8E4DE] text-[#7A7880] text-xs rounded-xl hover:bg-white"
                     title="Reset"
                   >
@@ -1142,7 +1186,7 @@ export default function Dashboard({ user, onLogout }) {
                     onClick={() => {
                       const next = loggedSleep >= 12 ? 0 : loggedSleep + 1;
                       setLoggedSleep(next);
-                      pushToSupabase({ logged_sleep: next });
+                      pushDailyLogToSupabase({ logged_sleep: next });
                     }}
                     className={`flex-1 text-xs font-medium py-2 rounded-xl transition-colors ${
                       isSleepDone ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-[#29272D] text-white hover:bg-black'
@@ -1151,7 +1195,7 @@ export default function Dashboard({ user, onLogout }) {
                     +1 Hour
                   </button>
                   <button
-                    onClick={() => { setLoggedSleep(0); pushToSupabase({ logged_sleep: 0 }); }}
+                    onClick={() => { setLoggedSleep(0); pushDailyLogToSupabase({ logged_sleep: 0 }); }}
                     className="px-2 border border-[#E8E4DE] text-[#7A7880] text-xs rounded-xl hover:bg-white"
                     title="Reset"
                   >
@@ -1354,6 +1398,27 @@ export default function Dashboard({ user, onLogout }) {
                 </div>
               </div>
 
+              {/* Lab Report Clinical Overview in PDF */}
+              {(lhFshRatio || testNum || tshNum) && (
+                <div className="space-y-2">
+                  <h4 className="text-xs font-bold text-[#7A7880] uppercase tracking-wider">🔬 Recent Lab Hormonal Profile</h4>
+                  <div className="grid grid-cols-3 gap-2 border border-[#E8E4DE] rounded-2xl p-3 text-xs bg-[#FAF9F6]">
+                    <div>
+                      <span className="text-[#7A7880] block text-[10px]">LH : FSH RATIO</span>
+                      <span className="font-bold text-[#29272D]">{lhFshRatio ? `${lhFshRatio} : 1` : 'N/A'}</span>
+                    </div>
+                    <div>
+                      <span className="text-[#7A7880] block text-[10px]">TESTOSTERONE</span>
+                      <span className="font-bold text-[#29272D]">{testNum ? `${testNum} ng/dL` : 'N/A'}</span>
+                    </div>
+                    <div>
+                      <span className="text-[#7A7880] block text-[10px]">TSH (THYROID)</span>
+                      <span className="font-bold text-[#29272D]">{tshNum ? `${tshNum} uIU/mL` : 'N/A'}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <h4 className="text-xs font-bold text-[#7A7880] uppercase tracking-wider">1. Menstrual Cycle Overview</h4>
                 <div className="border border-[#E8E4DE] rounded-2xl p-4 space-y-2 text-xs">
@@ -1516,7 +1581,6 @@ export default function Dashboard({ user, onLogout }) {
               </button>
             </form>
 
-            {/* Analysis Summary Card */}
             {(lhFshRatio || testNum || tshNum) && (
               <div className="mt-4 p-4 rounded-2xl bg-[#FAF9F6] border border-[#E8E4DE] space-y-2.5">
                 <h4 className="text-[11px] font-bold text-[#29272D] uppercase tracking-wider">🔬 Clinical Insights</h4>
@@ -1555,7 +1619,7 @@ export default function Dashboard({ user, onLogout }) {
                 )}
 
                 <p className="text-[9px] text-[#7A7880] italic pt-1 border-t border-[#E8E4DE]">
-                  *Yeh values keval reference ke liye hain. Final diagnosis ke liye Gynecologist se consult karein.
+                  *Yeh values reference ke liye hain. Final diagnosis ke liye Gynecologist se consult karein.
                 </p>
               </div>
             )}
@@ -1570,7 +1634,7 @@ export default function Dashboard({ user, onLogout }) {
         </div>
       )}
 
-      {/* ── SOS RELIEF MODAL POPUP (With WhatsApp & Direct Call Buttons) ── */}
+      {/* ── SOS RELIEF MODAL POPUP ── */}
       {showSosModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
           <div className="bg-white w-full max-w-lg rounded-3xl p-6 shadow-2xl border border-rose-100 max-h-[90vh] overflow-y-auto relative">
@@ -1589,7 +1653,6 @@ export default function Dashboard({ user, onLogout }) {
               </div>
             </div>
 
-            {/* Relief Tips */}
             <div className="space-y-3">
               <div className="bg-rose-50 border border-rose-100 p-3.5 rounded-2xl flex items-start gap-3">
                 <span className="text-2xl">🔥</span>
@@ -1632,7 +1695,6 @@ export default function Dashboard({ user, onLogout }) {
               </div>
             </div>
 
-            {/* Emergency Action Center */}
             <div className="mt-5 p-4 rounded-2xl bg-gradient-to-r from-rose-50 to-pink-50 border border-rose-200">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
