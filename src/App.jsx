@@ -145,7 +145,7 @@ function DashboardMockup() {
   )
 }
 
-// ─── Responsive Navbar (Desktop: Full Navigation | Mobile: Hamburger Menu) ────
+// ─── Responsive Navbar ────────────────────────────────────────────────────────
 function Navbar({ onNavigate, onContactClick, onLoginClick }) {
   const [open, setOpen] = useState(false);
   const links = ['How It Works', 'Features', 'Why HerBalance', 'FAQ'];
@@ -159,14 +159,14 @@ function Navbar({ onNavigate, onContactClick, onLoginClick }) {
           <img
             src="/pcod_logo.jpeg"
             alt="HerBalance Logo"
-            className="h-9 w-9 sm:h-11 sm:w-11 rounded-full object-cover shadow-sm shrink-0"
+            className="h-9 w-9 sm:h-11 sm:w-11 rounded-full object-cover shadow-sm shrink-0 border border-[#E8E4DE]"
           />
           <h1 className="text-lg sm:text-2xl font-bold text-[#B46A72] tracking-tight shrink-0">
             HerBalance
           </h1>
         </div>
         
-        {/* Desktop Links (Visible only on screens md and above) */}
+        {/* Desktop Links */}
         <div className="hidden md:flex items-center gap-7">
           {links.map(link => (
             <a 
@@ -218,7 +218,7 @@ function Navbar({ onNavigate, onContactClick, onLoginClick }) {
 
       </div>
 
-      {/* Mobile Dropdown Menu (Opened when hamburger icon is clicked) */}
+      {/* Mobile Dropdown Menu */}
       {open && (
         <div className="md:hidden bg-white border-t border-[#E8E4DE] px-5 py-4 space-y-3 shadow-lg animate-in slide-in-from-top-2">
           {links.map(link => (
@@ -289,7 +289,7 @@ function FAQ() {
   )
 }
 
-// ─── Asli AI Chat Component ──────────────────────────────────────────────────
+// ─── AI Chat Component ────────────────────────────────────────────────────────
 function AICompanionChat({ icons }) {
   const [messages, setMessages] = useState([
     { sender: 'ai', text: "Hi! I'm HerBalance AI. How are you feeling today? Share your symptoms, or ask me anything about PCOD/PCOS. 🌸" }
@@ -938,9 +938,11 @@ export default function App({ onNavigate }) {
           <div className="grid md:grid-cols-4 gap-10 mb-10">
             <div className="md:col-span-1">
               <div className="flex items-center gap-2.5 mb-4">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#8B7BB5] to-[#A89FCC] flex items-center justify-center">
-                  <Icon path={icons.heart} size={15} className="text-white" />
-                </div>
+                <img
+                  src="/pcod_logo.jpeg"
+                  alt="HerBalance Logo"
+                  className="h-8 w-8 rounded-full object-cover shrink-0 border border-white/20"
+                />
                 <span className="font-bold text-white text-lg" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>HerBalance</span>
               </div>
               <p className="text-white/50 text-xs leading-relaxed">
