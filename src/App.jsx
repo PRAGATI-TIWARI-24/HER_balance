@@ -1,11 +1,11 @@
 import Assessment from "./Test";
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import AuthModal from './AuthModal';
 import Dashboard from './Dashboard';
 import ScrollToTop from './components/ScrollToTop';
 
-import { useRef, useEffect } from 'react';
-
+// ─── Founder Desk Import ──────────────────────────────────────────────────────
+import FounderDesk from './FounderDesk';
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
 const Icon = ({ path, size = 20, className = '' }) => (
@@ -14,9 +14,7 @@ const Icon = ({ path, size = 20, className = '' }) => (
   </svg>
 )
 
-const icons = 
-{
-
+const icons = {
   menu: "M3 12h18M3 6h18M3 18h18",
   x: "M18 6L6 18M6 6l12 12",
   cycle: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m0 4v4l3 3",
@@ -62,7 +60,6 @@ function DashboardMockup() {
     <div className="relative">
       <div className="absolute -inset-4 rounded-[40px] bg-gradient-to-br from-[#8B7BB5]/10 via-[#A8BFA3]/10 to-[#D99AA5]/10 blur-2xl" />
       <div className="relative bg-white rounded-[28px] shadow-[0_24px_80px_rgba(139,123,181,0.18)] border border-[#E8E4DE] overflow-hidden w-full max-w-[420px] mx-auto">
-        {/* Header bar */}
         <div className="bg-gradient-to-r from-[#8B7BB5] to-[#A89FCC] px-5 py-4 flex items-center justify-between">
           <div>
             <p className="text-white/70 text-xs font-medium">Good morning</p>
@@ -74,7 +71,6 @@ function DashboardMockup() {
         </div>
 
         <div className="p-4 space-y-3">
-          {/* Cycle card */}
           <div className="bg-gradient-to-br from-[#F7F4FB] to-[#FAF9F6] rounded-2xl p-4 border border-[#EAE6F4]">
             <div className="flex items-start justify-between">
               <div>
@@ -95,7 +91,6 @@ function DashboardMockup() {
             <p className="text-[#8B7BB5] text-xs font-medium mt-1.5">Next period est. ~20 days</p>
           </div>
 
-          {/* Today's goals */}
           <div className="bg-white rounded-2xl p-4 border border-[#E8E4DE]">
             <p className="text-[#29272D] font-semibold text-sm mb-2.5">Today's Goals</p>
             <div className="space-y-2">
@@ -114,7 +109,6 @@ function DashboardMockup() {
             </div>
           </div>
 
-          {/* Health stats row */}
           <div className="grid grid-cols-4 gap-2">
             {[
               { label: 'Sleep', val: '6.5h', sub: 'Low', color: '#D99AA5' },
@@ -130,7 +124,6 @@ function DashboardMockup() {
             ))}
           </div>
 
-          {/* Insight */}
           <div className="bg-gradient-to-r from-[#EAE6F4] to-[#F4EEF0] rounded-2xl p-3.5 border border-[#DDD7EF]">
             <div className="flex gap-2.5">
               <div className="w-6 h-6 rounded-full bg-[#8B7BB5] flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -153,8 +146,6 @@ function Navbar({ onNavigate, onContactClick, onLoginClick }) {
   return (
     <nav className="border-b border-[#E8E4DE] bg-white sticky top-0 z-40">
       <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between gap-2">
-        
-        {/* Left: Brand Logo & Title */}
         <div className="flex items-center gap-2.5 shrink-0">
           <img
             src="/pcod_logo.jpeg"
@@ -166,7 +157,6 @@ function Navbar({ onNavigate, onContactClick, onLoginClick }) {
           </h1>
         </div>
         
-        {/* Desktop Links */}
         <div className="hidden md:flex items-center gap-7">
           {links.map(link => (
             <a 
@@ -179,7 +169,6 @@ function Navbar({ onNavigate, onContactClick, onLoginClick }) {
           ))}
         </div>
         
-        {/* Desktop Right Side Buttons */}
         <div className="hidden md:flex items-center gap-4 shrink-0">
           <button 
             onClick={onLoginClick} 
@@ -198,7 +187,6 @@ function Navbar({ onNavigate, onContactClick, onLoginClick }) {
           </a>
         </div>
 
-        {/* Mobile Right: Compact Login + Hamburger Button */}
         <div className="flex items-center gap-2 md:hidden">
           <button 
             onClick={onLoginClick} 
@@ -215,10 +203,8 @@ function Navbar({ onNavigate, onContactClick, onLoginClick }) {
             <Icon path={open ? icons.x : icons.menu} size={22} />
           </button>
         </div>
-
       </div>
 
-      {/* Mobile Dropdown Menu */}
       {open && (
         <div className="md:hidden bg-white border-t border-[#E8E4DE] px-5 py-4 space-y-3 shadow-lg animate-in slide-in-from-top-2">
           {links.map(link => (
@@ -246,6 +232,75 @@ function Navbar({ onNavigate, onContactClick, onLoginClick }) {
         </div>
       )}
     </nav>
+  );
+}
+
+// ─── Landing Page Smart Promo Pop-up (Zero-Leakage & High Curiosity) ──────────
+function PromoPopup({ onExploreClick }) {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const dismissedCount = Number(localStorage.getItem('pcod_calibration_dismissed') || 0);
+    if (dismissedCount >= 2) return;
+
+    const timer = setTimeout(() => {
+      const currentDismissed = Number(localStorage.getItem('pcod_calibration_dismissed') || 0);
+      if (currentDismissed < 2) {
+        setVisible(true);
+      }
+    }, 12000); // 12 seconds par subtle trigger
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleDismiss = () => {
+    const count = Number(localStorage.getItem('pcod_calibration_dismissed') || 0) + 1;
+    localStorage.setItem('pcod_calibration_dismissed', count);
+    setVisible(false);
+  };
+
+  if (!visible) return null;
+
+  return (
+    <div className="fixed bottom-6 right-6 z-50 max-w-sm w-[92%] sm:w-auto animate-in slide-in-from-bottom-5 duration-300">
+      <div className="bg-gradient-to-br from-[#29272D] to-[#3F3C44] text-white p-5 rounded-3xl shadow-2xl border border-purple-400/20 relative">
+        <button
+          onClick={handleDismiss}
+          className="absolute top-3 right-3 text-white/60 hover:text-white bg-white/10 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors"
+          title="Dismiss"
+        >
+          ✕
+        </button>
+
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-xl">🔬</span>
+          <span className="bg-purple-500/20 text-purple-300 border border-purple-400/30 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+            Rhythm Engine
+          </span>
+        </div>
+
+        <h4 className="font-bold text-sm text-white">Why is Your Period Delayed?</h4>
+        <p className="text-xs text-white/70 mt-1 leading-relaxed">
+          PCOD me ovulation pause hota hai, pregnancy panic nahi. Hamare <b>3-Day Baseline Tracker</b> se apna natural biological shift decode karein.
+        </p>
+
+        <div className="mt-3.5 flex items-center justify-between pt-2.5 border-t border-white/10">
+          <div>
+            <span className="text-[10px] text-white/60 block">Hormone Baseline</span>
+            <span className="text-xs font-black text-emerald-300">100% Free Calibration</span>
+          </div>
+          <button
+            onClick={() => {
+              setVisible(false);
+              onExploreClick();
+            }}
+            className="bg-[#8B7BB5] hover:bg-[#7867a5] text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-md active:scale-95"
+          >
+            Start Check ➔
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -427,6 +482,44 @@ export default function App({ onNavigate }) {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [user, setUser] = useState(null);
 
+  // ─── 🛡️ ROOT LEVEL SECURE FOUNDER ACCESS (FAIL-SAFE PIN MODAL) ───
+  const FOUNDER_PIN = "pragati";
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pinInput, setPinInput] = useState('');
+  const [showFounderDirect, setShowFounderDirect] = useState(false);
+
+  useEffect(() => {
+    // 1. URL Listener (?founder=true ya ?admin=pragati)
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.has('founder') || searchParams.has('admin')) {
+      setShowPinModal(true);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    // 2. Secret Keyboard Shortcut (Ctrl + Shift + P ya Cmd + Shift + P)
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'P' || e.key === 'p')) {
+        e.preventDefault();
+        setShowPinModal(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const handleVerifyPin = (e) => {
+    e.preventDefault();
+    if (pinInput.trim() === FOUNDER_PIN) {
+      setShowPinModal(false);
+      setPinInput('');
+      setShowFounderDirect(true);
+    } else {
+      alert("❌ Incorrect Founder Password!");
+      setPinInput('');
+    }
+  };
+
   const handleLoginSuccess = (userId, userName) => {
     setUser({ id: userId, name: userName });
     setShowAuthModal(false);
@@ -446,7 +539,7 @@ export default function App({ onNavigate }) {
     );
   }
 
-  if(currentPage === 'assessment') {
+  if (currentPage === 'assessment') {
     return <Assessment onback={() => setCurrentPage('landing')} />;
   }
   
@@ -816,7 +909,6 @@ export default function App({ onNavigate }) {
           </div>
 
           <AICompanionChat icons={icons} />
-          
         </div>
       </section>
 
@@ -1024,6 +1116,54 @@ export default function App({ onNavigate }) {
         onClose={() => setShowAuthModal(false)} 
         onLoginSuccess={handleLoginSuccess}
       />
+
+      {/* ── Smart Seed Cycling Kit Promo Pop-up (Calibrated & Zero Leakage) ── */}
+      <PromoPopup onExploreClick={() => setShowAuthModal(true)} />
+
+      {/* ── 🔒 SECURE PIN INPUT MODAL (ZERO BROWSER BLOCKING) ── */}
+      {showPinModal && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-[200] flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl p-6 max-w-xs w-full shadow-2xl border border-purple-200 animate-in zoom-in-95 duration-150">
+            <div className="text-center mb-4">
+              <span className="text-3xl">👑</span>
+              <h3 className="font-black text-base text-[#29272D] mt-1">Founder Access</h3>
+              <p className="text-xs text-[#7A7880]">Enter secret PIN to unlock desk</p>
+            </div>
+
+            <form onSubmit={handleVerifyPin} className="space-y-3">
+              <input
+                type="password"
+                autoFocus
+                placeholder="Enter password..."
+                value={pinInput}
+                onChange={(e) => setPinInput(e.target.value)}
+                className="w-full p-2.5 text-center text-sm border border-[#E8E4DE] rounded-xl outline-none focus:ring-2 focus:ring-[#8B7BB5]"
+              />
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setShowPinModal(false); setPinInput(''); }}
+                  className="flex-1 border border-[#E8E4DE] text-[#7A7880] py-2 rounded-xl text-xs font-semibold hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 bg-[#29272D] hover:bg-black text-white py-2 rounded-xl text-xs font-bold transition-all shadow-sm"
+                >
+                  Unlock ➔
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── 👑 ROOT LEVEL FOUNDER DESK MODAL ── */}
+      {showFounderDirect && (
+        <FounderDesk onClose={() => setShowFounderDirect(false)} />
+      )}
 
     </div>
   );

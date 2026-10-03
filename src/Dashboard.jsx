@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import html2pdf from 'html2pdf.js';
 
 // ── Safe Supabase Client Import ──
@@ -14,7 +14,7 @@ import {
 export default function Dashboard({ user, onLogout }) {
   
   // ─── LocalStorage Key Prefix / User ID ───
-  const userKey = String(user?.id || user?.email || 'guest_user');
+  const userKey = String(user?.id || user?.email || user?.name || 'guest_user');
   const todayDateStr = new Date().toISOString().split('T')[0]; // Format: YYYY-MM-DD
 
   // ─── Main View Navigation Tab ───
@@ -28,6 +28,43 @@ export default function Dashboard({ user, onLogout }) {
 
   // ─── Push Notification State ───
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+
+  // ─── 🛡️ 3-DAY HORMONE CALIBRATION STATE (ZERO LEAKAGE) ───
+  const [calibrationDays, setCalibrationDays] = useState(() => {
+    return Number(localStorage.getItem(`${userKey}_calibrationDays`)) || 1;
+  });
+
+  // ─── Seed Cycling Kit & Care Pass Subscription States ───
+  const [showKitModal, setShowKitModal] = useState(false);
+  const [showEngineBlogModal, setShowEngineBlogModal] = useState(false);
+  
+  // User Subscription State (Locked vs Unlocked)
+  const [kitSubscribed, setKitSubscribed] = useState(() => {
+    return localStorage.getItem(`${userKey}_kitSubscribed`) === 'true';
+  });
+
+  // ─── Payment & UPI Configuration ───
+  const UPI_ID = "pragati015tiwari@okhdfcbank"; 
+  const PAYEE_NAME = "HerBalance";
+  const PASS_AMOUNT = "20.00";
+
+  // Modal Checkout Sub-Steps: 'address' -> 'payment'
+  const [checkoutStep, setCheckoutStep] = useState('address'); 
+  const [utrInput, setUtrInput] = useState('');
+  const [paymentPending, setPaymentPending] = useState(false);
+
+  // Structured Address States
+  const [subWhatsApp, setSubWhatsApp] = useState('');
+  const [subHouseNo, setSubHouseNo] = useState('');
+  const [subArea, setSubArea] = useState('');
+  const [subLandmark, setSubLandmark] = useState('');
+  const [subPincode, setSubPincode] = useState('');
+  const [subCity, setSubCity] = useState('');
+  const [subState, setSubState] = useState('');
+
+  // ─── Dynamic UPI Links & QR Generator ───
+  const upiLink = `upi://pay?pa=${encodeURIComponent(UPI_ID)}&pn=${encodeURIComponent(PAYEE_NAME)}&am=${PASS_AMOUNT}&cu=INR&tn=${encodeURIComponent(`HerBalance Pass - ${user?.name || 'User'}`)}`;
+  const qrCodeUrl = `https://quickchart.io/qr?text=${encodeURIComponent(upiLink)}&size=200&centerImageUrl=`;
 
   // ─── SOS Emergency Contact States ───
   const [sosContactName, setSosContactName] = useState(() => {
@@ -52,16 +89,38 @@ export default function Dashboard({ user, onLogout }) {
   const [aiTip, setAiTip] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // ─── 2. Cycle Tracker States ───
+  // ─── 2. Cycle Tracker States (Protected Memory) ───
   const [lastDate, setLastDate] = useState(() => {
-    return localStorage.getItem(`${userKey}_lastDate`) || "";
+    return localStorage.getItem(`${userKey}_lastDate`) || todayDateStr;
   });
   const [cycleLength, setCycleLength] = useState(() => {
     return Number(localStorage.getItem(`${userKey}_cycleLength`)) || 28;
   });
   const [isCycleSetup, setIsCycleSetup] = useState(() => {
-    return localStorage.getItem(`${userKey}_isCycleSetup`) === 'true';
+    return Boolean(localStorage.getItem(`${userKey}_lastDate`));
   });
+
+  // Edit Mode Flag
+  const [isEditingCycle, setIsEditingCycle] = useState(false);
+
+  // Dedicated Day, Month, Year Selection States
+  const parseSavedDate = (dStr) => {
+    if (!dStr) return { day: '01', month: '10', year: '2026' };
+    const parts = dStr.split('-');
+    if (parts.length === 3) {
+      return { year: parts[0], month: parts[1], day: parts[2] };
+    }
+    return { day: '01', month: '10', year: '2026' };
+  };
+
+  const initialParsed = parseSavedDate(lastDate);
+  const [selDay, setSelDay] = useState(initialParsed.day);
+  const [selMonth, setSelMonth] = useState(initialParsed.month);
+  const [selYear, setSelYear] = useState(initialParsed.year);
+  const [saveSuccessNotice, setSaveSuccessNotice] = useState(false);
+
+  // Ref to lock against cloud overwrite
+  const userLockedDate = useRef(false);
 
   // ─── 3. Symptom Journal States ───
   const [selectedSymptoms, setSelectedSymptoms] = useState([]);
@@ -128,12 +187,11 @@ export default function Dashboard({ user, onLogout }) {
 
   const waterSchedule = ["8 AM", "10 AM", "12 PM", "2 PM", "4 PM", "6 PM", "8 PM", "10 PM"];
 
-  // ─── Dynamic Real Analytics States ───
+  // ─── Analytics Aggregation States ───
   const [weeklyWaterData, setWeeklyWaterData] = useState([]);
   const [symptomAnalytics, setSymptomAnalytics] = useState([]);
   const [avgMedAdherence, setAvgMedAdherence] = useState(0);
 
-  // Helper: Past 7 days structure
   const getLast7DaysTemplate = () => {
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const result = [];
@@ -147,7 +205,6 @@ export default function Dashboard({ user, onLogout }) {
     return result;
   };
 
-  // ── Real Data Fetch for Analytics & PDF History ──
   const fetchAnalyticsHistory = useCallback(async () => {
     if (!isSupabaseConfigured || !supabase) {
       const template = getLast7DaysTemplate();
@@ -170,7 +227,6 @@ export default function Dashboard({ user, onLogout }) {
 
       if (error || !historyLogs) return;
 
-      // 1. Map 7-Day Water Graph
       const template = getLast7DaysTemplate();
       const waterMap = new Map();
       historyLogs.forEach(row => {
@@ -183,7 +239,6 @@ export default function Dashboard({ user, onLogout }) {
       }));
       setWeeklyWaterData(populatedWater);
 
-      // 2. Real Multi-Day Symptom Analysis
       const counts = {};
       historyLogs.forEach(row => {
         const symList = Array.isArray(row.symptoms) ? row.symptoms : [];
@@ -204,7 +259,6 @@ export default function Dashboard({ user, onLogout }) {
 
       setSymptomAnalytics(sortedSymptoms);
 
-      // 3. Real Medication Adherence
       let totalMeds = 0;
       let takenMeds = 0;
       historyLogs.forEach(row => {
@@ -226,9 +280,7 @@ export default function Dashboard({ user, onLogout }) {
     }
   }, [userKey, waterCount, medications]);
 
-  // ════════════════════════════════════════════════════════════════
-  // ── INITIAL DATA FETCH (PROFILE + TODAY'S ROW) ──
-  // ════════════════════════════════════════════════════════════════
+  // ── Protected Initial Data Load ──
   useEffect(() => {
     requestNotificationPermission().then((granted) => {
       if (granted) setNotificationsEnabled(true);
@@ -244,7 +296,6 @@ export default function Dashboard({ user, onLogout }) {
       try {
         setSyncStatus('Syncing... ⏳');
 
-        // 1. Fetch Profile / Settings
         const { data: profileData } = await supabase
           .from('user_health_data')
           .select('*')
@@ -252,18 +303,35 @@ export default function Dashboard({ user, onLogout }) {
           .maybeSingle();
 
         if (profileData) {
-          if (profileData.last_date) {
-            setLastDate(profileData.last_date);
-            setIsCycleSetup(true);
+          if (!userLockedDate.current) {
+            const savedLocal = localStorage.getItem(`${userKey}_lastDate`);
+            if (savedLocal) {
+              setLastDate(savedLocal);
+              const p = parseSavedDate(savedLocal);
+              setSelDay(p.day);
+              setSelMonth(p.month);
+              setSelYear(p.year);
+              setIsCycleSetup(true);
+            } else if (profileData.last_date) {
+              setLastDate(profileData.last_date);
+              const p = parseSavedDate(profileData.last_date);
+              setSelDay(p.day);
+              setSelMonth(p.month);
+              setSelYear(p.year);
+              setIsCycleSetup(true);
+            }
+
+            if (profileData.cycle_length) {
+              setCycleLength(profileData.cycle_length);
+            }
           }
-          if (profileData.cycle_length) setCycleLength(profileData.cycle_length);
+
           if (profileData.symptom_status) setSymptomStatus(profileData.symptom_status);
           if (profileData.sos_name) setSosContactName(profileData.sos_name);
           if (profileData.sos_number) setSosContactNumber(profileData.sos_number);
           if (profileData.lab_values) setLabValues(profileData.lab_values);
         }
 
-        // 2. Fetch Today's Daily Entry
         const { data: todayLog } = await supabase
           .from('daily_health_logs')
           .select('*')
@@ -290,9 +358,6 @@ export default function Dashboard({ user, onLogout }) {
     fetchAllData();
   }, [userKey, todayDateStr, fetchAnalyticsHistory]);
 
-  // ════════════════════════════════════════════════════════════════
-  // ── SAVE 1: PROFILE SETTINGS SYNC ──
-  // ════════════════════════════════════════════════════════════════
   const pushProfileToSupabase = async (overrideData = {}) => {
     if (!isSupabaseConfigured || !supabase) {
       setSyncStatus('Local Mode 💾');
@@ -303,8 +368,8 @@ export default function Dashboard({ user, onLogout }) {
       setSyncStatus('Saving... ⏳');
       const payload = {
         user_id: userKey,
-        last_date: lastDate,
-        cycle_length: Number(cycleLength),
+        last_date: overrideData.last_date || lastDate,
+        cycle_length: Number(overrideData.cycle_length || cycleLength),
         symptom_status: symptomStatus,
         sos_name: sosContactName,
         sos_number: sosContactNumber,
@@ -328,9 +393,6 @@ export default function Dashboard({ user, onLogout }) {
     }
   };
 
-  // ════════════════════════════════════════════════════════════════
-  // ── SAVE 2: TODAY'S DAILY LOG SYNC (HISTORICAL ROWS PRESERVED) ──
-  // ════════════════════════════════════════════════════════════════
   const pushDailyLogToSupabase = async (overrideData = {}) => {
     if (!isSupabaseConfigured || !supabase) {
       setSyncStatus('Local Mode 💾');
@@ -356,7 +418,7 @@ export default function Dashboard({ user, onLogout }) {
 
       if (!error) {
         setSyncStatus('Cloud Synced ☁️');
-        fetchAnalyticsHistory(); // Sync realtime graph
+        fetchAnalyticsHistory();
       } else {
         setSyncStatus('Local Mode 💾');
       }
@@ -366,7 +428,6 @@ export default function Dashboard({ user, onLogout }) {
     }
   };
 
-  // ── LocalStorage Synchronizations ──
   useEffect(() => {
     const today = new Date().toDateString();
     localStorage.setItem(`${userKey}_logDate`, today);
@@ -381,7 +442,6 @@ export default function Dashboard({ user, onLogout }) {
     localStorage.setItem(`${userKey}_medications`, JSON.stringify(medications));
   }, [medications, userKey]);
 
-  // ── Save Emergency Contact ──
   const handleSaveSosContact = (e) => {
     e.preventDefault();
     localStorage.setItem(`${userKey}_sosContactName`, sosContactName);
@@ -391,7 +451,6 @@ export default function Dashboard({ user, onLogout }) {
     alert("Emergency Contact details save ho gayi hain! 🌸");
   };
 
-  // ── WhatsApp SOS ──
   const handleSendWhatsAppSos = () => {
     if (!sosContactNumber.trim()) {
       alert("Pehle apna emergency contact number add karein!");
@@ -409,7 +468,6 @@ export default function Dashboard({ user, onLogout }) {
     window.open(`https://wa.me/${cleanNumber}?text=${message}`, '_blank');
   };
 
-  // ── Direct Call SOS ──
   const handleMakeSosCall = () => {
     if (!sosContactNumber.trim()) {
       alert("Pehle apna emergency contact number add karein!");
@@ -420,7 +478,6 @@ export default function Dashboard({ user, onLogout }) {
     window.location.href = `tel:${cleanNumber}`;
   };
 
-  // ── Save Lab Report ──
   const handleSaveLabValues = (e) => {
     e.preventDefault();
     localStorage.setItem(`${userKey}_labValues`, JSON.stringify(labValues));
@@ -428,7 +485,6 @@ export default function Dashboard({ user, onLogout }) {
     alert("Lab test report values save ho gayi hain! 🌸");
   };
 
-  // ── Lab Report Calculations ──
   const lhNum = parseFloat(labValues.lh);
   const fshNum = parseFloat(labValues.fsh);
   const testNum = parseFloat(labValues.testosterone);
@@ -439,7 +495,6 @@ export default function Dashboard({ user, onLogout }) {
   const isTestosteroneHigh = testNum && testNum > 45;
   const isTshAbnormal = tshNum && (tshNum < 0.4 || tshNum > 4.5);
 
-  // ── Setup Reminders ──
   const handleSetupReminders = async () => {
     const granted = await requestNotificationPermission();
     if (granted) {
@@ -524,85 +579,178 @@ export default function Dashboard({ user, onLogout }) {
     }
   };
 
-  // ── Cycle Tracker Logic ──
+  // ── Cycle Math ──
   let daysRemainingText = "-- Days";
-  let currentPhase = "Follicular";
+  let currentPhaseInternal = "Follicular";
+  let isDelayed = false;
   let delayDays = 0;
-  let smartInsight = {
-    badge: "Normal Rhythm",
-    color: "text-emerald-700 bg-emerald-50 border-emerald-200",
-    tip: "Aapka cycle on track hai. Hydration aur regular sleep maintain rakhein."
-  };
 
   if (isCycleSetup && lastDate) {
-    const lastPDate = new Date(lastDate);
-    const nextDate = new Date(lastPDate);
-    nextDate.setDate(lastPDate.getDate() + Number(cycleLength));
+    const parts = lastDate.split('-');
+    if (parts.length === 3) {
+      const lastPDate = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+      const nextDate = new Date(lastPDate);
+      nextDate.setDate(lastPDate.getDate() + Number(cycleLength));
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const diffTime = nextDate - today;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    const daysPassed = Math.floor((today - lastPDate) / (1000 * 60 * 60 * 24));
-    
-    if (daysPassed <= 5) currentPhase = "Flow Phase";
-    else if (daysPassed <= 13) currentPhase = "Follicular";
-    else if (daysPassed <= 16) currentPhase = "Ovulation";
-    else currentPhase = "Luteal";
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const diffTime = nextDate.getTime() - today.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      const daysPassed = Math.floor((today.getTime() - lastPDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (daysPassed <= 5) currentPhaseInternal = "Flow Phase";
+      else if (daysPassed <= 13) currentPhaseInternal = "Follicular";
+      else if (daysPassed <= 16) currentPhaseInternal = "Ovulation";
+      else currentPhaseInternal = "Luteal";
 
-    if (diffDays > 0) {
-      daysRemainingText = `${diffDays} Days`;
-      if (currentPhase === "Luteal") {
-        smartInsight = {
-          badge: "Luteal Prep 🌸",
-          color: "text-purple-700 bg-purple-50 border-purple-200",
-          tip: "Period aane wala hai. Warm fluids lein, sodium intake control karein taaki bloating na ho."
-        };
-      } else if (currentPhase === "Ovulation") {
-        smartInsight = {
-          badge: "Ovulation Window ✨",
-          color: "text-teal-700 bg-teal-50 border-teal-200",
-          tip: "Energy peak par rehti hai. Light strength workout aur fiber-rich foods helpful rahenge."
-        };
-      }
-    } else if (diffDays === 0) {
-      daysRemainingText = "Today";
-      smartInsight = {
-        badge: "Due Today 🩸",
-        color: "text-rose-700 bg-rose-50 border-rose-200",
-        tip: "Aaj period expected hai. Warm water bag aur loose comfortable wear ready rakhein."
-      };
-    } else {
-      delayDays = Math.abs(diffDays);
-      daysRemainingText = `${delayDays} Days Late`;
-
-      if (delayDays <= 14) {
-        smartInsight = {
-          badge: "Mild PCOD Delay ⚠️",
-          color: "text-amber-800 bg-amber-50 border-amber-200",
-          tip: `${delayDays} din delay common hai PCOD mein. Cortisol/stress kam karein, chamomile tea aur gentle yoga follow karein.`
-        };
+      if (diffDays > 0) {
+        daysRemainingText = `${diffDays} Days`;
+        isDelayed = false;
+      } else if (diffDays === 0) {
+        daysRemainingText = "Today";
+        isDelayed = false;
       } else {
-        smartInsight = {
-          badge: "Missed Cycle Alert 🚨",
-          color: "text-rose-800 bg-rose-50 border-rose-200",
-          tip: `Period ${delayDays} din se zyada late hai. Gynecologist se consultation aur ultrasound/hormone checkup schedule karein.`
-        };
+        if (isCycleSetup && localStorage.getItem(`${userKey}_lastDate`)) {
+          delayDays = Math.abs(diffDays);
+          daysRemainingText = `${delayDays} Days Late`;
+          isDelayed = true;
+        } else {
+          daysRemainingText = "28 Days";
+          isDelayed = false;
+        }
       }
     }
   }
 
-  const saveCycleDetails = (date, length) => {
-    setLastDate(date);
-    setCycleLength(length);
-    setIsCycleSetup(true);
+  // ── 🛡️ ZERO-LEAKAGE SEED PROTOCOL ENCRYPTION ──
+  const isFollicularPhase = currentPhaseInternal === 'Follicular' || currentPhaseInternal === 'Flow Phase';
+  const todaySeedData = isFollicularPhase
+    ? {
+        title: 'Phase 1: Follicular Rhythm Ritual 🌱',
+        seeds: 'Flaxseeds + Pumpkin Seeds (1 tbsp each)',
+        benefit: 'Rich in Lignans & Zinc to naturally modulate estrogen & encourage healthy ovulation.',
+        color: 'border-emerald-200 bg-emerald-50/70 text-emerald-950',
+        badge: 'Estrogen Harmony'
+      }
+    : {
+        title: 'Phase 2: Luteal Hormone Boost ✨',
+        seeds: 'Sesame Seeds + Sunflower Seeds (1 tbsp each)',
+        benefit: 'High in Selenium & Vitamin E to support progesterone and curb pre-period cramps.',
+        color: 'border-purple-200 bg-purple-50/70 text-purple-950',
+        badge: 'Progesterone Boost'
+      };
 
-    localStorage.setItem(`${userKey}_lastDate`, date);
-    localStorage.setItem(`${userKey}_cycleLength`, length);
+  // ── Step 1: Address Submit ──
+  const handleProceedToPayment = async (e) => {
+    e.preventDefault();
+    setCheckoutStep('payment');
+
+    const addressPayload = {
+      whatsapp: subWhatsApp,
+      house_no: subHouseNo,
+      area: subArea,
+      landmark: subLandmark,
+      pincode: subPincode,
+      city: subCity,
+      state: subState,
+      pass_fee: 20,
+      utr_number: '',
+      payment_status: 'unpaid',
+      dispatch_phase: currentPhaseInternal === 'Luteal' ? 'Phase 2: Luteal Seeds' : 'Phase 1: Follicular Seeds'
+    };
+
+    localStorage.setItem(`${userKey}_deliveryAddress`, JSON.stringify(addressPayload));
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('kit_subscribers').insert([
+          {
+            user_id: userKey,
+            ...addressPayload,
+            created_at: new Date().toISOString()
+          }
+        ]);
+      } catch (err) {
+        console.error("Address save to Supabase:", err);
+      }
+    }
+  };
+
+  // ── Step 2: Real UTR Submission ──
+  const handleConfirmPayment = async (e) => {
+    e.preventDefault();
+    if (!utrInput.trim() || utrInput.trim().length < 6) {
+      alert("Kripya valid 12-digit UTR / UPI Reference Number enter karein.");
+      return;
+    }
+
+    setPaymentPending(true);
+
+    const fullOrderData = {
+      whatsapp: subWhatsApp,
+      house_no: subHouseNo,
+      area: subArea,
+      landmark: subLandmark,
+      pincode: subPincode,
+      city: subCity,
+      state: subState,
+      pass_fee: 20,
+      utr_number: utrInput.trim(),
+      payment_status: 'under_review',
+      dispatch_phase: currentPhaseInternal === 'Luteal' ? 'Phase 2: Luteal Seeds' : 'Phase 1: Follicular Seeds'
+    };
+
+    localStorage.setItem(`${userKey}_kitSubscribed`, 'true');
+    localStorage.setItem(`${userKey}_deliveryAddress`, JSON.stringify(fullOrderData));
+    setKitSubscribed(true);
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('kit_subscribers').upsert([
+          {
+            user_id: userKey,
+            ...fullOrderData,
+            created_at: new Date().toISOString()
+          }
+        ]);
+      } catch (err) {
+        console.error("Supabase sync:", err);
+      }
+    }
+
+    setPaymentPending(false);
+    setCheckoutStep('address');
+    setShowKitModal(false);
+    setUtrInput('');
+    alert("🎉 Payment Details Received! Aapka HerBalance Care Pass review ke liye submit ho gaya hai.");
+  };
+
+  // ── 🌟 UNBREAKABLE DATE SAVE HANDLER ──
+  const handleApplyCustomDate = (e) => {
+    if (e) e.preventDefault();
+
+    const formattedDate = `${selYear}-${selMonth.padStart(2, '0')}-${selDay.padStart(2, '0')}`;
+    
+    userLockedDate.current = true;
+    localStorage.setItem(`${userKey}_lastDate`, formattedDate);
+    localStorage.setItem(`${userKey}_cycleLength`, String(cycleLength));
     localStorage.setItem(`${userKey}_isCycleSetup`, 'true');
 
-    pushProfileToSupabase({ last_date: date, cycle_length: Number(length) });
+    setLastDate(formattedDate);
+    setIsCycleSetup(true);
+    setIsEditingCycle(false);
+
+    pushProfileToSupabase({ last_date: formattedDate, cycle_length: Number(cycleLength) });
+
+    setSaveSuccessNotice(true);
+    setTimeout(() => setSaveSuccessNotice(false), 3500);
+  };
+
+  const setQuickDate = (d, m, y) => {
+    setSelDay(d);
+    setSelMonth(m);
+    setSelYear(y);
   };
 
   const toggleSymptom = (symptom) => {
@@ -611,12 +759,9 @@ export default function Dashboard({ user, onLogout }) {
     );
   };
 
+  // ── Symptom Journal Save (+ Calibration Day Increment) ──
   const handleSaveSymptomJournal = () => {
     let updatedStatus = 'Tracked';
-
-    if (selectedFlow !== 'None') {
-      saveCycleDetails(todayDateStr, cycleLength);
-    }
 
     const highSeveritySymptoms = ['Severe Cramps', 'Heavy Bleeding', 'Migraine'];
     const hasHighSeverity = selectedSymptoms.some((s) => highSeveritySymptoms.includes(s));
@@ -624,11 +769,17 @@ export default function Dashboard({ user, onLogout }) {
     if (hasHighSeverity) {
       updatedStatus = 'Needs Attention';
       setShowSosModal(true);
-      triggerNotification("🚨 High Severity Alert", "Aapne Severe Symptoms log kiye hain. SOS Relief box check karein.");
+      triggerNotification("🚨 High Discomfort Alert", "Severe symptoms log huye hain. SOS Relief Box open karke relief measures dekhein.");
     }
 
     setSymptomStatus(updatedStatus);
     setLoggedSymptomsList(selectedSymptoms);
+
+    if (calibrationDays < 3) {
+      const nextDays = calibrationDays + 1;
+      setCalibrationDays(nextDays);
+      localStorage.setItem(`${userKey}_calibrationDays`, String(nextDays));
+    }
 
     localStorage.setItem(`${userKey}_symptomStatus`, updatedStatus);
     localStorage.setItem(`${userKey}_loggedSymptomsList`, JSON.stringify(selectedSymptoms));
@@ -674,6 +825,9 @@ export default function Dashboard({ user, onLogout }) {
     html2pdf().set(opt).from(element).save();
   };
 
+  // Calibration Condition Check: Only unlocks after 3 logged days or genuine late cycle
+  const isCalibrationComplete = calibrationDays >= 3 || (isDelayed && isCycleSetup);
+
   return (
     <div className="min-h-screen bg-[#FAF9F6] p-4 md:p-8 animate-in fade-in duration-500 relative">
       
@@ -695,46 +849,46 @@ export default function Dashboard({ user, onLogout }) {
             </span>
           </div>
           <p className="text-[#7A7880] mt-1 text-sm">
-            Date: <b>{todayDateStr}</b> • Daily History & Health Tracker
+            Date: <b>{todayDateStr}</b> • Your Private Health Sanctuary
           </p>
         </div>
         
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
           <button
             onClick={() => setShowLabModal(true)}
-            className="bg-teal-50 border border-teal-200 text-teal-700 hover:bg-teal-100 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
+            className="bg-teal-50 border border-teal-200 text-teal-700 hover:bg-teal-100 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
           >
             🧪 Lab Analyzer
           </button>
 
           <button
             onClick={() => setShowPdfModal(true)}
-            className="bg-[#29272D] text-white hover:bg-black px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
+            className="bg-[#29272D] text-white hover:bg-black px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
           >
             📄 Doctor PDF Report
           </button>
 
           <button
             onClick={handleSetupReminders}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 border ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 border ${
               notificationsEnabled 
                 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
                 : 'bg-purple-50 text-[#8B7BB5] border-purple-200 hover:bg-purple-100'
             }`}
           >
-            {notificationsEnabled ? '🔔 Reminders Active' : '🔔 Setup Reminders'}
+            {notificationsEnabled ? '🔔 Reminders Active' : '🔔 Reminders'}
           </button>
 
           <button
             onClick={() => setShowSosModal(true)}
-            className="bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
+            className="bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
           >
-            🆘 Cramp SOS Relief
+            🆘 Cramp SOS
           </button>
 
           <button 
             onClick={onLogout}
-            className="border border-[#E8E4DE] text-[#29272D] hover:border-[#8B7BB5] hover:text-[#8B7BB5] px-5 py-2 rounded-xl font-semibold transition-colors bg-white shadow-sm text-sm"
+            className="border border-[#E8E4DE] text-[#29272D] hover:border-[#8B7BB5] hover:text-[#8B7BB5] px-4 py-2 rounded-xl font-semibold transition-colors bg-white shadow-sm text-xs"
           >
             Log Out
           </button>
@@ -769,14 +923,52 @@ export default function Dashboard({ user, onLogout }) {
         </button>
       </div>
 
+      {/* ── 🌸 EMPATHETIC DELAY TRIGGER BANNER ── */}
+      {isDelayed && isCalibrationComplete && (
+        <div className="max-w-6xl mx-auto mb-6 bg-gradient-to-r from-amber-50/90 via-rose-50/80 to-purple-50/90 border border-amber-200/80 p-5 rounded-3xl shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="flex items-start gap-3.5">
+            <span className="text-3xl p-2 bg-white rounded-2xl shadow-sm border border-amber-100">🌿</span>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="bg-amber-200/70 text-amber-900 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                  Gentle Rhythm Note
+                </span>
+                <span className="text-xs font-bold text-amber-950">Period is {delayDays} Days Past Expected Date</span>
+              </div>
+              <h4 className="font-extrabold text-sm text-[#29272D] mt-1">
+                Fret not! PCOD mein 8-15 din ka delay bohot normal hai.
+              </h4>
+              <p className="text-xs text-[#7A7880] mt-0.5 leading-relaxed max-w-2xl">
+                Cortisol (stress), irregular sleep, ya follicular pause ki wajah se ovulation shift ho jata hai. Panic hone ki zaroorat nahi hai.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 w-full md:w-auto shrink-0">
+            <button
+              onClick={() => setShowEngineBlogModal(true)}
+              className="flex-1 md:flex-none bg-white hover:bg-[#FAF9F6] border border-amber-200 text-amber-950 font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-sm"
+            >
+              📖 Engine Kaise Kaam Karega?
+            </button>
+            <button
+              onClick={() => setShowKitModal(true)}
+              className="flex-1 md:flex-none bg-[#29272D] hover:bg-black text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-sm"
+            >
+              {kitSubscribed ? "✓ Protocol Active" : "Unlock Protocol (₹20)"}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── SOS Relief Banner ── */}
       {symptomStatus === 'Needs Attention' && (
         <div className="max-w-6xl mx-auto mb-6 bg-rose-50 border border-rose-200 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
           <div className="flex items-start gap-3">
             <span className="text-2xl">🚨</span>
             <div>
-              <p className="text-rose-900 font-bold text-sm">High Severity Symptom Logged today!</p>
-              <p className="text-rose-700 text-xs">Cramps or high discomfort detected. Need instant natural relief steps?</p>
+              <p className="text-rose-900 font-bold text-sm">Discomfort / Cramps Logged Today</p>
+              <p className="text-rose-700 text-xs">Need natural relief methods or emergency caregiver contact?</p>
             </div>
           </div>
           <button
@@ -794,11 +986,145 @@ export default function Dashboard({ user, onLogout }) {
       {activeTab === 'dashboard' && (
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           
+          {/* ── 🌟 STANDOUT: 3-DAY CALIBRATION & 100% PRICE-MASKED BANNER ── */}
+          <div className="lg:col-span-3 rounded-3xl p-6 sm:p-7 relative overflow-hidden bg-gradient-to-r from-[#29272D] via-[#35313A] to-[#1E1C22] text-white shadow-xl border border-purple-500/20">
+            <div className="absolute top-0 right-0 w-72 h-72 bg-[#8B7BB5]/20 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 relative z-10">
+              <div className="space-y-2 max-w-xl">
+                
+                {/* Badges */}
+                <div className="flex items-center gap-2">
+                  {kitSubscribed ? (
+                    <span className="bg-emerald-400 text-black text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                      ✓ Active Care Protocol
+                    </span>
+                  ) : !isCalibrationComplete ? (
+                    <span className="bg-purple-400/25 text-purple-200 border border-purple-300/30 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                      🔬 Biological Rhythm Calibration: Day {calibrationDays}/3
+                    </span>
+                  ) : (
+                    <span className="bg-gradient-to-r from-amber-400 to-rose-400 text-black text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                      ⚠️ Hormone Shift Signature Decoded
+                    </span>
+                  )}
+                  <span className="text-xs text-purple-300 font-semibold">• Natural Science Protocol</span>
+                </div>
+
+                <h3 className="text-2xl font-black tracking-tight">
+                  PCOD Hormone Shift & Organic Seed Protocol 🌸
+                </h3>
+
+                <p className="text-xs text-white/70 leading-relaxed">
+                  PCOD bodies standard 28-day cycle follow nahi karti. Hamara engine continuous daily logs se actual biological state decode karta hai.
+                </p>
+
+                {/* Left Inner Block */}
+                {kitSubscribed ? (
+                  <div className={`mt-3 p-4 rounded-2xl border ${todaySeedData.color} flex items-start gap-3.5 shadow-sm`}>
+                    <span className="text-3xl">🥣</span>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs font-black">{todaySeedData.title}</p>
+                        <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-white/90 border">
+                          {todaySeedData.badge}
+                        </span>
+                      </div>
+                      <p className="text-xs font-bold mt-1">{todaySeedData.seeds}</p>
+                      <p className="text-[11px] opacity-85 mt-0.5">{todaySeedData.benefit}</p>
+                    </div>
+                  </div>
+                ) : !isCalibrationComplete ? (
+                  <div className="mt-3 p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md space-y-2">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-bold text-purple-200">Decoding Daily Hormone Variance</span>
+                      <span className="font-mono text-purple-300">{Math.round((calibrationDays / 3) * 100)}% Complete</span>
+                    </div>
+                    <div className="w-full bg-white/10 h-2 rounded-full overflow-hidden">
+                      <div 
+                        style={{ width: `${(calibrationDays / 3) * 100}%` }}
+                        className="bg-gradient-to-r from-purple-400 to-[#8B7BB5] h-full rounded-full transition-all duration-500"
+                      />
+                    </div>
+                    <p className="text-[11px] text-white/60">
+                      Roz symptoms aur water log karein. Day 3 par aapka natural biological shift signature evaluate hoga.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="mt-3 p-4 rounded-2xl bg-gradient-to-r from-purple-950/60 to-black/60 border border-purple-400/30 backdrop-blur-md flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl p-2 bg-purple-500/20 rounded-xl">🔒</span>
+                      <div>
+                        <p className="text-xs font-extrabold text-amber-300">
+                          Hormone Shift Signature: Locked
+                        </p>
+                        <p className="text-[11px] text-white/70 mt-0.5">
+                          Ovarian pause state detect hui hai. AI-proof protocol unlock karne ke liye Care Pass activate karein.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setShowEngineBlogModal(true)}
+                      className="text-xs text-purple-300 hover:text-white underline font-semibold shrink-0"
+                    >
+                      Read Logic ➔
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* ── 🛡️ RIGHT SIDE: PRICE COMPLETELY HIDDEN UNTIL DAY 3 ── */}
+              <div className="bg-white/10 backdrop-blur-md p-5 rounded-2xl border border-white/10 flex flex-col items-center text-center w-full lg:w-64 shrink-0">
+                
+                {kitSubscribed ? (
+                  <div className="space-y-2 py-2">
+                    <span className="text-3xl">✨</span>
+                    <p className="text-xs font-bold text-emerald-300">Protocol Active</p>
+                    <p className="text-[10px] text-white/70">Doorstep kit dispatch queue enabled.</p>
+                  </div>
+                ) : !isCalibrationComplete ? (
+                  <div className="space-y-2 py-1 w-full">
+                    <span className="text-[10px] uppercase font-bold text-purple-200">Engine Calibrating</span>
+                    <div className="my-2 flex flex-col items-center">
+                      <span className="text-3xl font-black text-purple-300">Day {calibrationDays}</span>
+                      <span className="text-[10px] text-white/60">of 3 Days Logging</span>
+                    </div>
+                    <p className="text-[10px] text-purple-200/80 mb-2 leading-relaxed">
+                      Continuous daily logs se aapki body ka baseline pattern lock ho raha hai.
+                    </p>
+                    <div className="w-full bg-white/20 py-2 rounded-xl text-[11px] font-bold text-white/80">
+                      🔒 Analysis in Progress
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <span className="text-[10px] uppercase font-bold text-white/60">One-Time Activation</span>
+                    <div className="flex items-baseline gap-1 my-1">
+                      <span className="text-3xl font-black text-amber-300">₹20</span>
+                      <span className="text-xs text-white/60">only</span>
+                    </div>
+                    <p className="text-[10px] text-emerald-300 font-semibold mb-3">
+                      ✓ Instant UPI • No recurring debit
+                    </p>
+
+                    <button
+                      onClick={() => setShowKitModal(true)}
+                      className="w-full bg-gradient-to-r from-[#8B7BB5] to-[#B46A72] hover:opacity-95 text-white font-bold py-2.5 rounded-xl text-xs shadow-lg transition-transform active:scale-95"
+                    >
+                      Unlock Signature (₹20 Pass)
+                    </button>
+                  </>
+                )}
+
+              </div>
+            </div>
+          </div>
+
           {/* 1. CYCLE TRACKER CARD */}
           <div className="bg-white p-6 rounded-3xl shadow-sm border border-[#E8E4DE] hover:shadow-md transition-shadow">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-bold text-[#29272D] flex items-center gap-2">
-                🩸 Cycle Tracker
+                🩸 Cycle Rhythm
               </h2>
               <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${
                 symptomStatus === 'Needs Attention' 
@@ -809,51 +1135,164 @@ export default function Dashboard({ user, onLogout }) {
               </span>
             </div>
 
-            {!isCycleSetup ? (
-              <div className="bg-[#FAF9F6] rounded-2xl p-4 border border-[#E8E4DE] space-y-3">
-                <div>
-                  <label className="text-[10px] font-bold text-[#7A7880] uppercase tracking-wider">Last Period Start Date</label>
-                  <input
-                    type="date"
-                    className="w-full mt-1 p-2 text-sm border border-[#E8E4DE] rounded-xl bg-white focus:ring-1 focus:ring-[#8B7BB5] outline-none text-[#29272D]"
-                    value={lastDate}
-                    onChange={(e) => setLastDate(e.target.value)}
-                  />
+            {(!isCycleSetup || isEditingCycle) ? (
+              <form onSubmit={handleApplyCustomDate} className="bg-[#FAF9F6] rounded-2xl p-4 border border-[#E8E4DE] space-y-3 animate-in fade-in duration-200">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-bold text-[#29272D]">Pick Your Period Start Date</span>
+                  {isCycleSetup && (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingCycle(false)}
+                      className="text-[11px] font-semibold text-[#7A7880] hover:text-[#29272D]"
+                    >
+                      Cancel
+                    </button>
+                  )}
                 </div>
+
                 <div>
-                  <label className="text-[10px] font-bold text-[#7A7880] uppercase tracking-wider">Average Cycle Length (Days)</label>
+                  <span className="text-[10px] text-[#7A7880] font-bold uppercase tracking-wider block mb-1">
+                    Quick Pick (September Presets):
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setQuickDate('10', '09', '2026')}
+                      className="px-2.5 py-1 text-[11px] rounded-lg bg-purple-100 hover:bg-purple-200 text-[#8B7BB5] font-bold transition-all"
+                    >
+                      ⚡ 10 September
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setQuickDate('15', '09', '2026')}
+                      className="px-2.5 py-1 text-[11px] rounded-lg bg-purple-100 hover:bg-purple-200 text-[#8B7BB5] font-bold transition-all"
+                    >
+                      ⚡ 15 September
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setQuickDate('20', '09', '2026')}
+                      className="px-2.5 py-1 text-[11px] rounded-lg bg-purple-100 hover:bg-purple-200 text-[#8B7BB5] font-bold transition-all"
+                    >
+                      ⚡ 20 September
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-[#7A7880] uppercase tracking-wider block mb-1">
+                    Select Day, Month & Year:
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="text-[9px] text-[#7A7880] block font-semibold">Day</label>
+                      <select
+                        value={selDay}
+                        onChange={(e) => setSelDay(e.target.value)}
+                        className="w-full p-2 text-xs border border-[#E8E4DE] rounded-xl bg-white font-bold text-[#29272D] outline-none focus:ring-1 focus:ring-[#8B7BB5]"
+                      >
+                        {Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0')).map(d => (
+                          <option key={d} value={d}>{d}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[9px] text-[#7A7880] block font-semibold">Month</label>
+                      <select
+                        value={selMonth}
+                        onChange={(e) => setSelMonth(e.target.value)}
+                        className="w-full p-2 text-xs border border-purple-200 bg-purple-50 rounded-xl font-bold text-[#8B7BB5] outline-none focus:ring-1 focus:ring-[#8B7BB5]"
+                      >
+                        <option value="01">Jan (01)</option>
+                        <option value="02">Feb (02)</option>
+                        <option value="03">Mar (03)</option>
+                        <option value="04">Apr (04)</option>
+                        <option value="05">May (05)</option>
+                        <option value="06">Jun (06)</option>
+                        <option value="07">Jul (07)</option>
+                        <option value="08">Aug (08)</option>
+                        <option value="09">Sep (09)</option>
+                        <option value="10">Oct (10) 🌸</option>
+                        <option value="11">Nov (11)</option>
+                        <option value="12">Dec (12)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[9px] text-[#7A7880] block font-semibold">Year</label>
+                      <select
+                        value={selYear}
+                        onChange={(e) => setSelYear(e.target.value)}
+                        className="w-full p-2 text-xs border border-[#E8E4DE] rounded-xl bg-white font-bold text-[#29272D] outline-none focus:ring-1 focus:ring-[#8B7BB5]"
+                      >
+                        <option value="2025">2025</option>
+                        <option value="2026">2026</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-[#7A7880] uppercase tracking-wider block">
+                    Average Cycle Length (Days)
+                  </label>
                   <input
                     type="number"
-                    className="w-full mt-1 p-2 text-sm border border-[#E8E4DE] rounded-xl bg-white focus:ring-1 focus:ring-[#8B7BB5] outline-none text-[#29272D]"
+                    min="15"
+                    max="120"
+                    required
+                    className="w-full mt-1 p-2 text-xs border border-[#E8E4DE] rounded-xl bg-white font-bold text-[#29272D] outline-none focus:ring-1 focus:ring-[#8B7BB5]"
                     value={cycleLength}
-                    onChange={(e) => setCycleLength(e.target.value)}
+                    onChange={(e) => setCycleLength(Number(e.target.value))}
                   />
                 </div>
+
+                <div className="bg-white p-2.5 rounded-xl border border-[#E8E4DE] text-[11px] text-[#7A7880]">
+                  Target Date: <b className="text-[#8B7BB5]">{selYear}-{selMonth}-{selDay}</b>
+                </div>
+
                 <button
-                  onClick={() => { if(lastDate) saveCycleDetails(lastDate, cycleLength) }}
-                  disabled={!lastDate}
-                  className="w-full mt-1 bg-[#8B7BB5] text-white py-2 rounded-xl text-xs font-semibold hover:bg-[#726496] transition-colors disabled:opacity-50"
+                  type="submit"
+                  className="w-full bg-[#8B7BB5] hover:bg-[#726496] text-white py-2.5 rounded-xl text-xs font-bold transition-all shadow-md active:scale-[0.99]"
                 >
-                  Save Details
+                  Save Date Permanently 🌸
                 </button>
-              </div>
+              </form>
             ) : (
               <div className="space-y-4">
                 <div className="bg-[#FAF9F6] rounded-2xl p-5 text-center border border-[#E8E4DE]">
-                  <p className="text-xs text-[#7A7880] font-medium mb-1">Next period in</p>
-                  <p className={`text-3xl font-extrabold ${daysRemainingText.includes('Late') ? 'text-rose-600' : 'text-[#8B7BB5]'}`}>
+                  <p className="text-xs text-[#7A7880] font-medium mb-1">Cycle Projection</p>
+                  <p className={`text-3xl font-extrabold ${daysRemainingText.includes('Late') ? 'text-amber-800' : 'text-[#8B7BB5]'}`}>
                     {daysRemainingText}
                   </p>
-                  <p className="text-xs text-[#8B7BB5] font-semibold mt-2">
-                    Phase: <span className="underline font-bold">{currentPhase}</span>
+                  <p className="text-[11px] text-[#7A7880] mt-1.5">
+                    Last Period Started: <b className="text-[#29272D] bg-white px-2.5 py-0.5 rounded-lg border border-[#E8E4DE]">{lastDate}</b>
                   </p>
-                </div>
 
-                <div className={`p-3 rounded-2xl border text-xs leading-relaxed space-y-1 ${smartInsight.color}`}>
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-[11px] uppercase tracking-wider">{smartInsight.badge}</span>
+                  {saveSuccessNotice && (
+                    <p className="text-xs text-emerald-600 font-bold mt-2 animate-in fade-in">
+                      ✓ Saved: {lastDate}! Cycle Updated.
+                    </p>
+                  )}
+                  
+                  {/* ZERO-LEAKAGE PHASE LOCK */}
+                  <div className="mt-2.5 pt-2 border-t border-[#E8E4DE]">
+                    {kitSubscribed ? (
+                      <p className="text-xs text-[#8B7BB5] font-bold">
+                        Biological Phase: <span className="underline">{currentPhaseInternal}</span>
+                      </p>
+                    ) : (
+                      <button 
+                        type="button"
+                        onClick={() => setShowEngineBlogModal(true)}
+                        className="text-[11px] text-[#7A7880] hover:text-[#8B7BB5] font-semibold flex items-center justify-center gap-1 mx-auto"
+                      >
+                        <span>🔒 Biological Phase: <b>Encrypted</b></span>
+                        <span className="text-[#8B7BB5] underline">Unlock Pass</span>
+                      </button>
+                    )}
                   </div>
-                  <p className="text-[11px] opacity-90">{smartInsight.tip}</p>
                 </div>
 
                 {loggedSymptomsList.length > 0 && (
@@ -872,10 +1311,17 @@ export default function Dashboard({ user, onLogout }) {
                 <div className="flex justify-between items-center text-xs px-1 text-[#7A7880]">
                   <span>Cycle Length: <b>{cycleLength} Days</b></span>
                   <button 
-                    onClick={() => setIsCycleSetup(false)} 
-                    className="font-bold text-[#8B7BB5] hover:underline"
+                    type="button"
+                    onClick={() => {
+                      const p = parseSavedDate(lastDate);
+                      setSelDay(p.day);
+                      setSelMonth(p.month);
+                      setSelYear(p.year);
+                      setIsEditingCycle(true);
+                    }} 
+                    className="font-bold text-[#8B7BB5] hover:underline cursor-pointer"
                   >
-                    Edit
+                    Edit Date
                   </button>
                 </div>
               </div>
@@ -888,7 +1334,7 @@ export default function Dashboard({ user, onLogout }) {
               <h2 className="text-lg font-bold text-[#29272D] flex items-center gap-2">
                 🌸 Symptom Journal
               </h2>
-              <span className="text-[10px] text-[#7A7880] font-semibold uppercase">Today</span>
+              <span className="text-[10px] text-[#7A7880] font-semibold uppercase">Daily Feed</span>
             </div>
 
             <div>
@@ -911,7 +1357,7 @@ export default function Dashboard({ user, onLogout }) {
             </div>
 
             <div>
-              <p className="text-[11px] font-bold text-[#7A7880] uppercase tracking-wider mb-1.5">Physical Symptoms:</p>
+              <p className="text-[11px] font-bold text-[#7A7880] uppercase tracking-wider mb-1.5">Physical Discomfort:</p>
               <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-1">
                 {symptomOptions.map((s) => {
                   const active = selectedSymptoms.includes(s);
@@ -933,7 +1379,7 @@ export default function Dashboard({ user, onLogout }) {
             </div>
 
             <div>
-              <p className="text-[11px] font-bold text-[#7A7880] uppercase tracking-wider mb-1.5">Mood:</p>
+              <p className="text-[11px] font-bold text-[#7A7880] uppercase tracking-wider mb-1.5">Mood & Emotional Balance:</p>
               <div className="flex flex-wrap gap-1.5">
                 {moodOptions.map((m) => (
                   <button
@@ -955,7 +1401,7 @@ export default function Dashboard({ user, onLogout }) {
               onClick={handleSaveSymptomJournal}
               className="w-full bg-[#8B7BB5] hover:bg-[#726496] text-white font-semibold py-2.5 rounded-xl text-xs transition-colors shadow-sm"
             >
-              {journalSavedMsg ? '✓ Journal Logged & Saved!' : 'Save & Sync Cycle Tracker'}
+              {journalSavedMsg ? '✓ Journal Logged & Saved!' : 'Save & Sync Tracker'}
             </button>
           </div>
 
@@ -1012,7 +1458,7 @@ export default function Dashboard({ user, onLogout }) {
             </div>
 
             <form onSubmit={handleAddMedication} className="pt-2 border-t border-[#E8E4DE]">
-              <p className="text-[10px] font-bold text-[#7A7880] uppercase tracking-wider mb-1.5">+ Add New Supplement / Med</p>
+              <p className="text-[10px] font-bold text-[#7A7880] uppercase tracking-wider mb-1.5">+ Add Supplement / Med</p>
               <div className="flex gap-1.5 mb-1.5">
                 <input
                   type="text"
@@ -1045,9 +1491,9 @@ export default function Dashboard({ user, onLogout }) {
           <div className="bg-white p-6 rounded-3xl shadow-sm border border-[#E8E4DE] hover:shadow-md transition-shadow lg:col-span-3">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-xl">🥗</span>
-              <h3 className="font-bold text-[#29272D] text-lg">AI Diet Tracker</h3>
+              <h3 className="font-bold text-[#29272D] text-lg">AI Diet & Hormone Balance</h3>
             </div>
-            <p className="text-[#7A7880] text-sm mb-4">Log daily habits for hormone recommendations.</p>
+            <p className="text-[#7A7880] text-sm mb-4">Log daily food & sleep habits for customized hormone recommendations.</p>
 
             {!aiTip ? (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
@@ -1076,7 +1522,7 @@ export default function Dashboard({ user, onLogout }) {
                       </select>
                     </div>
                     <div>
-                      <label className="text-[11px] font-bold text-[#7A7880] uppercase tracking-wider">Stress</label>
+                      <label className="text-[11px] font-bold text-[#7A7880] uppercase tracking-wider">Stress Level</label>
                       <select
                         className="w-full mt-1 p-2 text-sm border border-[#E8E4DE] rounded-xl bg-[#FAFAFA] focus:ring-1 focus:ring-[#8B7BB5] outline-none text-[#29272D]"
                         value={stress}
@@ -1124,16 +1570,10 @@ export default function Dashboard({ user, onLogout }) {
               </h2>
               {isAllGoalsDone && (
                 <span className="text-xs font-bold bg-[#EAE6F4] text-[#8B7BB5] px-3 py-1 rounded-full animate-bounce">
-                  🥳 All Goals Crushed!
+                  🥳 All Daily Goals Complete!
                 </span>
               )}
             </div>
-
-            {isAllGoalsDone && (
-              <div className="bg-gradient-to-r from-purple-500 via-pink-500 to-amber-400 text-white p-3 rounded-2xl mb-4 text-center font-bold text-sm shadow-md animate-pulse">
-                🎉 Woohoo! You Completed All Your Daily Goals Today! 🥳 🎊
-              </div>
-            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {/* Water Tracker */}
@@ -1148,7 +1588,7 @@ export default function Dashboard({ user, onLogout }) {
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                       isWaterDone ? 'bg-emerald-200 text-emerald-800' : 'bg-[#EAE6F4] text-[#8B7BB5]'
                     }`}>
-                      {isWaterDone ? '🎉 Target Reached!' : '1 Glass every ~2 hrs'}
+                      {isWaterDone ? 'Target Reached!' : '1 Glass every ~2 hrs'}
                     </span>
                   </div>
                   <p className="font-bold text-[#29272D] text-sm">Water Intake</p>
@@ -1210,10 +1650,10 @@ export default function Dashboard({ user, onLogout }) {
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                       isExerciseDone ? 'bg-emerald-200 text-emerald-800' : 'bg-[#EAE6F4] text-[#8B7BB5]'
                     }`}>
-                      {isExerciseDone ? '🎉 Target Reached!' : 'Target: 30m'}
+                      {isExerciseDone ? 'Target Reached!' : 'Target: 30m'}
                     </span>
                   </div>
-                  <p className="font-bold text-[#29272D] text-sm">Exercise</p>
+                  <p className="font-bold text-[#29272D] text-sm">Gentle Movement</p>
                   <p className="text-2xl font-extrabold text-[#8B7BB5] mt-1">
                     {exerciseMins} <span className="text-xs font-normal text-[#7A7880]">Mins</span>
                   </p>
@@ -1253,10 +1693,10 @@ export default function Dashboard({ user, onLogout }) {
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                       isSleepDone ? 'bg-emerald-200 text-emerald-800' : 'bg-[#EAE6F4] text-[#8B7BB5]'
                     }`}>
-                      {isSleepDone ? '🎉 Target Reached!' : 'Target: 8h'}
+                      {isSleepDone ? 'Target Reached!' : 'Target: 8h'}
                     </span>
                   </div>
-                  <p className="font-bold text-[#29272D] text-sm">Sleep</p>
+                  <p className="font-bold text-[#29272D] text-sm">Restful Sleep</p>
                   <p className="text-2xl font-extrabold text-[#8B7BB5] mt-1">
                     {loggedSleep} <span className="text-xs font-normal text-[#7A7880]">Hours</span>
                   </p>
@@ -1291,7 +1731,7 @@ export default function Dashboard({ user, onLogout }) {
       )}
 
       {/* ════════════════════════════════════════════════════════════════ */}
-      {/* TAB 2: HEALTH ANALYTICS & TRENDS (REAL DATA FROM SUPABASE)      */}
+      {/* TAB 2: HEALTH ANALYTICS & TRENDS                                */}
       {/* ════════════════════════════════════════════════════════════════ */}
       {activeTab === 'analytics' && (
         <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in duration-300">
@@ -1445,11 +1885,331 @@ export default function Dashboard({ user, onLogout }) {
         </div>
       )}
 
-      {/* ── 📄 FEATURE 5: CLINICAL DOCTOR MEDICAL PDF REPORT MODAL ── */}
+      {/* ── 📖 MINI-BLOG MODAL ── */}
+      {showEngineBlogModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white text-[#29272D] w-full max-w-xl rounded-3xl p-6 sm:p-8 shadow-2xl border border-[#E8E4DE] max-h-[90vh] overflow-y-auto relative">
+            <button
+              onClick={() => setShowEngineBlogModal(false)}
+              className="absolute top-4 right-4 text-[#7A7880] hover:text-[#29272D] font-bold bg-[#FAF9F6] w-8 h-8 rounded-full flex items-center justify-center border border-[#E8E4DE]"
+            >
+              ✕
+            </button>
+
+            <div className="flex items-center gap-2.5 mb-4">
+              <span className="text-3xl">🔬</span>
+              <div>
+                <span className="bg-purple-100 text-[#8B7BB5] text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                  Science-Backed Transparency
+                </span>
+                <h3 className="text-xl font-extrabold text-[#29272D] mt-1">
+                  PCOD Cycles Delay Kyu Hote Hain?
+                </h3>
+              </div>
+            </div>
+
+            <div className="space-y-4 text-xs text-[#29272D]/90 leading-relaxed">
+              <div className="bg-[#FAF9F6] p-4 rounded-2xl border border-[#E8E4DE] space-y-1.5">
+                <h4 className="font-extrabold text-[#8B7BB5] text-sm">1. Generic Apps Kaha Fail Ho Jaati Hain?</h4>
+                <p className="text-[11px] text-[#7A7880]">
+                  Standard period apps math ke standard 28-day rule par chalti hain. PCOD mein ovulation 14th day par fix nahi hota. Jab cycle 35 din cross karta hai, woh bolti hain <i>"You are late"</i>, par yeh nahi batati ki body kis specific pause state par ruki hui hai.
+                </p>
+              </div>
+
+              <div className="bg-amber-50/70 p-4 rounded-2xl border border-amber-200/70 space-y-1.5">
+                <h4 className="font-extrabold text-amber-950 text-sm">2. Body "Pause State" Mein Kyu Jaati Hai?</h4>
+                <p className="text-[11px] text-amber-900">
+                  Late sleeping, exam/work stress (cortisol spike), ya insulin fluctuations se ovary egg release karne mein delay karti hai. Is time pregnancy panic ki jagah gentle natural rhythm support chahiye hota hai.
+                </p>
+              </div>
+
+              <div className="bg-emerald-50/70 p-4 rounded-2xl border border-emerald-200/70 space-y-1.5">
+                <h4 className="font-extrabold text-emerald-950 text-sm">3. Hamara Engine Kaise Decode Karta Hai?</h4>
+                <p className="text-[11px] text-emerald-900">
+                  Hum aapke continuous 3-day logs (sleep hours, water intake, symptoms like acne/cramps, aur previous cycle pattern) ko map karte hain. Engine bata deta hai ki body kis signature stage par hai taaki doorstep kit se cycle naturally encourage ho sake.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-purple-50 border border-purple-200 text-purple-950 space-y-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-extrabold text-xs">🌸 Hamara Promise (Zero Fraud & Pure Trust):</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px]">
+                  <p>✓ <b>Sirf ₹20 One-time:</b> No auto-debit, koi recurring charge nahi.</p>
+                  <p>✓ <b>100% Data Confidential:</b> Aapka health log kisi third party ko share nahi hota.</p>
+                  <p>✓ <b>Instant Clinical Value:</b> Rotterdam compliant doctor summary download.</p>
+                  <p>✓ <b>No Pressure:</b> Free mode mein cycle projection hamesha active rahegi.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 flex gap-2.5">
+              <button
+                onClick={() => {
+                  setShowEngineBlogModal(false);
+                  setShowKitModal(true);
+                }}
+                className="flex-1 bg-[#29272D] hover:bg-black text-white font-bold py-3 rounded-2xl text-xs transition-colors shadow-md"
+              >
+                Unlock My Hormone Protocol (₹20 Only) 🌸
+              </button>
+              <button
+                onClick={() => setShowEngineBlogModal(false)}
+                className="border border-[#E8E4DE] text-[#7A7880] px-4 py-3 rounded-2xl text-xs font-semibold"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── 🌟 SEED KIT RESERVATION & UPI PAYMENT MODAL (2-STEP CHECKOUT) ── */}
+      {showKitModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white text-[#29272D] w-full max-w-lg rounded-3xl p-6 sm:p-7 shadow-2xl border border-[#E8E4DE] max-h-[92vh] overflow-y-auto relative">
+            <button
+              onClick={() => {
+                setShowKitModal(false);
+                setCheckoutStep('address');
+              }}
+              className="absolute top-4 right-4 text-[#7A7880] hover:text-[#29272D] font-bold bg-[#FAF9F6] w-8 h-8 rounded-full flex items-center justify-center border border-[#E8E4DE]"
+            >
+              ✕
+            </button>
+
+            {/* ── STEP 1: ADDRESS DETAILS ── */}
+            {checkoutStep === 'address' && (
+              <>
+                <div className="flex items-center gap-2.5 mb-3">
+                  <span className="text-3xl">🌱</span>
+                  <div>
+                    <h3 className="text-lg font-extrabold text-[#29272D]">Delivery & Care Pass</h3>
+                    <p className="text-xs text-[#7A7880]">Step 1 of 2 • Structured Delivery Address</p>
+                  </div>
+                </div>
+
+                <div className="bg-purple-50 border border-purple-100 p-3 rounded-2xl text-xs text-purple-900 mb-4 space-y-1">
+                  <p className="font-extrabold text-[#8B7BB5]">✨ Pass Perks (₹20 One-Time):</p>
+                  <p className="text-[11px]">• Unlocks real-time Biological Phase & daily seeds portion.</p>
+                  <p className="text-[11px]">• Priority doorstep dispatch for monthly seed packs at 25% off.</p>
+                  <p className="text-[11px] text-emerald-800 font-bold">• 100% Secure UPI Payment • No recurring debit.</p>
+                </div>
+
+                <form onSubmit={handleProceedToPayment} className="space-y-3">
+                  <div>
+                    <label className="text-[10px] font-bold text-[#7A7880] uppercase tracking-wider">
+                      WhatsApp Mobile Number (Order & Courier Updates) *
+                    </label>
+                    <input
+                      type="tel"
+                      pattern="[0-9]{10}"
+                      placeholder="10-digit mobile number"
+                      required
+                      value={subWhatsApp}
+                      onChange={(e) => setSubWhatsApp(e.target.value)}
+                      className="w-full mt-1 p-2.5 text-xs border border-[#E8E4DE] rounded-xl outline-none focus:ring-1 focus:ring-[#8B7BB5]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-[#7A7880] uppercase tracking-wider">
+                      Flat, House No., Building, Apartment *
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Flat 402, Sunshine Heights"
+                      required
+                      value={subHouseNo}
+                      onChange={(e) => setSubHouseNo(e.target.value)}
+                      className="w-full mt-1 p-2.5 text-xs border border-[#E8E4DE] rounded-xl outline-none focus:ring-1 focus:ring-[#8B7BB5]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-[#7A7880] uppercase tracking-wider">
+                      Area, Street, Sector, Locality *
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Civil Lines, Main Road"
+                      required
+                      value={subArea}
+                      onChange={(e) => setSubArea(e.target.value)}
+                      className="w-full mt-1 p-2.5 text-xs border border-[#E8E4DE] rounded-xl outline-none focus:ring-1 focus:ring-[#8B7BB5]"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[10px] font-bold text-[#7A7880] uppercase tracking-wider">
+                        Landmark (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Near City Hospital"
+                        value={subLandmark}
+                        onChange={(e) => setSubLandmark(e.target.value)}
+                        className="w-full mt-1 p-2.5 text-xs border border-[#E8E4DE] rounded-xl outline-none focus:ring-1 focus:ring-[#8B7BB5]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-bold text-[#7A7880] uppercase tracking-wider">
+                        Pincode (6-Digits) *
+                      </label>
+                      <input
+                        type="text"
+                        maxLength="6"
+                        pattern="[0-9]{6}"
+                        placeholder="e.g. 208001"
+                        required
+                        value={subPincode}
+                        onChange={(e) => setSubPincode(e.target.value)}
+                        className="w-full mt-1 p-2.5 text-xs border border-[#E8E4DE] rounded-xl outline-none focus:ring-1 focus:ring-[#8B7BB5]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[10px] font-bold text-[#7A7880] uppercase tracking-wider">
+                        Town / City *
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Kanpur"
+                        required
+                        value={subCity}
+                        onChange={(e) => setSubCity(e.target.value)}
+                        className="w-full mt-1 p-2.5 text-xs border border-[#E8E4DE] rounded-xl outline-none focus:ring-1 focus:ring-[#8B7BB5]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-bold text-[#7A7880] uppercase tracking-wider">
+                        State *
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Uttar Pradesh"
+                        required
+                        value={subState}
+                        onChange={(e) => setSubState(e.target.value)}
+                        className="w-full mt-1 p-2.5 text-xs border border-[#E8E4DE] rounded-xl outline-none focus:ring-1 focus:ring-[#8B7BB5]"
+                      />
+                    </div>
+                  </div>
+
+                  {subCity && (
+                    <div className="pt-1">
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                          `${subHouseNo ? subHouseNo + ', ' : ''}${subArea ? subArea + ', ' : ''}${subCity}, ${subPincode}`
+                        )}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[11px] font-semibold text-[#8B7BB5] hover:text-[#726496] flex items-center gap-1 inline-block"
+                      >
+                        📍 Verify Address on Google Maps ↗
+                      </a>
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    className="w-full bg-[#29272D] hover:bg-black text-white font-bold py-3.5 rounded-2xl text-xs transition-colors shadow-md mt-2 flex items-center justify-center gap-1.5"
+                  >
+                    <span>Continue to Payment (₹20) ➔</span>
+                  </button>
+                </form>
+              </>
+            )}
+
+            {/* ── STEP 2: INSTANT UPI PAYMENT & QR CODE ── */}
+            {checkoutStep === 'payment' && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-3xl">💳</span>
+                  <div>
+                    <h3 className="text-lg font-extrabold text-[#29272D]">Instant UPI Payment</h3>
+                    <p className="text-xs text-[#7A7880]">Step 2 of 2 • Pay ₹20 via GPay, PhonePe ya Paytm</p>
+                  </div>
+                </div>
+
+                <div className="bg-[#FAF9F6] p-4 rounded-2xl border border-[#E8E4DE] flex flex-col items-center text-center">
+                  <div className="bg-white p-2.5 rounded-2xl border border-[#E8E4DE] shadow-sm mb-3">
+                    <img
+                      src={qrCodeUrl}
+                      alt="UPI QR Code"
+                      className="w-44 h-44 object-contain rounded-xl"
+                    />
+                  </div>
+
+                  <p className="text-xs font-bold text-[#29272D]">
+                    Scan QR with any UPI App
+                  </p>
+                  <p className="text-[11px] text-[#7A7880] mt-0.5">
+                    Amount: <b className="text-[#8B7BB5] text-sm">₹20.00</b> • Payee: <b>{PAYEE_NAME}</b>
+                  </p>
+                  <p className="text-[10px] text-gray-500 mt-0.5 font-mono bg-white px-2.5 py-0.5 rounded-md border border-gray-200">
+                    UPI ID: {UPI_ID}
+                  </p>
+
+                  <a
+                    href={upiLink}
+                    className="w-full mt-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs shadow-sm transition-all flex items-center justify-center gap-2"
+                  >
+                    <span>⚡ Pay via UPI App (GPay / PhonePe / Paytm)</span>
+                  </a>
+                </div>
+
+                <form onSubmit={handleConfirmPayment} className="space-y-3">
+                  <div>
+                    <label className="text-[10px] font-bold text-[#7A7880] uppercase tracking-wider">
+                      Enter 12-Digit UPI Ref / UTR No. *
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 428719283741"
+                      required
+                      value={utrInput}
+                      onChange={(e) => setUtrInput(e.target.value)}
+                      className="w-full mt-1 p-2.5 text-xs border border-[#E8E4DE] rounded-xl outline-none focus:ring-1 focus:ring-[#8B7BB5]"
+                    />
+                    <span className="text-[10px] text-[#7A7880] mt-0.5 block">
+                      Payment karne ke baad transaction details se 12-digit UTR enter karein.
+                    </span>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setCheckoutStep('address')}
+                      className="border border-[#E8E4DE] text-[#7A7880] hover:text-[#29272D] px-4 py-3 rounded-2xl text-xs font-semibold"
+                    >
+                      ← Back
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={paymentPending}
+                      className="flex-1 bg-[#29272D] hover:bg-black text-white font-bold py-3 rounded-2xl text-xs transition-colors shadow-md disabled:opacity-50"
+                    >
+                      {paymentPending ? "Verifying..." : "Confirm Payment & Activate Pass 🌸"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+          </div>
+        </div>
+      )}
+
+      {/* ── 📄 CLINICAL DOCTOR MEDICAL PDF REPORT MODAL ── */}
       {showPdfModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
           <div className="bg-white w-full max-w-3xl rounded-3xl p-6 sm:p-8 shadow-2xl border border-[#E8E4DE] max-h-[92vh] overflow-y-auto relative">
-            
             <button
               onClick={() => setShowPdfModal(false)}
               className="no-print absolute top-4 right-4 text-[#7A7880] hover:text-[#29272D] font-bold text-lg bg-[#FAF9F6] w-8 h-8 rounded-full flex items-center justify-center border border-[#E8E4DE]"
@@ -1457,10 +2217,7 @@ export default function Dashboard({ user, onLogout }) {
               ✕
             </button>
 
-            {/* ── Printable Report Container ── */}
             <div id="printable-doctor-report" className="p-4 bg-white text-[#29272D] font-sans space-y-5">
-              
-              {/* Clinical Header */}
               <div className="border-b-2 border-[#8B7BB5] pb-4 flex justify-between items-start">
                 <div>
                   <div className="flex items-center gap-2">
@@ -1481,7 +2238,6 @@ export default function Dashboard({ user, onLogout }) {
                 </div>
               </div>
 
-              {/* Patient Demographics & Profile Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-[#FAF9F6] p-3.5 rounded-2xl border border-[#E8E4DE] text-xs">
                 <div>
                   <p className="text-[10px] font-bold text-[#7A7880] uppercase">Patient Identifier</p>
@@ -1489,11 +2245,11 @@ export default function Dashboard({ user, onLogout }) {
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#7A7880] uppercase">Menstrual Phase</p>
-                  <p className="font-bold text-[#8B7BB5] text-sm mt-0.5">{currentPhase}</p>
+                  <p className="font-bold text-[#8B7BB5] text-sm mt-0.5">{kitSubscribed ? currentPhaseInternal : 'Encrypted (Care Pass)'}</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#7A7880] uppercase">Current Rhythm</p>
-                  <p className={`font-bold text-sm mt-0.5 ${daysRemainingText.includes('Late') ? 'text-rose-600' : 'text-emerald-700'}`}>
+                  <p className={`font-bold text-sm mt-0.5 ${daysRemainingText.includes('Late') ? 'text-amber-800' : 'text-emerald-700'}`}>
                     {daysRemainingText}
                   </p>
                 </div>
@@ -1505,7 +2261,6 @@ export default function Dashboard({ user, onLogout }) {
                 </div>
               </div>
 
-              {/* Section 1: Endocrine & Metabolic Biomarkers */}
               <div className="space-y-2">
                 <h4 className="text-xs font-bold text-[#29272D] uppercase tracking-wider flex items-center gap-1.5">
                   <span>1. Laboratory Endocrine Profile (Blood Biomarkers)</span>
@@ -1551,7 +2306,7 @@ export default function Dashboard({ user, onLogout }) {
                       <td className="p-2.5 text-[#7A7880]">0.4 - 4.5 uIU/mL</td>
                       <td className="p-2.5">
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                          isTshAbnormal ? 'bg-amber-100 text-amber-900' : 'bg-emerald-100 text-emerald-800'
+                          isTshAbnormal ? 'bg-amber-100 text-amber-900' : (tshNum ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700')
                         }`}>
                           {isTshAbnormal ? 'Borderline / Abnormal' : (tshNum ? 'Euthyroid' : 'Pending')}
                         </span>
@@ -1561,7 +2316,6 @@ export default function Dashboard({ user, onLogout }) {
                 </table>
               </div>
 
-              {/* Section 2: Menstrual Cycle Overview */}
               <div className="space-y-2">
                 <h4 className="text-xs font-bold text-[#29272D] uppercase tracking-wider">
                   2. Menstrual Pattern & Cycle Dynamics
@@ -1573,7 +2327,7 @@ export default function Dashboard({ user, onLogout }) {
                   </div>
                   <div>
                     <span className="text-[#7A7880] block text-[10px] uppercase font-bold">Reported Cycle Length</span>
-                    <span className="font-bold text-[#29272D] text-xs">{cycleLength} Days {cycleLength > 35 ? '(Oligomenorrhea Risk)' : '(Normal Window)'}</span>
+                    <span className="font-bold text-[#29272D] text-xs">{cycleLength} Days</span>
                   </div>
                   <div>
                     <span className="text-[#7A7880] block text-[10px] uppercase font-bold">Latest Logged Flow</span>
@@ -1582,7 +2336,6 @@ export default function Dashboard({ user, onLogout }) {
                 </div>
               </div>
 
-              {/* Section 3: Aggregate Symptoms & Patient Trends */}
               <div className="space-y-2">
                 <h4 className="text-xs font-bold text-[#29272D] uppercase tracking-wider">
                   3. Symptom Incidence (Database Multi-Day History)
@@ -1600,13 +2353,9 @@ export default function Dashboard({ user, onLogout }) {
                       <span className="text-[#7A7880] italic">No repeated symptom history recorded in current logging cycle.</span>
                     )}
                   </div>
-                  <p className="text-[10px] text-[#7A7880]">
-                    *Frequency reflects automated aggregation from daily patient-reported logs over active 30-day tracking windows.
-                  </p>
                 </div>
               </div>
 
-              {/* Section 4: Prescriptions & Daily Compliance */}
               <div className="space-y-2">
                 <h4 className="text-xs font-bold text-[#29272D] uppercase tracking-wider flex justify-between items-center">
                   <span>4. Prescribed Medication & Supplement Compliance</span>
@@ -1635,14 +2384,10 @@ export default function Dashboard({ user, onLogout }) {
                 </div>
               </div>
 
-              {/* Clinical Verification & Emergency Caregiver Footer */}
               <div className="border-t-2 border-[#E8E4DE] pt-4 grid grid-cols-2 gap-4 text-xs">
                 <div>
                   <p className="text-[10px] font-bold text-[#7A7880] uppercase">Designated Emergency Caregiver</p>
                   <p className="font-bold text-[#29272D] mt-0.5">{sosContactName || 'Not Set'} ({sosContactNumber || 'N/A'})</p>
-                  <p className="text-[9px] text-[#7A7880] mt-1 leading-tight">
-                    Disclaimer: This computer-generated summary compiles self-reported digital logs. It does not replace formal pathology diagnostics.
-                  </p>
                 </div>
                 <div className="text-right flex flex-col justify-end">
                   <div className="inline-block border-b border-dashed border-[#7A7880] w-48 ml-auto mb-1"></div>
@@ -1652,7 +2397,6 @@ export default function Dashboard({ user, onLogout }) {
 
             </div>
 
-            {/* Modal Actions */}
             <div className="no-print mt-6 flex gap-3">
               <button
                 onClick={handlePrintPdf}
@@ -1756,49 +2500,6 @@ export default function Dashboard({ user, onLogout }) {
               </button>
             </form>
 
-            {(lhFshRatio || testNum || tshNum) && (
-              <div className="mt-4 p-4 rounded-2xl bg-[#FAF9F6] border border-[#E8E4DE] space-y-2.5">
-                <h4 className="text-[11px] font-bold text-[#29272D] uppercase tracking-wider">🔬 Clinical Insights</h4>
-                
-                {lhFshRatio && (
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-[#7A7880]">LH : FSH Ratio: <b>{lhFshRatio} : 1</b></span>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                      isRatioHigh ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
-                    }`}>
-                      {isRatioHigh ? 'Elevated (PCOD Marker)' : 'Normal (1:1)'}
-                    </span>
-                  </div>
-                )}
-
-                {testNum && (
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-[#7A7880]">Total Testosterone:</span>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                      isTestosteroneHigh ? 'bg-rose-100 text-rose-800' : 'bg-emerald-100 text-emerald-800'
-                    }`}>
-                      {isTestosteroneHigh ? 'High (Androgen Excess)' : 'Normal'}
-                    </span>
-                  </div>
-                )}
-
-                {tshNum && (
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-[#7A7880]">Thyroid (TSH):</span>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                      isTshAbnormal ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
-                    }`}>
-                      {isTshAbnormal ? 'Needs Attention' : 'Optimal'}
-                    </span>
-                  </div>
-                )}
-
-                <p className="text-[9px] text-[#7A7880] italic pt-1 border-t border-[#E8E4DE]">
-                  *Yeh values reference ke liye hain. Final diagnosis ke liye Gynecologist se consult karein.
-                </p>
-              </div>
-            )}
-
             <button
               onClick={() => setShowLabModal(false)}
               className="w-full mt-4 bg-[#29272D] text-white font-semibold py-2.5 rounded-xl text-xs hover:bg-black transition-colors"
@@ -1824,7 +2525,7 @@ export default function Dashboard({ user, onLogout }) {
               <span className="text-3xl">🌸</span>
               <div>
                 <h3 className="text-xl font-bold text-[#29272D]">SOS Cramp Relief Box</h3>
-                <p className="text-xs text-[#7A7880]">Quick natural steps & Emergency help</p>
+                <p className="text-xs text-[#7A7880]">Natural relief methods & Caregiver help</p>
               </div>
             </div>
 
@@ -1834,7 +2535,7 @@ export default function Dashboard({ user, onLogout }) {
                 <div>
                   <p className="text-xs font-bold text-rose-900">Heat Therapy (Most Effective)</p>
                   <p className="text-[11px] text-rose-700 mt-0.5 leading-relaxed">
-                    Lower abdomen par 15-20 min ke liye Hot Water Bag rakhein. Heat pelvic muscles ko relax karti hai.
+                    Lower abdomen par 15-20 min ke liye Hot Water Bag rakhein. Pelvic muscles relax hoti hain.
                   </p>
                 </div>
               </div>
@@ -1844,7 +2545,7 @@ export default function Dashboard({ user, onLogout }) {
                 <div>
                   <p className="text-xs font-bold text-amber-900">Gentle Stretch (Child's Pose)</p>
                   <p className="text-[11px] text-amber-800 mt-0.5 leading-relaxed">
-                    Ghutno ke bal baith kar aage jhukin (Child’s Pose). Isse lower back aur pelvic pressure instantly release hota hai.
+                    Child's Pose mein 5 minute rest karein. Lower back aur pelvic pressure instantly ease hota hai.
                   </p>
                 </div>
               </div>
@@ -1854,17 +2555,7 @@ export default function Dashboard({ user, onLogout }) {
                 <div>
                   <p className="text-xs font-bold text-emerald-900">Warm Ginger or Chamomile Tea</p>
                   <p className="text-[11px] text-emerald-800 mt-0.5 leading-relaxed">
-                    Adrak ki chai anti-inflammatory hoti hai. Cold drinks aur caffeinated coffee se door rahein.
-                  </p>
-                </div>
-              </div>
-
-              <div className="bg-purple-50 border border-purple-100 p-3.5 rounded-2xl flex items-start gap-3">
-                <span className="text-2xl">🫁</span>
-                <div>
-                  <p className="text-xs font-bold text-purple-900">4-7-8 Pain Release Breathing</p>
-                  <p className="text-[11px] text-purple-800 mt-0.5 leading-relaxed">
-                    4 sec tak naak se saans lein ➔ 7 sec hold karein ➔ 8 sec tak munh se slowly exhale karein.
+                    Warm adrak tea pelvic muscle contractions ko naturally soothe karti hai.
                   </p>
                 </div>
               </div>
@@ -1888,7 +2579,7 @@ export default function Dashboard({ user, onLogout }) {
                 <form onSubmit={handleSaveSosContact} className="space-y-2 mt-2">
                   <input
                     type="text"
-                    placeholder="Contact Name (e.g., Mom / Partner / Doctor)"
+                    placeholder="Contact Name (e.g. Mom / Doctor / Partner)"
                     value={sosContactName}
                     onChange={(e) => setSosContactName(e.target.value)}
                     className="w-full p-2 text-xs border border-rose-200 rounded-xl bg-white outline-none focus:ring-1 focus:ring-rose-400"
@@ -1923,7 +2614,7 @@ export default function Dashboard({ user, onLogout }) {
                     </div>
                   ) : (
                     <p className="text-[11px] text-rose-700 italic">
-                      Emergency contact set nahi hai. Severe cramps ke waqt turant alert bhejne ke liye contact add karein.
+                      Emergency contact set nahi hai. Severe pain ke waqt turant alert bhejne ke liye add karein.
                     </p>
                   )}
 
