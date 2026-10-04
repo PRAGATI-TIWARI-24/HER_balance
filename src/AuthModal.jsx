@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase, isSupabaseConfigured } from './supabaseClient';
+import { Browser } from '@capacitor/browser';
+import { App as CapApp } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
 
 export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -9,9 +12,53 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
+  // ── 📱 Native App Deep Link Listener (APK Redirect Handling) ──
+  useEffect(() => {
+    let appUrlSub = null;
+
+    if (Capacitor.isNativePlatform()) {
+      appUrlSub = CapApp.addListener('appUrlOpen', async ({ url }) => {
+        if (url && (url.includes('auth-callback') || url.includes('#access_token') || url.includes('access_token='))) {
+          try {
+            await Browser.close();
+          } catch (e) {
+            console.log('Browser already closed:', e);
+          }
+
+          // URL fragment se access_token aur refresh_token parse karna
+          const hashIndex = url.indexOf('#');
+          if (hashIndex !== -1) {
+            const hash = url.substring(hashIndex + 1);
+            const params = new URLSearchParams(hash);
+            const accessToken = params.get('access_token');
+            const refreshToken = params.get('refresh_token');
+
+            if (accessToken && refreshToken && isSupabaseConfigured && supabase) {
+              const { data, error } = await supabase.auth.setSession({
+                access_token: accessToken,
+                refresh_token: refreshToken
+              });
+
+              if (!error && data?.user) {
+                const userName = data.user?.user_metadata?.full_name || data.user?.user_metadata?.name || 'User';
+                onLoginSuccess(data.user.id, userName);
+              }
+            }
+          }
+        }
+      });
+    }
+
+    return () => {
+      if (appUrlSub && typeof appUrlSub.remove === 'function') {
+        appUrlSub.remove();
+      }
+    };
+  }, [onLoginSuccess]);
+
   if (!isOpen) return null;
 
-  // ── 🌐 Google 1-Tap OAuth Login Handler ──
+  // ── 🌐 Google 1-Tap OAuth Login Handler (Hybrid: Web + Native Android) ──
   const handleGoogleLogin = async () => {
     if (!isSupabaseConfigured || !supabase) {
       alert("Supabase client configure nahi hai! Supabase URL aur Anon Key verify karein.");
@@ -21,13 +68,26 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
     try {
       setLoading(true);
       setErrorMessage('');
-      const { error } = await supabase.auth.signInWithOAuth({
+
+      const isNative = Capacitor.isNativePlatform();
+      const redirectUrl = isNative 
+        ? 'com.herbalance.app://auth-callback' 
+        : window.location.origin;
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin
+          redirectTo: redirectUrl,
+          skipBrowserRedirect: isNative // Android par webview redirection ko rokne ke liye
         }
       });
+
       if (error) throw error;
+
+      // Android native environment mein secure Chrome Custom Tab open karein
+      if (isNative && data?.url) {
+        await Browser.open({ url: data.url, windowName: '_self' });
+      }
     } catch (err) {
       console.error("Google Auth Error:", err);
       setErrorMessage(err.message || "Google sign-in fail ho gaya.");
