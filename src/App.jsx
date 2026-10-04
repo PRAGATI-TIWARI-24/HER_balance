@@ -261,21 +261,78 @@ function FAQ() {
   );
 }
 
-// ─── AI Chat Component (Dedicated Landing Page Section - RESTORED) ────────────
+// ─── 🎙️ AI Chat Component with Voice Input Mic ────────────────────────────────
 function AICompanionChat() {
   const [messages, setMessages] = useState([
     { sender: 'ai', text: "Hi! I'm HerBalance AI. How are you feeling today? Share your symptoms, or ask me anything about PCOD/PCOS. 🌸" }
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const messagesEndRef = useRef(null);
+  const recognitionRef = useRef(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Setup Browser Native Speech Recognition
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'hi-IN'; // Supports Hindi + Indian English
+
+      recognition.onstart = () => {
+        setIsListening(true);
+      };
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        setInput(prev => (prev ? `${prev} ${transcript}` : transcript));
+        setIsListening(false);
+      };
+
+      recognition.onerror = (event) => {
+        console.error("Speech Recognition Error:", event.error);
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+    }
+  }, []);
+
+  const toggleMic = () => {
+    if (!recognitionRef.current) {
+      alert("Aapka browser voice recognition support nahi karta. Please Chrome ya Edge use karein.");
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      try {
+        recognitionRef.current.start();
+      } catch (err) {
+        console.error("Mic start error:", err);
+      }
+    }
+  };
+
   const handleSend = async () => {
     if (!input.trim()) return;
+
+    if (isListening && recognitionRef.current) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    }
 
     const userText = input.trim();
     setMessages(prev => [...prev, { sender: 'user', text: userText }]);
@@ -332,7 +389,7 @@ function AICompanionChat() {
         </div>
         <div>
           <p className="text-[#F7F2E0] font-bold text-sm">HerBalance AI</p>
-          <p className="text-[#F7F2E0]/70 text-xs">Health companion · Not a doctor</p>
+          <p className="text-[#F7F2E0]/70 text-xs">Health companion · Voice & Text</p>
         </div>
         <div className="ml-auto w-2 h-2 bg-[#80AEE8] rounded-full animate-pulse" />
       </div>
@@ -370,19 +427,37 @@ function AICompanionChat() {
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="p-4 bg-[#FCFBF5] border-t border-[#EDE5CD] flex gap-2 shrink-0">
+      {/* Input Bar with Mic Feature */}
+      <div className="p-4 bg-[#FCFBF5] border-t border-[#EDE5CD] flex items-center gap-2 shrink-0">
         <input 
           type="text" 
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-          placeholder="Ask about symptoms, diet, or habits..." 
-          className="flex-1 bg-white border border-[#EDE5CD] rounded-xl px-4 py-3 text-sm outline-none focus:border-[#5B0015] text-[#5B0015]"
+          placeholder={isListening ? "Listening... boliye 🎙️" : "Ask about symptoms, diet, or habits..."} 
+          className={`flex-1 bg-white border border-[#EDE5CD] rounded-xl px-4 py-3 text-sm outline-none focus:border-[#5B0015] text-[#5B0015] font-medium transition-all ${
+            isListening ? 'ring-2 ring-rose-400 bg-rose-50/50' : ''
+          }`}
         />
+
+        {/* 🎙️ Voice Input Toggle Button */}
+        <button
+          type="button"
+          onClick={toggleMic}
+          className={`w-11 h-11 rounded-xl flex items-center justify-center border transition-all cursor-pointer shrink-0 ${
+            isListening 
+              ? 'bg-rose-600 text-white border-rose-700 animate-pulse scale-105' 
+              : 'bg-[#F7F2E0] hover:bg-[#80AEE8]/30 text-[#5B0015] border-[#EDE5CD]'
+          }`}
+          title={isListening ? "Listening... Click to stop" : "Speak (Voice Input)"}
+        >
+          <span className="text-base">{isListening ? '🔴' : '🎙️'}</span>
+        </button>
+
         <button 
           onClick={handleSend}
           disabled={isLoading || !input.trim()}
-          className="bg-[#5B0015] text-[#F7F2E0] px-5 py-3 rounded-xl hover:bg-[#450010] transition-colors disabled:opacity-50 font-bold cursor-pointer"
+          className="bg-[#5B0015] text-[#F7F2E0] px-5 py-3 rounded-xl hover:bg-[#450010] transition-colors disabled:opacity-50 font-bold cursor-pointer shrink-0"
         >
           Send
         </button>
@@ -602,7 +677,7 @@ export default function App({ onNavigate }) {
             </div>
           </section>
 
-          {/* ── Features Grid (With High-Intent Card 6 Hook) ── */}
+          {/* ── Features Grid (Card 6 Hook for Free Assessment) ── */}
           <section id="features" className="py-20 md:py-24 px-5 max-w-6xl mx-auto">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-black text-[#5B0015] mb-3">
@@ -747,19 +822,19 @@ export default function App({ onNavigate }) {
                   <div className="bg-[#F7F2E0] rounded-2xl border border-[#EDE5CD] p-6 shadow-sm">
                     <p className="text-xs font-bold text-[#5B0015]/70 uppercase tracking-widest mb-3">Sample Meal Suggestion</p>
                     <div className="space-y-3">
-                      {[
-                        { time: 'Breakfast', meal: 'Moong dal chilla + curd + methi tea', note: 'High protein, anti-inflammatory' },
-                        { time: 'Lunch', meal: 'Brown rice + rajma + sabzi + raita', note: 'Balanced macros, fiber-rich' },
-                        { time: 'Snack', meal: 'Handful of seeds mix + buttermilk', note: 'Good fats + probiotics' },
-                      ].map(m => (
-                        <div key={m.time} className="flex gap-4 items-start">
-                          <span className="text-xs font-bold text-[#80AEE8] bg-[#5B0015] px-2 py-0.5 rounded-md w-18 text-center flex-shrink-0 mt-0.5">{m.time}</span>
-                          <div>
-                            <p className="text-sm font-bold text-[#5B0015]">{m.meal}</p>
-                            <p className="text-xs text-[#5B0015]/70">{m.note}</p>
-                          </div>
-                        </div>
-                      ))}
+                  {[
+                    { time: 'Breakfast', meal: 'Moong dal chilla + curd + methi tea', note: 'High protein, anti-inflammatory' },
+                    { time: 'Lunch', meal: 'Brown rice + rajma + sabzi + raita', note: 'Balanced macros, fiber-rich' },
+                    { time: 'Snack', meal: 'Handful of seeds mix + buttermilk', note: 'Good fats + probiotics' },
+                  ].map(m => (
+                    <div key={m.time} className="flex gap-4 items-start">
+                      <span className="text-xs font-bold text-[#80AEE8] bg-[#5B0015] px-2 py-0.5 rounded-md w-18 text-center flex-shrink-0 mt-0.5">{m.time}</span>
+                      <div>
+                        <p className="text-sm font-bold text-[#5B0015]">{m.meal}</p>
+                        <p className="text-xs text-[#5B0015]/70">{m.note}</p>
+                      </div>
+                    </div>
+                  ))}
                     </div>
                   </div>
                 </div>
@@ -767,7 +842,7 @@ export default function App({ onNavigate }) {
             </div>
           </section>
 
-          {/* ── 🌸 DEDICATED AI COMPANION SECTION (100% PRESERVED ON LANDING) ── */}
+          {/* ── 🌸 DEDICATED AI COMPANION SECTION (WITH MIC VOICING) ─────── */}
           <section className="py-20 md:py-24 px-5 max-w-6xl mx-auto">
             <div className="grid md:grid-cols-2 gap-12 items-center">
               <div>
@@ -775,7 +850,7 @@ export default function App({ onNavigate }) {
                   Ask. Understand.<br />Take the next step.
                 </h2>
                 <p className="text-[#5B0015]/80 text-lg leading-relaxed mb-6 font-medium">
-                  Your AI health companion helps you make sense of your logs, find patterns, and know the right questions to ask your doctor.
+                  Your AI health companion helps you make sense of your logs, find patterns, and know the right questions to ask your doctor. Bolkar ya likhkar apne doubts clear karein.
                 </p>
                 <div className="flex items-start gap-3 p-4 bg-[#80AEE8]/20 rounded-2xl border border-[#80AEE8]/40">
                   <Icon path={icons.info} size={16} className="text-[#5B0015] flex-shrink-0 mt-0.5" />
