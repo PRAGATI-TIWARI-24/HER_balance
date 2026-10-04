@@ -1,172 +1,201 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
+import { supabase, isSupabaseConfigured } from './supabaseClient';
 
 export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
-  const [isLogin, setIsLogin] = useState(true);
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  
-  // Data store karne ke liye
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: ''
-  });
+  const [errorMessage, setErrorMessage] = useState('');
 
-  // Agar pop-up band hai, toh kuch mat dikhao
   if (!isOpen) return null;
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-    setError(''); // Type karte hi purana error hata do
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-
-    // Backend ka link (isLogin true hai toh login par bhejo, warna signup par)
-    const endpoint = isLogin ? '/login' : '/signup';
-    const url = `https://her-balance.onrender.com${endpoint}`;
+  // ── 🌐 Google 1-Tap OAuth Login Handler ──
+  const handleGoogleLogin = async () => {
+    if (!isSupabaseConfigured || !supabase) {
+      alert("Supabase client configure nahi hai! Supabase URL aur Anon Key verify karein.");
+      return;
+    }
 
     try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(
-          isLogin 
-            ? { email: formData.email, password: formData.password }
-            : formData
-        )
+      setLoading(true);
+      setErrorMessage('');
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin
+        }
       });
+      if (error) throw error;
+    } catch (err) {
+      console.error("Google Auth Error:", err);
+      setErrorMessage(err.message || "Google sign-in fail ho gaya.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      const data = await response.json();
+  // ── Email / Password Auth Handler ──
+  const handleEmailAuth = async (e) => {
+    e.preventDefault();
+    if (!isSupabaseConfigured || !supabase) {
+      // Local fallback mode
+      onLoginSuccess(email || 'guest_user', fullName || 'Beautiful');
+      return;
+    }
 
-      if (response.ok) {
-        // Backend ne Code 200 (Success) bheja hai
-        alert(data.message); // Popup message dikhayega "Welcome back!" ya "Account created!"
-        // Success hone par App.jsx ko batao ki login ho gaya, aur modal band kar do
-        onLoginSuccess(data.user_id, formData.name); 
+    setLoading(true);
+    setErrorMessage('');
+
+    try {
+      if (isSignUp) {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { full_name: fullName }
+          }
+        });
+        if (error) throw error;
+        const userName = data.user?.user_metadata?.full_name || fullName || 'User';
+        onLoginSuccess(data.user?.id, userName);
       } else {
-        // Galat password ya email already exists ka error
-        setError(data.detail || "Something went wrong!");
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
+        if (error) throw error;
+        const userName = data.user?.user_metadata?.full_name || 'User';
+        onLoginSuccess(data.user?.id, userName);
       }
     } catch (err) {
-      setError("Server is offline. Please make sure FastAPI backend is running.");
+      console.error("Auth error:", err);
+      setErrorMessage(err.message || "Authentication error! Credentials check karein.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in">
-      {/* Pop-up Box */}
-      <div className="bg-[#FCFBF5] text-[#5B0015] rounded-3xl p-8 max-w-md w-full shadow-2xl border border-[#EDE5CD] relative animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[1000] flex items-center justify-center p-4 animate-in fade-in">
+      <div className="bg-[#FCFBF5] text-[#5B0015] w-full max-w-sm rounded-3xl p-6 sm:p-7 shadow-2xl border border-[#EDE5CD] relative">
         
-        {/* Close (X) Button */}
-        <button 
+        {/* Close Button */}
+        <button
           onClick={onClose}
-          className="absolute top-5 right-6 text-[#5B0015]/70 hover:text-[#5B0015] bg-[#F7F2E0] w-8 h-8 rounded-full flex items-center justify-center border border-[#EDE5CD] text-sm font-bold cursor-pointer transition-colors"
+          className="absolute top-4 right-4 text-[#5B0015]/70 hover:text-[#5B0015] w-8 h-8 rounded-full flex items-center justify-center bg-[#F7F2E0] border border-[#EDE5CD] text-xs font-bold cursor-pointer"
         >
           ✕
         </button>
 
-        <div className="text-center mb-6">
-          <div className="w-12 h-12 bg-[#80AEE8]/30 rounded-2xl flex items-center justify-center mx-auto mb-2 text-2xl border border-[#80AEE8]/50">
-            🌸
-          </div>
-          <h2 className="text-3xl font-black text-[#5B0015] mb-2 font-display">
-            {isLogin ? "Welcome Back! 🌸" : "Join HerBalance ✨"}
-          </h2>
-          <p className="text-xs text-[#5B0015]/75 font-medium">
-            {isLogin ? "Log in to access your personalized sanctuary dashboard." : "Create an account to start your hormonal calibration journey."}
+        <div className="text-center mb-5">
+          <span className="text-3xl">🌸</span>
+          <h3 className="text-xl font-black text-[#5B0015] mt-1">
+            {isSignUp ? 'Create HerBalance Account' : 'Welcome to HerBalance'}
+          </h3>
+          <p className="text-xs text-[#5B0015]/70 font-medium mt-0.5">
+            {isSignUp ? 'Start your hormonal care journey' : 'Access your daily cycle & routine'}
           </p>
         </div>
 
-        {/* Tab Switcher */}
-        <div className="bg-[#F7F2E0] p-1 rounded-2xl flex gap-1 mb-5 border border-[#EDE5CD]">
-          <button
-            type="button"
-            onClick={() => { setIsLogin(true); setError(''); }}
-            className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
-              isLogin 
-                ? 'bg-[#5B0015] text-[#F7F2E0] shadow-sm' 
-                : 'text-[#5B0015]/70 hover:text-[#5B0015]'
-            }`}
-          >
-            Log In
-          </button>
-          <button
-            type="button"
-            onClick={() => { setIsLogin(false); setError(''); }}
-            className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
-              !isLogin 
-                ? 'bg-[#5B0015] text-[#F7F2E0] shadow-sm' 
-                : 'text-[#5B0015]/70 hover:text-[#5B0015]'
-            }`}
-          >
-            Sign Up
-          </button>
-        </div>
-
-        {/* Error Message Dikhane ke liye */}
-        {error && (
-          <div className="bg-[#5B0015]/10 text-[#5B0015] p-3 rounded-xl text-xs mb-5 border border-[#5B0015]/30 font-bold text-center">
-            {error}
+        {errorMessage && (
+          <div className="mb-4 p-2.5 rounded-xl bg-red-50 border border-red-200 text-red-600 text-[11px] font-bold">
+            ⚠️ {errorMessage}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Agar Signup hai toh Name wala box bhi dikhao */}
-          {!isLogin && (
+        {/* ── 🚀 GOOGLE 1-TAP LOGIN BUTTON ── */}
+        <button
+          type="button"
+          onClick={handleGoogleLogin}
+          disabled={loading}
+          className="w-full bg-white hover:bg-[#F7F2E0] text-[#5B0015] border-2 border-[#EDE5CD] font-bold py-2.5 px-4 rounded-xl text-xs transition-all flex items-center justify-center gap-2.5 shadow-sm mb-4 cursor-pointer active:scale-98 disabled:opacity-60"
+        >
+          <svg className="w-4 h-4" viewBox="0 0 24 24">
+            <path
+              fill="#4285F4"
+              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+            />
+            <path
+              fill="#34A853"
+              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+            />
+            <path
+              fill="#FBBC05"
+              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+            />
+            <path
+              fill="#EA4335"
+              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+            />
+          </svg>
+          <span>Continue with Google</span>
+        </button>
+
+        <div className="relative flex py-1 items-center mb-4">
+          <div className="flex-grow border-t border-[#EDE5CD]"></div>
+          <span className="flex-shrink mx-3 text-[10px] uppercase font-bold text-[#5B0015]/50">Or with email</span>
+          <div className="flex-grow border-t border-[#EDE5CD]"></div>
+        </div>
+
+        {/* Email & Password Form */}
+        <form onSubmit={handleEmailAuth} className="space-y-3">
+          {isSignUp && (
             <div>
-              <label className="block text-xs font-bold text-[#5B0015] mb-1 uppercase tracking-wider">Full Name</label>
-              <input 
-                type="text" name="name" value={formData.name} onChange={handleChange} required={!isLogin}
-                className="w-full border border-[#EDE5CD] rounded-xl p-3 bg-white text-[#5B0015] font-semibold focus:ring-2 focus:ring-[#80AEE8] outline-none transition-colors text-xs" 
-                placeholder="e.g. Priya Sharma" 
+              <label className="text-[10px] font-bold text-[#5B0015]/75 uppercase">Full Name</label>
+              <input
+                type="text"
+                required
+                placeholder="e.g. Pragati"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className="w-full mt-1 p-2.5 text-xs border border-[#EDE5CD] bg-white rounded-xl outline-none focus:ring-1 focus:ring-[#80AEE8] font-bold text-[#5B0015]"
               />
             </div>
           )}
-          
+
           <div>
-            <label className="block text-xs font-bold text-[#5B0015] mb-1 uppercase tracking-wider">Email Address</label>
-            <input 
-              type="email" name="email" value={formData.email} onChange={handleChange} required
-              className="w-full border border-[#EDE5CD] rounded-xl p-3 bg-white text-[#5B0015] font-semibold focus:ring-2 focus:ring-[#80AEE8] outline-none transition-colors text-xs" 
-              placeholder="priya@example.com" 
+            <label className="text-[10px] font-bold text-[#5B0015]/75 uppercase">Email Address</label>
+            <input
+              type="email"
+              required
+              placeholder="name@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full mt-1 p-2.5 text-xs border border-[#EDE5CD] bg-white rounded-xl outline-none focus:ring-1 focus:ring-[#80AEE8] font-bold text-[#5B0015]"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-[#5B0015] mb-1 uppercase tracking-wider">Password</label>
-            <input 
-              type="password" name="password" value={formData.password} onChange={handleChange} required
-              className="w-full border border-[#EDE5CD] rounded-xl p-3 bg-white text-[#5B0015] font-semibold focus:ring-2 focus:ring-[#80AEE8] outline-none transition-colors text-xs" 
-              placeholder="••••••••" 
+            <label className="text-[10px] font-bold text-[#5B0015]/75 uppercase">Password</label>
+            <input
+              type="password"
+              required
+              minLength="6"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full mt-1 p-2.5 text-xs border border-[#EDE5CD] bg-white rounded-xl outline-none focus:ring-1 focus:ring-[#80AEE8] font-bold text-[#5B0015]"
             />
           </div>
 
-          <button 
-            type="submit" disabled={loading}
-            className="w-full bg-[#5B0015] text-[#F7F2E0] font-black py-3.5 rounded-xl hover:bg-[#450010] transition-all shadow-md active:scale-95 cursor-pointer disabled:opacity-50 mt-2 text-xs"
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-[#5B0015] hover:bg-[#450010] text-[#F7F2E0] font-black py-3 rounded-xl text-xs transition-colors shadow-md mt-1 cursor-pointer disabled:opacity-50"
           >
-            {loading ? "Please wait..." : (isLogin ? "Log In to Sanctuary ➔" : "Create Account ➔")}
+            {loading ? "Processing..." : (isSignUp ? "Sign Up" : "Log In")}
           </button>
         </form>
 
-        {/* Switch between Login and Signup */}
-        <div className="mt-6 text-center text-xs text-[#5B0015]/75 font-medium">
-          {isLogin ? "Don't have an account? " : "Already have an account? "}
-          <button 
+        <div className="mt-4 text-center">
+          <button
             type="button"
-            onClick={() => {
-              setIsLogin(!isLogin);
-              setError('');
-            }}
-            className="text-[#80AEE8] font-black hover:underline cursor-pointer"
+            onClick={() => { setIsSignUp(!isSignUp); setErrorMessage(''); }}
+            className="text-xs text-[#5B0015]/80 font-bold hover:text-[#5B0015] underline cursor-pointer"
           >
-            {isLogin ? "Sign up" : "Log in"}
+            {isSignUp ? "Already have an account? Log In" : "Don't have an account? Sign Up"}
           </button>
         </div>
 

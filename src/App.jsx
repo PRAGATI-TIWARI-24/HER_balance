@@ -5,6 +5,7 @@ import Dashboard from './Dashboard';
 import ScrollToTop from './components/ScrollToTop';
 import FounderDesk from './FounderDesk';
 import FloatingAIBot from './components/FloatingAIBot';
+import { supabase, isSupabaseConfigured } from './supabaseClient';
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
 const Icon = ({ path, size = 20, className = '' }) => (
@@ -277,51 +278,58 @@ function AICompanionChat() {
   }, [messages]);
 
   // Setup Browser Native Speech Recognition
-  useEffect(() => {
+  const getRecognition = () => {
+    if (recognitionRef.current) return recognitionRef.current;
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (SpeechRecognition) {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = false;
-      recognition.interimResults = false;
-      recognition.lang = 'hi-IN'; // Supports Hindi + Indian English
+    if (!SpeechRecognition) return null;
 
-      recognition.onstart = () => {
-        setIsListening(true);
-      };
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'hi-IN';
 
-      recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        setInput(prev => (prev ? `${prev} ${transcript}` : transcript));
-        setIsListening(false);
-      };
+    recognition.onstart = () => setIsListening(true);
+    recognition.onresult = (event) => {
+      let currentTranscript = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        currentTranscript += event.results[i][0].transcript;
+      }
+      if (currentTranscript.trim()) {
+        setInput(currentTranscript);
+      }
+    };
+    recognition.onerror = (event) => {
+      console.error("Speech Recognition Error:", event.error);
+      if (event.error === 'not-allowed') {
+        alert("Microphone permission blocked hai. Browser URL bar ke lock icon par click karke microphone allow karein.");
+      }
+      setIsListening(false);
+    };
+    recognition.onend = () => setIsListening(false);
 
-      recognition.onerror = (event) => {
-        console.error("Speech Recognition Error:", event.error);
-        setIsListening(false);
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-      };
-
-      recognitionRef.current = recognition;
-    }
-  }, []);
+    recognitionRef.current = recognition;
+    return recognition;
+  };
 
   const toggleMic = () => {
-    if (!recognitionRef.current) {
+    const recognition = getRecognition();
+    if (!recognition) {
       alert("Aapka browser voice recognition support nahi karta. Please Chrome ya Edge use karein.");
       return;
     }
 
     if (isListening) {
-      recognitionRef.current.stop();
+      recognition.stop();
       setIsListening(false);
     } else {
       try {
-        recognitionRef.current.start();
+        recognition.start();
       } catch (err) {
-        console.error("Mic start error:", err);
+        console.warn("Recognition restart handled:", err);
+        recognition.stop();
+        setTimeout(() => {
+          try { recognition.start(); } catch (e) { console.error(e); }
+        }, 200);
       }
     }
   };
@@ -472,11 +480,39 @@ export default function App({ onNavigate }) {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [user, setUser] = useState(null);
 
-  // ─── 🛡️ FOUNDER DESK MODAL ACCESS ───
+  // ── 🛡️ FOUNDER DESK MODAL ACCESS ──
   const FOUNDER_PIN = "pragati";
   const [showPinModal, setShowPinModal] = useState(false);
   const [pinInput, setPinInput] = useState('');
   const [showFounderDirect, setShowFounderDirect] = useState(false);
+
+  // ── 🔄 SUPABASE AUTO-LOGIN & OAUTH SESSION LISTENER ──
+  useEffect(() => {
+    if (isSupabaseConfigured && supabase) {
+      // 1. Initial active session check on load
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user) {
+          const userName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || 'User';
+          setUser({ id: session.user.id, name: userName });
+          setCurrentPage('dashboard');
+        }
+      });
+
+      // 2. Real-time OAuth redirection & state change listener
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (session?.user) {
+          const userName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || 'User';
+          setUser({ id: session.user.id, name: userName });
+          setCurrentPage('dashboard');
+        } else if (_event === 'SIGNED_OUT') {
+          setUser(null);
+          setCurrentPage('landing');
+        }
+      });
+
+      return () => subscription.unsubscribe();
+    }
+  }, []);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
@@ -514,7 +550,14 @@ export default function App({ onNavigate }) {
     setCurrentPage('dashboard');
   };
 
-  // Callback jab user Test complete karke report save karta hai
+  const handleLogout = async () => {
+    if (isSupabaseConfigured && supabase) {
+      await supabase.auth.signOut();
+    }
+    setUser(null);
+    setCurrentPage('landing');
+  };
+
   const handleAssessmentCompleted = (reportData) => {
     if (user) {
       setCurrentPage('dashboard');
@@ -536,10 +579,7 @@ export default function App({ onNavigate }) {
       {currentPage === 'dashboard' ? (
         <Dashboard 
           user={user} 
-          onLogout={() => { 
-            setUser(null); 
-            setCurrentPage('landing'); 
-          }} 
+          onLogout={handleLogout} 
           onNewAssessment={() => setCurrentPage('assessment')}
         />
       ) : currentPage === 'assessment' ? (
@@ -565,8 +605,8 @@ export default function App({ onNavigate }) {
                 </div>
                 
                 <h1 className="text-4xl md:text-[52px] font-black text-[#5B0015] leading-[1.15] tracking-tight">
-                  Wondering if you have PCOD?<br />
-                  <span className="text-[#80AEE8] drop-shadow-sm">Decode your risk</span> in 2 minutes.
+                  Understand your body<br />
+                  <span className="text-[#80AEE8] drop-shadow-sm">Take control</span> of your PCOD journey.
                 </h1>
                 
                 <p className="text-[#5B0015]/80 text-lg leading-relaxed max-w-md font-medium">
