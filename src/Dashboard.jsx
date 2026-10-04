@@ -4,14 +4,15 @@ import html2pdf from 'html2pdf.js';
 // ── Safe Supabase Client Import ──
 import { supabase, isSupabaseConfigured } from './supabaseClient';
 
-// ── Native Background Notifications Import ──
+// ── Smart Multi-Interval Background & Web Notifications ──
 import { 
   requestNotificationPermission, 
   sendInstantNotification, 
-  scheduleDailyReminder 
+  setupSmartIntervalReminders,
+  startWebIntervalEngine 
 } from './NotificationService';
 
-export default function Dashboard({ user, onLogout }) {
+export default function Dashboard({ user, onLogout, onNewAssessment }) {
   
   // ─── LocalStorage Key Prefix / User ID ───
   const userKey = String(user?.id || user?.email || user?.name || 'guest_user');
@@ -26,13 +27,25 @@ export default function Dashboard({ user, onLogout }) {
   // ─── Clinical Doctor PDF Modal State ───
   const [showPdfModal, setShowPdfModal] = useState(false);
 
-  // ─── Push Notification State ───
-  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  // ─── Initial AI Risk Assessment Stored Report (Spot 2 Link) ───
+  const [storedAiAssessment, setStoredAiAssessment] = useState(() => {
+    try {
+      const saved = localStorage.getItem('herbalance_last_assessment_report');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
 
-  // ─── 🎉 CELEBRATION MODAL POPUP STATE ───
+  // ─── Push Notification State ───
+  const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
+    return localStorage.getItem('herbalance_smart_reminders_enabled') === 'true';
+  });
+
+  // ─── Celebration Modal Popup State ───
   const [showCelebrationModal, setShowCelebrationModal] = useState(false);
 
-  // ─── 🛡️ 3-DAY HORMONE CALIBRATION STATE (ZERO LEAKAGE) ───
+  // ─── 3-Day Hormone Calibration State ───
   const [calibrationDays, setCalibrationDays] = useState(() => {
     return Number(localStorage.getItem(`${userKey}_calibrationDays`)) || 1;
   });
@@ -41,7 +54,6 @@ export default function Dashboard({ user, onLogout }) {
   const [showKitModal, setShowKitModal] = useState(false);
   const [showEngineBlogModal, setShowEngineBlogModal] = useState(false);
   
-  // User Subscription State (Locked vs Unlocked)
   const [kitSubscribed, setKitSubscribed] = useState(() => {
     return localStorage.getItem(`${userKey}_kitSubscribed`) === 'true';
   });
@@ -51,7 +63,6 @@ export default function Dashboard({ user, onLogout }) {
   const PAYEE_NAME = "HerBalance";
   const PASS_AMOUNT = "20.00";
 
-  // Modal Checkout Sub-Steps: 'address' -> 'payment'
   const [checkoutStep, setCheckoutStep] = useState('address'); 
   const [utrInput, setUtrInput] = useState('');
   const [paymentPending, setPaymentPending] = useState(false);
@@ -65,7 +76,6 @@ export default function Dashboard({ user, onLogout }) {
   const [subCity, setSubCity] = useState('');
   const [subState, setSubState] = useState('');
 
-  // ─── Dynamic UPI Links & QR Generator ───
   const upiLink = `upi://pay?pa=${encodeURIComponent(UPI_ID)}&pn=${encodeURIComponent(PAYEE_NAME)}&am=${PASS_AMOUNT}&cu=INR&tn=${encodeURIComponent(`HerBalance Pass - ${user?.name || 'User'}`)}`;
   const qrCodeUrl = `https://quickchart.io/qr?text=${encodeURIComponent(upiLink)}&size=200&centerImageUrl=`;
 
@@ -92,7 +102,7 @@ export default function Dashboard({ user, onLogout }) {
   const [aiTip, setAiTip] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // ─── 2. Cycle Tracker States (Protected Memory) ───
+  // ─── 2. Cycle Tracker States ───
   const [lastDate, setLastDate] = useState(() => {
     return localStorage.getItem(`${userKey}_lastDate`) || todayDateStr;
   });
@@ -103,10 +113,8 @@ export default function Dashboard({ user, onLogout }) {
     return Boolean(localStorage.getItem(`${userKey}_lastDate`));
   });
 
-  // Edit Mode Flag
   const [isEditingCycle, setIsEditingCycle] = useState(false);
 
-  // Dedicated Day, Month, Year Selection States
   const parseSavedDate = (dStr) => {
     if (!dStr) return { day: '01', month: '10', year: '2026' };
     const parts = dStr.split('-');
@@ -122,7 +130,6 @@ export default function Dashboard({ user, onLogout }) {
   const [selYear, setSelYear] = useState(initialParsed.year);
   const [saveSuccessNotice, setSaveSuccessNotice] = useState(false);
 
-  // Ref to lock against cloud overwrite
   const userLockedDate = useRef(false);
 
   // ─── 3. Symptom Journal States ───
@@ -190,7 +197,7 @@ export default function Dashboard({ user, onLogout }) {
 
   const waterSchedule = ["8 AM", "10 AM", "12 PM", "2 PM", "4 PM", "6 PM", "8 PM", "10 PM"];
 
-  // ─── Target Completion Evaluation ───
+  // ─── Target Evaluation ───
   const isWaterDone = waterCount >= 8;
   const isExerciseDone = exerciseMins >= 30;
   const isSleepDone = loggedSleep >= 8;
@@ -206,6 +213,19 @@ export default function Dashboard({ user, onLogout }) {
       }
     }
   }, [isAllGoalsDone, userKey, todayDateStr]);
+
+  // ─── Web Interval Engine Link ───
+  useEffect(() => {
+    if (notificationsEnabled) {
+      startWebIntervalEngine(
+        () => Number(localStorage.getItem(`${userKey}_waterCount`)) || 0,
+        () => {
+          const saved = localStorage.getItem(`${userKey}_medications`);
+          return saved ? JSON.parse(saved) : [];
+        }
+      );
+    }
+  }, [notificationsEnabled, userKey]);
 
   // ─── Analytics Aggregation States ───
   const [weeklyWaterData, setWeeklyWaterData] = useState([]);
@@ -302,10 +322,6 @@ export default function Dashboard({ user, onLogout }) {
 
   // ── Protected Initial Data Load ──
   useEffect(() => {
-    requestNotificationPermission().then((granted) => {
-      if (granted) setNotificationsEnabled(true);
-    });
-
     const fetchAllData = async () => {
       if (!isSupabaseConfigured || !supabase) {
         setSyncStatus('Local Mode 💾');
@@ -516,21 +532,15 @@ export default function Dashboard({ user, onLogout }) {
   const isTshAbnormal = tshNum && (tshNum < 0.4 || tshNum > 4.5);
 
   const handleSetupReminders = async () => {
-    const granted = await requestNotificationPermission();
-    if (granted) {
+    const success = await setupSmartIntervalReminders();
+    if (success) {
       setNotificationsEnabled(true);
+      localStorage.setItem('herbalance_smart_reminders_enabled', 'true');
       await sendInstantNotification(
-        "Reminders Enabled! 🔔",
-        "Aapko daily routine, water aur medicine ke timely background reminders milte rahenge. 🌸"
+        "⚡ Smart Rhythm Reminders Activated!",
+        "Har 2 ghante par water intake, meal aur sleep reminders set ho gaye hain. Koi target miss nahi hoga! 🌸"
       );
-      await scheduleDailyReminder(
-        101, 
-        "HerBalance Morning Routine 🌸", 
-        "Good morning! Don't forget your daily water intake, supplements, and mood check.", 
-        9, 
-        0
-      );
-      alert("Reminders Setup Done! Roz subah 9:00 AM ka background reminder set ho gaya hai. 🌸");
+      alert("✓ Smart Reminders Active! Flipkart-style real-time alerts ab 8 AM se 10 PM har interval par target miss hote hi trigger honge.");
     } else {
       alert("Notification permission allow nahi hui. Device settings se permission enable karein.");
     }
@@ -637,6 +647,8 @@ export default function Dashboard({ user, onLogout }) {
       }
     }
   }
+
+  const isCalibrationComplete = calibrationDays >= 3 || (isDelayed && isCycleSetup);
 
   // ── 🛡️ ZERO-LEAKAGE SEED PROTOCOL ENCRYPTION ──
   const isFollicularPhase = currentPhaseInternal === 'Follicular' || currentPhaseInternal === 'Flow Phase';
@@ -806,6 +818,7 @@ export default function Dashboard({ user, onLogout }) {
     setTimeout(() => setJournalSavedMsg(false), 3000);
   };
 
+  // Production Render Holistic Diet Check
   const fetchPersonalizedPlan = async () => {
     setLoading(true);
     try {
@@ -840,8 +853,6 @@ export default function Dashboard({ user, onLogout }) {
     html2pdf().set(opt).from(element).save();
   };
 
-  const isCalibrationComplete = calibrationDays >= 3 || (isDelayed && isCycleSetup);
-
   return (
     <div className="min-h-screen bg-[#F7F2E0] p-4 md:p-8 animate-in fade-in duration-500 relative text-[#5B0015]">
       
@@ -866,6 +877,9 @@ export default function Dashboard({ user, onLogout }) {
         </div>
         
         <div className="flex flex-wrap items-center gap-2.5">
+          
+          
+
           <button
             onClick={() => setShowLabModal(true)}
             className="bg-[#FCFBF5] border border-[#80AEE8] text-[#5B0015] hover:bg-[#80AEE8]/20 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
@@ -888,10 +902,10 @@ export default function Dashboard({ user, onLogout }) {
                 : 'bg-[#FCFBF5] text-[#5B0015] border-[#EDE5CD] hover:border-[#80AEE8]'
             }`}
           >
-            {notificationsEnabled ? '🔔 Reminders Active' : '🔔 Reminders'}
+            {notificationsEnabled ? '⚡ Reminders Active' : '🔔 Reminders'}
           </button>
 
-          {/* ── 🚨 STANDOUT SOS CRAMP BUTTON ── */}
+          {/* ── 🚨 Standout SOS Cramp Button ── */}
           <button
             onClick={() => setShowSosModal(true)}
             className="bg-[#5B0015] text-[#F7F2E0] hover:bg-[#450010] hover:scale-105 active:scale-95 px-4 py-2 rounded-xl text-xs font-black transition-all shadow-lg shadow-[#5B0015]/25 border-2 border-[#80AEE8] flex items-center gap-1.5 cursor-pointer animate-pulse"
@@ -936,7 +950,7 @@ export default function Dashboard({ user, onLogout }) {
         </button>
       </div>
 
-      {/* ── 🌸 EMPATHETIC DELAY TRIGGER BANNER ── */}
+      {/* ── 🌸 Empathetic Delay Trigger Banner ── */}
       {isDelayed && isCalibrationComplete && (
         <div className="max-w-6xl mx-auto mb-6 bg-[#FCFBF5] border border-[#EDE5CD] p-5 rounded-3xl shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-start gap-3.5">
@@ -974,7 +988,7 @@ export default function Dashboard({ user, onLogout }) {
         </div>
       )}
 
-      {/* ── 🚨 STANDOUT SOS BANNER ── */}
+      {/* ── 🚨 Standout SOS Banner ── */}
       {symptomStatus === 'Needs Attention' && (
         <div className="max-w-6xl mx-auto mb-6 bg-[#5B0015] text-[#F7F2E0] border-2 border-[#80AEE8] p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xl">
           <div className="flex items-start gap-3">
@@ -999,7 +1013,7 @@ export default function Dashboard({ user, onLogout }) {
       {activeTab === 'dashboard' && (
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           
-          {/* ── 🌟 STANDOUT: 3-DAY CALIBRATION CARD (100% VISIBLE & CREAM TEXT UPGRADE) ── */}
+          {/* ── 🌟 Standout Calibration Card ── */}
           <div className="lg:col-span-3 rounded-3xl p-6 sm:p-7 relative overflow-hidden bg-[#5B0015] shadow-2xl border-2 border-[#80AEE8]/50 text-[#F7F2E0]">
             <div className="absolute top-0 right-0 w-80 h-80 bg-[#80AEE8]/20 rounded-full blur-3xl pointer-events-none" />
 
@@ -1026,17 +1040,14 @@ export default function Dashboard({ user, onLogout }) {
                   </span>
                 </div>
 
-                {/* 2. Main Title (SOLID CREAM / IVORY TEXT - 100% HIGH VISIBILITY) */}
                 <p className="text-2xl sm:text-3xl font-black text-[#80AEE8] leading-tight tracking-wide">
                   PCOD Hormone Shift & Organic Seed Protocol 🌸
                 </p>
 
-                {/* 3. Description (HIGH CONTRAST CREAM TEXT) */}
                 <p className="text-xs sm:text-sm text-[#F7F2E0] leading-relaxed font-semibold">
                   PCOD bodies standard 28-day cycle follow nahi karti. Hamara engine continuous daily logs se actual biological state decode karta hai.
                 </p>
 
-                {/* Left Inner Block */}
                 {kitSubscribed ? (
                   <div className="mt-3 p-4 rounded-2xl bg-[#FCFBF5] border-2 border-[#80AEE8] flex items-start gap-3.5 shadow-md text-[#5B0015]">
                     <span className="text-3xl p-1 bg-[#F7F2E0] rounded-xl border border-[#EDE5CD]">🥣</span>
@@ -1092,7 +1103,7 @@ export default function Dashboard({ user, onLogout }) {
                 )}
               </div>
 
-              {/* ── 🛡️ RIGHT SIDE: HIGH CONTRAST STANDOUT CALL TO ACTION ── */}
+              {/* Right Side Call to Action */}
               <div className="bg-[#FCFBF5] text-[#5B0015] p-5 sm:p-6 rounded-3xl border-2 border-[#80AEE8] flex flex-col items-center text-center w-full lg:w-68 shrink-0 shadow-2xl">
                 
                 {kitSubscribed ? (
@@ -1143,7 +1154,7 @@ export default function Dashboard({ user, onLogout }) {
             </div>
           </div>
 
-          {/* 1. CYCLE TRACKER CARD */}
+          {/* 1. Cycle Tracker Card */}
           <div className="bg-[#FCFBF5] p-6 rounded-3xl shadow-sm border border-[#EDE5CD]">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-black text-[#5B0015] flex items-center gap-2">
@@ -1320,7 +1331,7 @@ export default function Dashboard({ user, onLogout }) {
             )}
           </div>
 
-          {/* 2. SYMPTOM JOURNAL BLOCK */}
+          {/* 2. Symptom Journal Block */}
           <div className="bg-[#FCFBF5] p-6 rounded-3xl shadow-sm border border-[#EDE5CD] space-y-4">
             <div className="flex justify-between items-center">
               <h2 className="text-lg font-black text-[#5B0015] flex items-center gap-2">
@@ -1397,7 +1408,7 @@ export default function Dashboard({ user, onLogout }) {
             </button>
           </div>
 
-          {/* 3. MEDICATION & SUPPLEMENT TRACKER */}
+          {/* 3. Medication & Supplement Tracker */}
           <div className="bg-[#FCFBF5] p-6 rounded-3xl shadow-sm border border-[#EDE5CD] flex flex-col justify-between">
             <div>
               <div className="flex justify-between items-center mb-3">
@@ -1478,7 +1489,7 @@ export default function Dashboard({ user, onLogout }) {
             </form>
           </div>
 
-          {/* 4. AI DIET TRACKER CARD */}
+          {/* 4. AI Diet Tracker Card */}
           <div className="bg-[#FCFBF5] p-6 rounded-3xl shadow-sm border border-[#EDE5CD] lg:col-span-3">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-xl">🥗</span>
@@ -1553,17 +1564,23 @@ export default function Dashboard({ user, onLogout }) {
             )}
           </div>
 
-          {/* 5. DAILY QUICK LOGS */}
+          {/* ── 5. DAILY QUICK LOGS (SPOT 3: CONTEXTUAL DELAY ALERTS INTEGRATED) ── */}
           <div className="bg-[#FCFBF5] p-6 rounded-3xl shadow-sm border border-[#EDE5CD] lg:col-span-3">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-5">
               <div>
-                <h2 className="text-lg font-black text-[#5B0015] flex items-center gap-2">
-                  📝 Daily Quick Logs ({todayDateStr})
-                </h2>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-black text-[#5B0015] flex items-center gap-2">
+                    📝 Daily Quick Logs ({todayDateStr})
+                  </h2>
+                  {isDelayed && isCalibrationComplete && (
+                    <span className="bg-[#80AEE8] text-[#5B0015] text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                      Cycle Delay Protocol Active
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-[#5B0015]/70 font-medium">Keep daily habits consistent for healthy hormones.</p>
               </div>
 
-              {/* 🎉 STANDOUT COMPLETED BANNER */}
               {isAllGoalsDone && (
                 <button
                   onClick={() => setShowCelebrationModal(true)}
@@ -1576,7 +1593,8 @@ export default function Dashboard({ user, onLogout }) {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {/* Water */}
+              
+              {/* 💧 Water Intake (With Delay Biological Context) */}
               <div className="rounded-2xl p-4 flex flex-col justify-between border bg-[#F7F2E0] border-[#EDE5CD]">
                 <div>
                   <div className="flex items-center justify-between mb-2">
@@ -1587,10 +1605,19 @@ export default function Dashboard({ user, onLogout }) {
                       {isWaterDone ? '✓ Target Reached!' : '1 Glass every ~2 hrs'}
                     </span>
                   </div>
+                  
                   <p className="font-bold text-[#5B0015] text-sm">Water Intake</p>
                   <p className="text-2xl font-black text-[#5B0015] mt-1">
                     {waterCount} <span className="text-xs font-normal text-[#5B0015]/70">/ 8 Glasses</span>
                   </p>
+
+                  {/* Spot 3 Context Alert for Water */}
+                  {isDelayed && isCalibrationComplete && (
+                    <div className="mt-2 p-2 rounded-xl bg-white/70 border border-[#80AEE8]/40 text-[10px] font-bold text-[#5B0015] flex items-center gap-1.5">
+                      <span>🌿</span>
+                      <span>Hydration flushes excess cortisol & eases pre-flow bloating.</span>
+                    </div>
+                  )}
 
                   <div className="mt-3">
                     <div className="grid grid-cols-4 gap-1">
@@ -1630,7 +1657,7 @@ export default function Dashboard({ user, onLogout }) {
                 </div>
               </div>
 
-              {/* Exercise */}
+              {/* 🏃‍♀️ Gentle Movement (With Delay Biological Context) */}
               <div className="rounded-2xl p-4 flex flex-col justify-between border bg-[#F7F2E0] border-[#EDE5CD]">
                 <div>
                   <div className="flex items-center justify-between mb-2">
@@ -1641,11 +1668,21 @@ export default function Dashboard({ user, onLogout }) {
                       {isExerciseDone ? '✓ Target Reached!' : 'Target: 30m'}
                     </span>
                   </div>
+                  
                   <p className="font-bold text-[#5B0015] text-sm">Gentle Movement</p>
                   <p className="text-2xl font-black text-[#5B0015] mt-1">
                     {exerciseMins} <span className="text-xs font-normal text-[#5B0015]/70">Mins</span>
                   </p>
+
+                  {/* Spot 3 Context Alert for Movement */}
+                  {isDelayed && isCalibrationComplete && (
+                    <div className="mt-2 p-2 rounded-xl bg-white/70 border border-[#80AEE8]/40 text-[10px] font-bold text-[#5B0015] flex items-center gap-1.5">
+                      <span>🧘‍♀️</span>
+                      <span>Pelvic flow: 30m gentle walk stimulates uterine blood circulation.</span>
+                    </div>
+                  )}
                 </div>
+
                 <div className="flex gap-1.5 mt-4">
                   <button
                     onClick={() => {
@@ -1666,7 +1703,7 @@ export default function Dashboard({ user, onLogout }) {
                 </div>
               </div>
 
-              {/* Sleep */}
+              {/* 😴 Sleep (With Delay Biological Context) */}
               <div className="rounded-2xl p-4 flex flex-col justify-between border bg-[#F7F2E0] border-[#EDE5CD]">
                 <div>
                   <div className="flex items-center justify-between mb-2">
@@ -1677,11 +1714,21 @@ export default function Dashboard({ user, onLogout }) {
                       {isSleepDone ? '✓ Target Reached!' : 'Target: 8h'}
                     </span>
                   </div>
+                  
                   <p className="font-bold text-[#5B0015] text-sm">Restful Sleep</p>
                   <p className="text-2xl font-black text-[#5B0015] mt-1">
                     {loggedSleep} <span className="text-xs font-normal text-[#5B0015]/70">Hours</span>
                   </p>
+
+                  {/* Spot 3 Context Alert for Sleep */}
+                  {isDelayed && isCalibrationComplete && (
+                    <div className="mt-2 p-2 rounded-xl bg-white/70 border border-[#80AEE8]/40 text-[10px] font-bold text-[#5B0015] flex items-center gap-1.5">
+                      <span>😴</span>
+                      <span>Deep sleep regulates insulin spikes to unblock paused ovulation.</span>
+                    </div>
+                  )}
                 </div>
+
                 <div className="flex gap-1.5 mt-4">
                   <button
                     onClick={() => {
@@ -1791,11 +1838,10 @@ export default function Dashboard({ user, onLogout }) {
         </div>
       )}
 
-      {/* ── 🏆 ENGAGING CELEBRATION MODAL POPUP (ALL TARGETS COMPLETED) ── */}
+      {/* ── 🏆 Celebration Modal Popup ── */}
       {showCelebrationModal && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in">
           <div className="bg-[#5B0015] text-[#F7F2E0] w-full max-w-md rounded-3xl p-6 sm:p-8 shadow-2xl border-4 border-[#80AEE8] text-center relative animate-in zoom-in-95 duration-200">
-            
             <button
               onClick={() => setShowCelebrationModal(false)}
               className="absolute top-4 right-4 text-[#F7F2E0]/70 hover:text-white font-black bg-white/10 w-8 h-8 rounded-full flex items-center justify-center border border-white/20 cursor-pointer"
@@ -1803,7 +1849,6 @@ export default function Dashboard({ user, onLogout }) {
               ✕
             </button>
 
-            {/* Bouncing Trophy Badge */}
             <div className="w-20 h-20 bg-[#80AEE8] text-[#5B0015] rounded-3xl mx-auto flex items-center justify-center text-4xl shadow-xl mb-4 border-2 border-[#F7F2E0] animate-bounce">
               🏆
             </div>
@@ -1849,7 +1894,7 @@ export default function Dashboard({ user, onLogout }) {
         </div>
       )}
 
-      {/* ── 📖 MINI-BLOG MODAL ── */}
+      {/* ── 📖 Mini-Blog Modal ── */}
       {showEngineBlogModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
           <div className="bg-[#FCFBF5] text-[#5B0015] w-full max-w-xl rounded-3xl p-6 sm:p-8 shadow-2xl border border-[#EDE5CD] max-h-[90vh] overflow-y-auto relative">
@@ -1928,7 +1973,7 @@ export default function Dashboard({ user, onLogout }) {
         </div>
       )}
 
-      {/* ── 🌟 SEED KIT & UPI PAYMENT MODAL (2-STEP CHECKOUT) ── */}
+      {/* ── 🌟 Seed Kit & UPI Payment Modal ── */}
       {showKitModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
           <div className="bg-[#FCFBF5] text-[#5B0015] w-full max-w-lg rounded-3xl p-6 sm:p-7 shadow-2xl border border-[#EDE5CD] max-h-[92vh] overflow-y-auto relative">
@@ -1942,7 +1987,6 @@ export default function Dashboard({ user, onLogout }) {
               ✕
             </button>
 
-            {/* STEP 1: ADDRESS */}
             {checkoutStep === 'address' && (
               <>
                 <div className="flex items-center gap-2.5 mb-3">
@@ -2075,7 +2119,6 @@ export default function Dashboard({ user, onLogout }) {
               </>
             )}
 
-            {/* STEP 2: UPI PAYMENT */}
             {checkoutStep === 'payment' && (
               <div className="space-y-4">
                 <div className="flex items-center gap-2.5">
@@ -2155,7 +2198,7 @@ export default function Dashboard({ user, onLogout }) {
         </div>
       )}
 
-      {/* ── 📄 CLINICAL DOCTOR MEDICAL PDF REPORT MODAL ── */}
+      {/* ── 📄 CLINICAL DOCTOR MEDICAL PDF REPORT MODAL (SPOT 2 INTEGRATED) ── */}
       {showPdfModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
           <div className="bg-[#FCFBF5] text-[#5B0015] w-full max-w-3xl rounded-3xl p-6 sm:p-8 shadow-2xl border border-[#EDE5CD] max-h-[92vh] overflow-y-auto relative">
@@ -2215,10 +2258,66 @@ export default function Dashboard({ user, onLogout }) {
                 </div>
               </div>
 
+              {/* ── 🌟 SPOT 2: INITIAL AI ENDOCRINE RISK BASELINE BLOCK ── */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-black text-[#5B0015] uppercase tracking-wider flex items-center justify-between">
+                  <span>1. Initial AI Endocrine Risk Baseline (12 Clinical Markers)</span>
+                  <span className="text-[10px] font-bold text-[#80AEE8]">FastAPI ML Model Score</span>
+                </h4>
+                
+                <div className="border border-[#EDE5CD] rounded-xl p-3.5 bg-[#FCFBF5] text-xs">
+                  {storedAiAssessment ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-2xl p-1.5 bg-[#F7F2E0] rounded-xl border border-[#EDE5CD]">🔬</span>
+                        <div>
+                          <p className="text-[10px] text-[#5B0015]/70 font-bold uppercase">Pattern Match Probability</p>
+                          <p className="text-lg font-black text-[#5B0015]">{storedAiAssessment.probability_percentage}%</p>
+                        </div>
+                      </div>
+
+                      <div>
+                        <p className="text-[10px] text-[#5B0015]/70 font-bold uppercase">Risk Category</p>
+                        <span className={`inline-block px-2.5 py-0.5 rounded-md text-[10px] font-black border ${
+                          storedAiAssessment.probability_percentage >= 70 
+                            ? 'bg-[#5B0015] text-[#F7F2E0] border-[#5B0015]' 
+                            : storedAiAssessment.probability_percentage >= 40 
+                            ? 'bg-amber-100 text-amber-900 border-amber-300' 
+                            : 'bg-[#80AEE8]/30 text-[#5B0015] border-[#80AEE8]'
+                        }`}>
+                          {storedAiAssessment.probability_percentage >= 70 ? 'High Pattern Match' : storedAiAssessment.probability_percentage >= 40 ? 'Moderate Match' : 'Low Pattern Match'}
+                        </span>
+                      </div>
+
+                      <div>
+                        <p className="text-[10px] text-[#5B0015]/70 font-bold uppercase">Assessment Biomarkers</p>
+                        <p className="text-[11px] font-bold text-[#5B0015]">
+                          BMI: {storedAiAssessment.bmi ? Number(storedAiAssessment.bmi).toFixed(1) : 'Logged'} • Date: {storedAiAssessment.assessed_at ? storedAiAssessment.assessed_at.split('T')[0] : 'Recent'}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between">
+                      <p className="text-[11px] text-[#5B0015]/75 italic">
+                        Initial 2-minute AI risk scan not yet recorded. Patient can take the test directly in-app.
+                      </p>
+                      {onNewAssessment && (
+                        <button 
+                          onClick={() => { setShowPdfModal(false); onNewAssessment(); }}
+                          className="text-[10px] font-black text-[#5B0015] underline cursor-pointer"
+                        >
+                          Take Scan ➔
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Endocrine Profile Table */}
               <div className="space-y-2">
                 <h4 className="text-xs font-black text-[#5B0015] uppercase tracking-wider flex items-center gap-1.5">
-                  <span>1. Laboratory Endocrine Profile (Blood Biomarkers)</span>
+                  <span>2. Laboratory Endocrine Profile (Blood Biomarkers)</span>
                 </h4>
                 
                 <table className="w-full text-left border-collapse border border-[#EDE5CD] rounded-xl overflow-hidden text-xs">
@@ -2274,7 +2373,7 @@ export default function Dashboard({ user, onLogout }) {
               {/* Cycle Dynamics */}
               <div className="space-y-2">
                 <h4 className="text-xs font-black text-[#5B0015] uppercase tracking-wider">
-                  2. Menstrual Pattern & Cycle Dynamics
+                  3. Menstrual Pattern & Cycle Dynamics
                 </h4>
                 <div className="grid grid-cols-3 gap-3 border border-[#EDE5CD] rounded-xl p-3 text-xs bg-[#F7F2E0]">
                   <div>
@@ -2295,7 +2394,7 @@ export default function Dashboard({ user, onLogout }) {
               {/* Multi-Day Symptoms */}
               <div className="space-y-2">
                 <h4 className="text-xs font-black text-[#5B0015] uppercase tracking-wider">
-                  3. Symptom Incidence (Database Multi-Day History)
+                  4. Symptom Incidence (Database Multi-Day History)
                 </h4>
                 <div className="border border-[#EDE5CD] rounded-xl p-3.5 text-xs space-y-2.5 bg-white">
                   <div className="flex flex-wrap gap-2">
@@ -2316,7 +2415,7 @@ export default function Dashboard({ user, onLogout }) {
               {/* Meds Adherence */}
               <div className="space-y-2">
                 <h4 className="text-xs font-black text-[#5B0015] uppercase tracking-wider flex justify-between items-center">
-                  <span>4. Prescribed Medication & Supplement Compliance</span>
+                  <span>5. Prescribed Medication & Supplement Compliance</span>
                   <span className="text-[#80AEE8] font-black text-[11px]">Overall Adherence: {avgMedAdherence}%</span>
                 </h4>
                 <div className="border border-[#EDE5CD] rounded-xl p-3 text-xs bg-white">

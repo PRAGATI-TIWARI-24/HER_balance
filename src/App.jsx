@@ -4,6 +4,7 @@ import AuthModal from './AuthModal';
 import Dashboard from './Dashboard';
 import ScrollToTop from './components/ScrollToTop';
 import FounderDesk from './FounderDesk';
+import FloatingAIBot from './components/FloatingAIBot';
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
 const Icon = ({ path, size = 20, className = '' }) => (
@@ -172,7 +173,7 @@ function Navbar({ onLoginClick }) {
         <div className="hidden md:flex items-center gap-4 shrink-0">
           <button 
             onClick={onLoginClick} 
-            className="text-sm font-bold text-[#5B0015] bg-[#80AEE8]/40 hover:bg-[#80AEE8] transition-all px-4 py-2 rounded-xl"
+            className="text-sm font-bold text-[#5B0015] bg-[#80AEE8]/40 hover:bg-[#80AEE8] transition-all px-4 py-2 rounded-xl cursor-pointer"
           >
             Log In
           </button>
@@ -189,7 +190,7 @@ function Navbar({ onLoginClick }) {
         <div className="flex items-center gap-2 md:hidden">
           <button 
             onClick={onLoginClick} 
-            className="text-xs font-bold text-[#5B0015] bg-[#80AEE8]/40 px-3 py-1.5 rounded-lg shrink-0"
+            className="text-xs font-bold text-[#5B0015] bg-[#80AEE8]/40 px-3 py-1.5 rounded-lg shrink-0 cursor-pointer"
           >
             Log In
           </button>
@@ -217,71 +218,6 @@ function Navbar({ onLoginClick }) {
         </div>
       )}
     </nav>
-  );
-}
-
-// ─── Landing Page Smart Promo Pop-up (Zero Leakage) ───────────────────────────
-function PromoPopup({ onExploreClick }) {
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    const dismissedCount = Number(localStorage.getItem('pcod_calibration_dismissed') || 0);
-    if (dismissedCount >= 2) return;
-
-    const timer = setTimeout(() => {
-      setVisible(true);
-    }, 12000);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  const handleDismiss = () => {
-    const count = Number(localStorage.getItem('pcod_calibration_dismissed') || 0) + 1;
-    localStorage.setItem('pcod_calibration_dismissed', count);
-    setVisible(false);
-  };
-
-  if (!visible) return null;
-
-  return (
-    <div className="fixed bottom-6 right-6 z-50 max-w-sm w-[92%] sm:w-auto animate-in slide-in-from-bottom-5 duration-300">
-      <div className="bg-[#5B0015] text-[#F7F2E0] p-5 rounded-3xl shadow-2xl border border-[#80AEE8]/30 relative">
-        <button
-          onClick={handleDismiss}
-          className="absolute top-3 right-3 text-[#F7F2E0]/70 hover:text-[#F7F2E0] bg-white/10 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
-        >
-          ✕
-        </button>
-
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-xl">🔬</span>
-          <span className="bg-[#80AEE8] text-[#5B0015] text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-            Rhythm Engine
-          </span>
-        </div>
-
-        <h4 className="font-bold text-sm text-[#F7F2E0]">Why is Your Period Delayed?</h4>
-        <p className="text-xs text-[#F7F2E0]/80 mt-1 leading-relaxed">
-          PCOD me ovulation pause hota hai, pregnancy panic nahi. Hamare <b>3-Day Baseline Tracker</b> se apna natural biological shift decode karein.
-        </p>
-
-        <div className="mt-3.5 flex items-center justify-between pt-2.5 border-t border-[#F7F2E0]/20">
-          <div>
-            <span className="text-[10px] text-[#F7F2E0]/70 block font-semibold">Hormone Baseline</span>
-            <span className="text-xs font-black text-[#80AEE8]">100% Free Calibration</span>
-          </div>
-          <button
-            onClick={() => {
-              setVisible(false);
-              onExploreClick();
-            }}
-            className="bg-[#80AEE8] hover:bg-[#A5C7F0] text-[#5B0015] text-xs font-extrabold px-4 py-2 rounded-xl transition-all shadow-md active:scale-95"
-          >
-            Start Check ➔
-          </button>
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -325,7 +261,7 @@ function FAQ() {
   );
 }
 
-// ─── AI Chat Component ────────────────────────────────────────────────────────
+// ─── AI Chat Component (Dedicated Landing Page Section - RESTORED) ────────────
 function AICompanionChat() {
   const [messages, setMessages] = useState([
     { sender: 'ai', text: "Hi! I'm HerBalance AI. How are you feeling today? Share your symptoms, or ask me anything about PCOD/PCOS. 🌸" }
@@ -446,7 +382,7 @@ function AICompanionChat() {
         <button 
           onClick={handleSend}
           disabled={isLoading || !input.trim()}
-          className="bg-[#5B0015] text-[#F7F2E0] px-5 py-3 rounded-xl hover:bg-[#450010] transition-colors disabled:opacity-50 font-bold"
+          className="bg-[#5B0015] text-[#F7F2E0] px-5 py-3 rounded-xl hover:bg-[#450010] transition-colors disabled:opacity-50 font-bold cursor-pointer"
         >
           Send
         </button>
@@ -503,332 +439,431 @@ export default function App({ onNavigate }) {
     setCurrentPage('dashboard');
   };
 
-  if (currentPage === 'dashboard') {
-    return (
-      <Dashboard 
-        user={user} 
-        onLogout={() => { 
-          setUser(null); 
-          setCurrentPage('landing'); 
-        }} 
-        onNewAssessment={() => setCurrentPage('assessment')}
-      />
-    );
-  }
+  // Callback jab user Test complete karke report save karta hai
+  const handleAssessmentCompleted = (reportData) => {
+    if (user) {
+      setCurrentPage('dashboard');
+    } else {
+      setShowAuthModal(true);
+    }
+  };
 
-  if (currentPage === 'assessment') {
-    return <Assessment onback={() => setCurrentPage('landing')} />;
-  }
-  
   const handleStartJourney = () => setCurrentPage('assessment');
 
   return (
-    <div className="min-h-screen bg-[#F7F2E0] text-[#5B0015]">
+    <div className="min-h-screen bg-[#F7F2E0] text-[#5B0015] relative">
       <ScrollToTop />
 
-      <Navbar 
-        onLoginClick={() => setShowAuthModal(true)} 
-      />
+      {/* ── 🌸 1. GLOBAL FLOATING AI BOT (HAR WAQT VISIBLE: LANDING & DASHBOARD) ── */}
+      <FloatingAIBot />
 
-      {/* ── Hero ──────────────────────────────────────────────────────────── */}
-      <section className="max-w-6xl mx-auto px-5 pt-16 pb-20 md:pt-24 md:pb-28">
-        <div className="grid md:grid-cols-2 gap-12 items-center">
-          <div className="space-y-6">
-            <div className="inline-flex items-center gap-2 bg-[#80AEE8]/30 text-[#5B0015] text-xs font-bold px-4 py-2 rounded-full border border-[#80AEE8]/50">
-              <Icon path={icons.sparkle} size={13} />
-              Your health. Your patterns. Your journey.
-            </div>
-            <h1 className="text-4xl md:text-[52px] font-black text-[#5B0015] leading-[1.15] tracking-tight">
-              Understand your body.<br />
-              <span className="text-[#80AEE8] drop-shadow-sm">Take control</span> of your PCOD journey.
-            </h1>
-            <p className="text-[#5B0015]/80 text-lg leading-relaxed max-w-md font-medium">
-              Track your cycle, symptoms, and lifestyle — discover meaningful patterns and turn everyday health goals into simple, sustainable actions.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <button onClick={handleStartJourney} className="flex items-center justify-center gap-2 bg-[#5B0015] text-[#F7F2E0] font-bold px-6 py-3.5 rounded-xl hover:bg-[#450010] transition-all shadow-md active:scale-[0.98]">
-                🌸 Start Your PCOD Journey
-              </button>
-              <button 
-                onClick={() => document.getElementById('how-it-works').scrollIntoView({ behavior: 'smooth' })} 
-                className="flex items-center justify-center gap-2 text-[#5B0015] font-bold px-6 py-3.5 rounded-xl border border-[#EDE5CD] hover:border-[#5B0015] transition-colors bg-[#FCFBF5]">
-                See How It Works <Icon path={icons.chevronDown} size={16} />
-              </button>         
-            </div>
-            <p className="text-xs text-[#5B0015]/70 flex items-center gap-1.5 font-semibold">
-              <Icon path={icons.info} size={13} />
-              Built for informed self-management — not diagnosis.
-            </p>
-          </div>
+      {/* ── 2. CONDITIONAL ROUTING: DASHBOARD VIEW ── */}
+      {currentPage === 'dashboard' ? (
+        <Dashboard 
+          user={user} 
+          onLogout={() => { 
+            setUser(null); 
+            setCurrentPage('landing'); 
+          }} 
+          onNewAssessment={() => setCurrentPage('assessment')}
+        />
+      ) : currentPage === 'assessment' ? (
+        /* ── 3. CONDITIONAL ROUTING: ASSESSMENT VIEW ── */
+        <Assessment 
+          onBack={() => setCurrentPage('landing')} 
+          onCompleteAssessment={handleAssessmentCompleted}
+        />
+      ) : (
+        /* ── 4. LANDING PAGE VIEW ── */
+        <>
+          <Navbar 
+            onLoginClick={() => setShowAuthModal(true)} 
+          />
 
-          <div className="flex justify-center md:justify-end">
-            <DashboardMockup />
-          </div>
-        </div>
-      </section>
-
-      {/* ── Trust Strip ────────────────────────────────────────────────────── */}
-      <section className="border-y border-[#EDE5CD] bg-[#FCFBF5] py-8 px-5">
-        <div className="max-w-4xl mx-auto">
-          <p className="text-center text-xs font-extrabold text-[#5B0015]/70 uppercase tracking-widest mb-6">Designed around the things that matter every day</p>
-          <div className="flex flex-wrap justify-center gap-8">
-            {[
-              { icon: '🩸', label: 'Cycle Tracking' },
-              { icon: '🥗', label: 'Nutrition' },
-              { icon: '🏃', label: 'Activity' },
-              { icon: '😴', label: 'Sleep' },
-            ].map(item => (
-              <div key={item.label} className="flex items-center gap-2.5">
-                <span className="text-xl">{item.icon}</span>
-                <span className="font-bold text-[#5B0015] text-sm">{item.label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Problem ────────────────────────────────────────────────────────── */}
-      <section className="py-24 px-5 max-w-6xl mx-auto">
-        <div className="text-center mb-14">
-          <h2 className="text-3xl md:text-4xl font-black text-[#5B0015] mb-4">
-            PCOD isn't just about your period.
-          </h2>
-          <p className="text-[#5B0015]/80 text-lg max-w-xl mx-auto leading-relaxed">
-            Understanding recurring patterns can be difficult when symptoms, lifestyle, and health information are scattered across different places.
-          </p>
-        </div>
-        <div className="grid md:grid-cols-3 gap-6">
-          {[
-            { num: '01', title: 'Missed Patterns', body: 'Changes in cycles and symptoms can be difficult to notice over time without a consistent way to log and review them.' },
-            { num: '02', title: 'Too Much Information', body: "Generic health advice doesn't always fit your lifestyle, food habits, or daily routine in the Indian context." },
-            { num: '03', title: 'Hard to Stay Consistent', body: 'Knowing what to do is easier than turning it into sustainable daily habits that actually stick over weeks and months.' },
-          ].map(c => (
-            <div key={c.num} className="bg-[#FCFBF5] rounded-2xl border border-[#EDE5CD] p-7 hover:border-[#80AEE8] hover:shadow-lg transition-all">
-              <span className="text-4xl font-black text-[#80AEE8]/40">{c.num}</span>
-              <h3 className="font-bold text-[#5B0015] text-lg mt-2 mb-3">{c.title}</h3>
-              <p className="text-[#5B0015]/80 text-sm leading-relaxed">{c.body}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Solution / Timeline ─────────────────────────────────────────────── */}
-      <section id="how-it-works" className="py-24 px-5 bg-[#FCFBF5] border-y border-[#EDE5CD]">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-black text-[#5B0015] mb-4">
-              One place to understand your health journey.
-            </h2>
-          </div>
-          <div className="relative">
-            <div className="hidden md:block absolute top-8 left-[12.5%] right-[12.5%] h-px bg-[#80AEE8]/40" />
-            <div className="grid md:grid-cols-4 gap-8">
-              {[
-                { step: 'Track', desc: 'Log your cycle, symptoms, sleep, activity and lifestyle.', color: '#5B0015', bg: '#80AEE8' },
-                { step: 'Understand', desc: 'See trends and recurring patterns in your personal data.', color: '#5B0015', bg: '#F7F2E0' },
-                { step: 'Act', desc: 'Receive personalized lifestyle suggestions and daily goals.', color: '#5B0015', bg: '#80AEE8' },
-                { step: 'Monitor', desc: 'Follow progress and prepare useful summaries for healthcare conversations.', color: '#5B0015', bg: '#F7F2E0' },
-              ].map((item, i) => (
-                <div key={item.step} className="flex flex-col items-center text-center">
-                  <div className="w-16 h-16 rounded-2xl flex items-center justify-center font-black text-lg mb-5 relative z-10 border border-[#EDE5CD]" style={{ backgroundColor: item.bg, color: item.color }}>
-                    {i + 1}
-                  </div>
-                  <h3 className="font-bold text-[#5B0015] text-lg mb-2">{item.step}</h3>
-                  <p className="text-[#5B0015]/80 text-sm leading-relaxed">{item.desc}</p>
+          {/* ── High-Converting Hero: Free AI Scan Hook ── */}
+          <section className="max-w-6xl mx-auto px-5 pt-14 pb-18 md:pt-20 md:pb-24">
+            <div className="grid md:grid-cols-2 gap-10 items-center">
+              <div className="space-y-5">
+                <div className="inline-flex items-center gap-2 bg-[#80AEE8]/30 text-[#5B0015] text-xs font-bold px-4 py-1.5 rounded-full border border-[#80AEE8]/50">
+                  <Icon path={icons.sparkle} size={13} />
+                  Free 2-Minute Hormone Symptom Match • Instant Results
                 </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Features ────────────────────────────────────────────────────────── */}
-      <section id="features" className="py-24 px-5 max-w-6xl mx-auto">
-        <div className="text-center mb-14">
-          <h2 className="text-3xl md:text-4xl font-black text-[#5B0015] mb-4">
-            Everything you need, in one place.
-          </h2>
-        </div>
-        
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {[
-            { icon: '🩸', title: 'Smart Cycle Tracking', desc: 'Track periods, cycle length and changes over time to understand your unique rhythm.', isLocked: true },
-            { icon: '🌸', title: 'Symptom Journal', desc: 'Record symptoms such as acne, hair fall, fatigue and more in a structured, searchable log.' },
-            { icon: '🥗', title: 'Personalized Nutrition', desc: 'Discover practical Indian food choices — vegetarian, eggetarian, and regional options — that fit your lifestyle.', isLocked: true },
-            { icon: '🏃', title: 'Lifestyle Goals', desc: 'Build manageable habits around movement, sleep and daily wellbeing at your own pace.' },
-            { icon: '📊', title: 'Health Insights', desc: 'Understand trends in your own data without turning them into a medical diagnosis.' },
-            { icon: '🤖', title: 'AI Health Companion', desc: 'Ask questions, understand your logs and get guidance designed to support informed, not alarming, decisions.' },
-          ].map(f => (
-            <div 
-              key={f.title} 
-              onClick={() => f.isLocked ? setShowAuthModal(true) : null}
-              className={`bg-[#FCFBF5] rounded-2xl border border-[#EDE5CD] p-6 transition-all group relative
-                ${f.isLocked ? 'cursor-pointer hover:border-[#80AEE8] hover:shadow-md' : 'hover:border-[#5B0015]/40 hover:shadow-lg'} 
-              `}
-            >
-              <span className="text-2xl mb-4 block">{f.icon}</span>
-              
-              <h3 className="font-bold text-[#5B0015] text-base mb-2 group-hover:text-[#80AEE8] transition-colors">
-                {f.title}
-              </h3>
-              
-              <p className="text-[#5B0015]/80 text-sm leading-relaxed">{f.desc}</p>
-              
-              {f.isLocked && (
-                <div className="mt-5 pt-4 border-t border-[#EDE5CD]">
-                   <div className="flex items-center justify-between text-xs font-bold text-[#5B0015] bg-[#80AEE8]/20 px-3 py-2 rounded-lg group-hover:bg-[#80AEE8] transition-colors">
-                     <span>🔒 Login to continue to your dashboard</span>
-                     <span>→</span>
-                   </div>
+                
+                <h1 className="text-4xl md:text-[52px] font-black text-[#5B0015] leading-[1.15] tracking-tight">
+                  Wondering if you have PCOD?<br />
+                  <span className="text-[#80AEE8] drop-shadow-sm">Decode your risk</span> in 2 minutes.
+                </h1>
+                
+                <p className="text-[#5B0015]/80 text-lg leading-relaxed max-w-md font-medium">
+                  Doctor ke paas jaane se pehle apne symptoms, body changes aur cycle pattern ka science-backed AI match check karein.
+                </p>
+                
+                <div className="flex flex-col sm:flex-row gap-3 pt-1">
+                  <button 
+                    onClick={handleStartJourney} 
+                    className="inline-flex items-center justify-center gap-2 bg-[#5B0015] text-[#F7F2E0] font-black px-7 py-4 rounded-2xl hover:bg-[#450010] transition-all shadow-xl active:scale-[0.98] cursor-pointer"
+                  >
+                    <span>🌸</span>
+                    <span>Check My PCOD Risk (Free AI Scan)</span>
+                  </button>
+                  
+                  <button 
+                    onClick={() => setShowAuthModal(true)} 
+                    className="flex items-center justify-center gap-2 text-[#5B0015] font-bold px-6 py-3.5 rounded-2xl border border-[#EDE5CD] hover:border-[#5B0015] transition-colors bg-[#FCFBF5] cursor-pointer"
+                  >
+                    Existing User? Log In
+                  </button>         
                 </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </section>
 
-      {/* ── India First ──────────────────────────────────────────────────────── */}
-      <section className="py-24 px-5 bg-[#FCFBF5] border-y border-[#EDE5CD]">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid md:grid-cols-2 gap-14 items-center">
-            <div>
-              <div className="inline-flex items-center gap-2 bg-[#80AEE8]/30 text-[#5B0015] text-xs font-bold px-3 py-1.5 rounded-full mb-6 border border-[#80AEE8]/50">
-                🇮🇳 Made for India
+                <p className="text-xs text-[#5B0015]/70 flex items-center gap-1.5 font-semibold pt-0.5">
+                  <Icon path={icons.shield} size={13} />
+                  100% Confidential • No Login Required to Check
+                </p>
               </div>
-              <h2 className="text-3xl md:text-4xl font-black text-[#5B0015] mb-4">
-                Built for real life in India.
-              </h2>
-              <p className="text-[#5B0015]/80 text-lg leading-relaxed mb-8">
-                Health guidance should fit your life — not force your life to fit a generic plan.
-              </p>
-              <div className="grid grid-cols-2 gap-4">
+
+              <div className="flex justify-center md:justify-end">
+                <DashboardMockup />
+              </div>
+            </div>
+          </section>
+
+          {/* ── Trust Strip ── */}
+          <section className="border-y border-[#EDE5CD] bg-[#FCFBF5] py-8 px-5">
+            <div className="max-w-4xl mx-auto">
+              <p className="text-center text-xs font-extrabold text-[#5B0015]/70 uppercase tracking-widest mb-6">Designed around the things that matter every day</p>
+              <div className="flex flex-wrap justify-center gap-8">
                 {[
-                  { icon: '🥗', label: 'Indian Food Choices' },
-                  { icon: '🥚', label: 'Veg & Eggetarian' },
-                  { icon: '🎓', label: 'College & Working Life' },
-                  { icon: '💰', label: 'Practical & Affordable' },
-                  { icon: '🌐', label: 'Hindi + English' },
-                  { icon: '📱', label: 'Mobile-First' },
+                  { icon: '🩸', label: 'Cycle Tracking' },
+                  { icon: '🥗', label: 'Nutrition' },
+                  { icon: '🏃', label: 'Activity' },
+                  { icon: '😴', label: 'Sleep' },
                 ].map(item => (
-                  <div key={item.label} className="flex items-center gap-3 p-3 rounded-xl bg-[#F7F2E0] border border-[#EDE5CD]">
+                  <div key={item.label} className="flex items-center gap-2.5">
                     <span className="text-xl">{item.icon}</span>
-                    <span className="text-sm font-bold text-[#5B0015]">{item.label}</span>
+                    <span className="font-bold text-[#5B0015] text-sm">{item.label}</span>
                   </div>
                 ))}
               </div>
             </div>
-            <div className="space-y-4">
-              <div className="bg-[#F7F2E0] rounded-2xl border border-[#EDE5CD] p-6 shadow-sm">
-                <p className="text-xs font-bold text-[#5B0015]/70 uppercase tracking-widest mb-3">Sample Meal Suggestion</p>
-                <div className="space-y-3">
+          </section>
+
+          {/* ── Problem ── */}
+          <section className="py-20 md:py-24 px-5 max-w-6xl mx-auto">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-black text-[#5B0015] mb-3">
+                PCOD isn't just about your period.
+              </h2>
+              <p className="text-[#5B0015]/80 text-lg max-w-xl mx-auto leading-relaxed">
+                Understanding recurring patterns can be difficult when symptoms, lifestyle, and health information are scattered across different places.
+              </p>
+            </div>
+            <div className="grid md:grid-cols-3 gap-6">
+              {[
+                { num: '01', title: 'Missed Patterns', body: 'Changes in cycles and symptoms can be difficult to notice over time without a consistent way to log and review them.' },
+                { num: '02', title: 'Too Much Information', body: "Generic health advice doesn't always fit your lifestyle, food habits, or daily routine in the Indian context." },
+                { num: '03', title: 'Hard to Stay Consistent', body: 'Knowing what to do is easier than turning it into sustainable daily habits that actually stick over weeks and months.' },
+              ].map(c => (
+                <div key={c.num} className="bg-[#FCFBF5] rounded-2xl border border-[#EDE5CD] p-7 hover:border-[#80AEE8] hover:shadow-lg transition-all">
+                  <span className="text-4xl font-black text-[#80AEE8]/40">{c.num}</span>
+                  <h3 className="font-bold text-[#5B0015] text-lg mt-2 mb-3">{c.title}</h3>
+                  <p className="text-[#5B0015]/80 text-sm leading-relaxed">{c.body}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* ── Solution / Timeline ── */}
+          <section id="how-it-works" className="py-20 md:py-24 px-5 bg-[#FCFBF5] border-y border-[#EDE5CD]">
+            <div className="max-w-5xl mx-auto">
+              <div className="text-center mb-14">
+                <h2 className="text-3xl md:text-4xl font-black text-[#5B0015] mb-3">
+                  One place to understand your health journey.
+                </h2>
+              </div>
+              <div className="relative">
+                <div className="hidden md:block absolute top-8 left-[12.5%] right-[12.5%] h-px bg-[#80AEE8]/40" />
+                <div className="grid md:grid-cols-4 gap-8">
                   {[
-                    { time: 'Breakfast', meal: 'Moong dal chilla + curd + methi tea', note: 'High protein, anti-inflammatory' },
-                    { time: 'Lunch', meal: 'Brown rice + rajma + sabzi + raita', note: 'Balanced macros, fiber-rich' },
-                    { time: 'Snack', meal: 'Handful of seeds mix + buttermilk', note: 'Good fats + probiotics' },
-                  ].map(m => (
-                    <div key={m.time} className="flex gap-4 items-start">
-                      <span className="text-xs font-bold text-[#80AEE8] bg-[#5B0015] px-2 py-0.5 rounded-md w-18 text-center flex-shrink-0 mt-0.5">{m.time}</span>
-                      <div>
-                        <p className="text-sm font-bold text-[#5B0015]">{m.meal}</p>
-                        <p className="text-xs text-[#5B0015]/70">{m.note}</p>
+                    { step: 'Track', desc: 'Log your cycle, symptoms, sleep, activity and lifestyle.', color: '#5B0015', bg: '#80AEE8' },
+                    { step: 'Understand', desc: 'See trends and recurring patterns in your personal data.', color: '#5B0015', bg: '#F7F2E0' },
+                    { step: 'Act', desc: 'Receive personalized lifestyle suggestions and daily goals.', color: '#5B0015', bg: '#80AEE8' },
+                    { step: 'Monitor', desc: 'Follow progress and prepare useful summaries for healthcare conversations.', color: '#5B0015', bg: '#F7F2E0' },
+                  ].map((item, i) => (
+                    <div key={item.step} className="flex flex-col items-center text-center">
+                      <div className="w-16 h-16 rounded-2xl flex items-center justify-center font-black text-lg mb-5 relative z-10 border border-[#EDE5CD]" style={{ backgroundColor: item.bg, color: item.color }}>
+                        {i + 1}
                       </div>
+                      <h3 className="font-bold text-[#5B0015] text-lg mb-2">{item.step}</h3>
+                      <p className="text-[#5B0015]/80 text-sm leading-relaxed">{item.desc}</p>
                     </div>
                   ))}
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
+          </section>
 
-      {/* ── AI Section ───────────────────────────────────────────────────────── */}
-      <section className="py-24 px-5 max-w-6xl mx-auto">
-        <div className="grid md:grid-cols-2 gap-14 items-center">
-          <div>
-            <h2 className="text-3xl md:text-4xl font-black text-[#5B0015] mb-4">
-              Ask. Understand.<br />Take the next step.
-            </h2>
-            <p className="text-[#5B0015]/80 text-lg leading-relaxed mb-6 font-medium">
-              Your AI health companion helps you make sense of your logs, find patterns, and know the right questions to ask your doctor.
-            </p>
-            <div className="flex items-start gap-3 p-4 bg-[#80AEE8]/20 rounded-2xl border border-[#80AEE8]/40">
-              <Icon path={icons.info} size={16} className="text-[#5B0015] flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-[#5B0015] leading-relaxed font-semibold">The AI companion provides information and support only. It is not a diagnostic tool and cannot replace professional medical advice.</p>
-            </div>
-          </div>
-
-          <AICompanionChat />
-        </div>
-      </section>
-
-      {/* ── FAQ ──────────────────────────────────────────────────────────────── */}
-      <FAQ />
-
-      {/* ── Final CTA ────────────────────────────────────────────────────────── */}
-      <section className="py-24 px-5 bg-[#5B0015] text-[#F7F2E0] border-y border-[#80AEE8]/20">
-        <div className="max-w-2xl mx-auto text-center">
-          <div className="w-14 h-14 rounded-2xl bg-[#80AEE8] flex items-center justify-center mx-auto mb-6 shadow-lg">
-            <Icon path={icons.heart} size={24} className="text-[#5B0015]" />
-          </div>
-          <h2 className="text-3xl md:text-5xl font-black mb-5 leading-tight">
-            Start understanding your health,<br className="hidden md:block" /> one day at a time.
-          </h2>
-          <p className="text-[#F7F2E0]/80 text-lg leading-relaxed mb-8 max-w-md mx-auto font-medium">
-            Track your patterns. Build sustainable habits. Make more informed health decisions.
-          </p>
-          <button onClick={handleStartJourney} className="inline-flex items-center gap-2 bg-[#80AEE8] text-[#5B0015] font-black px-8 py-4 rounded-xl text-lg hover:bg-[#A5C7F0] transition-all shadow-xl active:scale-[0.98]">
-            🌸 Start Your PCOD Journey
-          </button>
-        </div>
-      </section>
-
-      {/* ── 🌟 COMPLETE FOOTER WITH PRODUCT, SUPPORT & LEGAL (100% VISIBLE) ── */}
-      <footer className="bg-[#450010] text-[#F7F2E0] py-14 px-5">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid md:grid-cols-4 gap-10 mb-10">
-            <div className="md:col-span-1">
-              <div className="flex items-center gap-2.5 mb-4">
-                <img
-                  src="/pcod_logo.jpeg"
-                  alt="HerBalance Logo"
-                  className="h-8 w-8 rounded-full object-cover shrink-0 border border-[#F7F2E0]/40"
-                />
-                <span className="font-black text-[#F7F2E0] text-lg">HerBalance</span>
-              </div>
-              <p className="text-[#F7F2E0]/70 text-xs leading-relaxed font-medium">
-                For educational and self-management support only. Not a substitute for professional medical diagnosis or treatment.
+          {/* ── Features Grid (With High-Intent Card 6 Hook) ── */}
+          <section id="features" className="py-20 md:py-24 px-5 max-w-6xl mx-auto">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-black text-[#5B0015] mb-3">
+                Everything you need, in one place.
+              </h2>
+              <p className="text-xs sm:text-sm text-[#5B0015]/75 font-semibold">
+                Track daily, understand your endocrine signals, and take steady control.
               </p>
             </div>
-            {[
-              { heading: 'Product', links: ['Features', 'How It Works', 'Why HerBalance', 'Pricing'] },
-              { heading: 'Support', links: ['FAQ', 'Contact', 'Help Center', 'Blog'] },
-              { heading: 'Legal', links: ['Privacy', 'Terms', 'Disclaimer'] },
-            ].map(col => (
-              <div key={col.heading}>
-                <p className="font-black text-[#80AEE8] text-xs uppercase tracking-widest mb-4">{col.heading}</p>
-                <div className="space-y-2.5">
-                  {col.links.map(l => (
-                    <a key={l} href="#" className="block text-[#F7F2E0]/80 text-sm hover:text-white transition-colors font-medium">{l}</a>
-                  ))}
+            
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              
+              {/* Card 1 */}
+              <div 
+                onClick={() => setShowAuthModal(true)}
+                className="bg-[#FCFBF5] rounded-2xl border border-[#EDE5CD] p-6 transition-all group relative cursor-pointer hover:border-[#80AEE8] hover:shadow-md"
+              >
+                <span className="text-2xl mb-4 block">🩸</span>
+                <h3 className="font-bold text-[#5B0015] text-base mb-2 group-hover:text-[#80AEE8] transition-colors">
+                  Smart Cycle Tracking
+                </h3>
+                <p className="text-[#5B0015]/80 text-sm leading-relaxed">
+                  Track periods, cycle length and variations over time to decode your unique rhythm.
+                </p>
+                <div className="mt-5 pt-4 border-t border-[#EDE5CD]">
+                  <div className="flex items-center justify-between text-xs font-bold text-[#5B0015] bg-[#80AEE8]/20 px-3 py-2 rounded-lg group-hover:bg-[#80AEE8] transition-colors">
+                    <span>🔒 Login to continue</span>
+                    <span>→</span>
+                  </div>
                 </div>
               </div>
-            ))}
-          </div>
-          <div className="border-t border-[#F7F2E0]/15 pt-6 flex flex-col md:flex-row items-center justify-between gap-3">
-            <p className="text-[#F7F2E0]/60 text-xs">© 2026 HerBalance. All rights reserved.</p>
-            <p className="text-[#F7F2E0]/60 text-xs text-center md:text-right max-w-md">
-              This platform does not diagnose, treat, cure, or prevent any medical condition including PCOD/PCOS.
-            </p>
-          </div>
-        </div>
-      </footer>
 
-      <PromoPopup onExploreClick={() => setShowAuthModal(true)} />
+              {/* Card 2 */}
+              <div className="bg-[#FCFBF5] rounded-2xl border border-[#EDE5CD] p-6 hover:border-[#5B0015]/40 hover:shadow-lg transition-all">
+                <span className="text-2xl mb-4 block">🌸</span>
+                <h3 className="font-bold text-[#5B0015] text-base mb-2">Symptom Journal</h3>
+                <p className="text-[#5B0015]/80 text-sm leading-relaxed">
+                  Record symptoms such as acne, hair fall, cramps and fatigue in an intuitive daily log.
+                </p>
+              </div>
+
+              {/* Card 3 */}
+              <div 
+                onClick={() => setShowAuthModal(true)}
+                className="bg-[#FCFBF5] rounded-2xl border border-[#EDE5CD] p-6 transition-all group relative cursor-pointer hover:border-[#80AEE8] hover:shadow-md"
+              >
+                <span className="text-2xl mb-4 block">🥗</span>
+                <h3 className="font-bold text-[#5B0015] text-base mb-2 group-hover:text-[#80AEE8] transition-colors">
+                  Personalized Nutrition
+                </h3>
+                <p className="text-[#5B0015]/80 text-sm leading-relaxed">
+                  Discover practical Indian food choices — vegetarian, eggetarian, and regional options that fit real life.
+                </p>
+                <div className="mt-5 pt-4 border-t border-[#EDE5CD]">
+                  <div className="flex items-center justify-between text-xs font-bold text-[#5B0015] bg-[#80AEE8]/20 px-3 py-2 rounded-lg group-hover:bg-[#80AEE8] transition-colors">
+                    <span>🔒 Login to continue</span>
+                    <span>→</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 4 */}
+              <div className="bg-[#FCFBF5] rounded-2xl border border-[#EDE5CD] p-6 hover:border-[#5B0015]/40 hover:shadow-lg transition-all">
+                <span className="text-2xl mb-4 block">🏃</span>
+                <h3 className="font-bold text-[#5B0015] text-base mb-2">Lifestyle Goals</h3>
+                <p className="text-[#5B0015]/80 text-sm leading-relaxed">
+                  Build manageable daily habits around hydration, movement, and deep restorative sleep.
+                </p>
+              </div>
+
+              {/* Card 5 */}
+              <div className="bg-[#FCFBF5] rounded-2xl border border-[#EDE5CD] p-6 hover:border-[#5B0015]/40 hover:shadow-lg transition-all">
+                <span className="text-2xl mb-4 block">📊</span>
+                <h3 className="font-bold text-[#5B0015] text-base mb-2">Health Analytics</h3>
+                <p className="text-[#5B0015]/80 text-sm leading-relaxed">
+                  Review multi-week trends in water, symptoms, and cycle delays for clinical conversations.
+                </p>
+              </div>
+
+              {/* Card 6: Direct Assessment Hook */}
+              <div 
+                onClick={handleStartJourney}
+                className="bg-[#F7F2E0] rounded-2xl border-2 border-[#5B0015] p-6 transition-all group relative cursor-pointer hover:bg-[#FCFBF5] hover:shadow-xl shadow-md flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-2xl">🔬</span>
+                    <span className="bg-[#5B0015] text-[#F7F2E0] text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                      Free 2-Min Scan
+                    </span>
+                  </div>
+                  <h3 className="font-black text-[#5B0015] text-base mb-1.5 group-hover:text-[#80AEE8] transition-colors">
+                    Not Sure Where to Begin?
+                  </h3>
+                  <p className="text-[#5B0015]/80 text-xs sm:text-sm leading-relaxed font-medium">
+                    Kabhi doctor ke paas nahi gayi? Apne age, body changes aur cycle se 12 clinical markers ka AI match dekhein.
+                  </p>
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-[#EDE5CD]">
+                  <div className="flex items-center justify-between text-xs font-black text-[#F7F2E0] bg-[#5B0015] px-3.5 py-2.5 rounded-xl group-hover:bg-[#450010] transition-colors shadow-sm">
+                    <span>Start Free Assessment Now</span>
+                    <span>➔</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </section>
+
+          {/* ── India First ── */}
+          <section className="py-20 md:py-24 px-5 bg-[#FCFBF5] border-y border-[#EDE5CD]">
+            <div className="max-w-6xl mx-auto">
+              <div className="grid md:grid-cols-2 gap-12 items-center">
+                <div>
+                  <div className="inline-flex items-center gap-2 bg-[#80AEE8]/30 text-[#5B0015] text-xs font-bold px-3 py-1.5 rounded-full mb-5 border border-[#80AEE8]/50">
+                    🇮🇳 Made for India
+                  </div>
+                  <h2 className="text-3xl md:text-4xl font-black text-[#5B0015] mb-3">
+                    Built for real life in India.
+                  </h2>
+                  <p className="text-[#5B0015]/80 text-lg leading-relaxed mb-6">
+                    Health guidance should fit your life — not force your life to fit a generic plan.
+                  </p>
+                  <div className="grid grid-cols-2 gap-3.5">
+                    {[
+                      { icon: '🥗', label: 'Indian Food Choices' },
+                      { icon: '🥚', label: 'Veg & Eggetarian' },
+                      { icon: '🎓', label: 'College & Working Life' },
+                      { icon: '💰', label: 'Practical & Affordable' },
+                      { icon: '🌐', label: 'Hindi + English' },
+                      { icon: '📱', label: 'Mobile-First' },
+                    ].map(item => (
+                      <div key={item.label} className="flex items-center gap-3 p-3 rounded-xl bg-[#F7F2E0] border border-[#EDE5CD]">
+                        <span className="text-xl">{item.icon}</span>
+                        <span className="text-sm font-bold text-[#5B0015]">{item.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div className="bg-[#F7F2E0] rounded-2xl border border-[#EDE5CD] p-6 shadow-sm">
+                    <p className="text-xs font-bold text-[#5B0015]/70 uppercase tracking-widest mb-3">Sample Meal Suggestion</p>
+                    <div className="space-y-3">
+                      {[
+                        { time: 'Breakfast', meal: 'Moong dal chilla + curd + methi tea', note: 'High protein, anti-inflammatory' },
+                        { time: 'Lunch', meal: 'Brown rice + rajma + sabzi + raita', note: 'Balanced macros, fiber-rich' },
+                        { time: 'Snack', meal: 'Handful of seeds mix + buttermilk', note: 'Good fats + probiotics' },
+                      ].map(m => (
+                        <div key={m.time} className="flex gap-4 items-start">
+                          <span className="text-xs font-bold text-[#80AEE8] bg-[#5B0015] px-2 py-0.5 rounded-md w-18 text-center flex-shrink-0 mt-0.5">{m.time}</span>
+                          <div>
+                            <p className="text-sm font-bold text-[#5B0015]">{m.meal}</p>
+                            <p className="text-xs text-[#5B0015]/70">{m.note}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* ── 🌸 DEDICATED AI COMPANION SECTION (100% PRESERVED ON LANDING) ── */}
+          <section className="py-20 md:py-24 px-5 max-w-6xl mx-auto">
+            <div className="grid md:grid-cols-2 gap-12 items-center">
+              <div>
+                <h2 className="text-3xl md:text-4xl font-black text-[#5B0015] mb-3">
+                  Ask. Understand.<br />Take the next step.
+                </h2>
+                <p className="text-[#5B0015]/80 text-lg leading-relaxed mb-6 font-medium">
+                  Your AI health companion helps you make sense of your logs, find patterns, and know the right questions to ask your doctor.
+                </p>
+                <div className="flex items-start gap-3 p-4 bg-[#80AEE8]/20 rounded-2xl border border-[#80AEE8]/40">
+                  <Icon path={icons.info} size={16} className="text-[#5B0015] flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-[#5B0015] leading-relaxed font-semibold">The AI companion provides information and support only. It is not a diagnostic tool and cannot replace professional medical advice.</p>
+                </div>
+              </div>
+
+              <AICompanionChat />
+            </div>
+          </section>
+
+          {/* ── FAQ ── */}
+          <FAQ />
+
+          {/* ── Final CTA ── */}
+          <section className="py-14 md:py-18 px-5 bg-[#5B0015] text-[#F7F2E0] border-y border-[#80AEE8]/20">
+            <div className="max-w-2xl mx-auto text-center flex flex-col items-center">
+              <div className="w-12 h-12 rounded-2xl bg-[#80AEE8] flex items-center justify-center mb-3 shadow-md">
+                <Icon path={icons.heart} size={22} className="text-[#5B0015]" />
+              </div>
+
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-black mb-3 leading-tight tracking-tight">
+                Start understanding your health,<br className="hidden md:block" /> one day at a time.
+              </h2>
+
+              <p className="text-[#F7F2E0]/85 text-sm sm:text-base leading-relaxed mb-6 max-w-md mx-auto font-medium">
+                Track your patterns. Build sustainable habits. Make more informed health decisions.
+              </p>
+
+              <button 
+                onClick={handleStartJourney} 
+                className="inline-flex items-center justify-center gap-2 bg-[#80AEE8] text-[#5B0015] font-black px-7 py-3.5 rounded-xl text-base hover:bg-[#A5C7F0] transition-all shadow-xl active:scale-[0.98] cursor-pointer"
+              >
+                <span>🌸</span>
+                <span>Check My PCOD Risk (Free AI Scan)</span>
+              </button>
+            </div>
+          </section>
+
+          {/* ── Footer ── */}
+          <footer className="bg-[#450010] text-[#F7F2E0] py-12 px-5">
+            <div className="max-w-6xl mx-auto">
+              <div className="grid md:grid-cols-4 gap-8 mb-8">
+                <div className="md:col-span-1">
+                  <div className="flex items-center gap-2.5 mb-3">
+                    <img
+                      src="/pcod_logo.jpeg"
+                      alt="HerBalance Logo"
+                      className="h-8 w-8 rounded-full object-cover shrink-0 border border-[#F7F2E0]/40"
+                    />
+                    <span className="font-black text-[#F7F2E0] text-lg">HerBalance</span>
+                  </div>
+                  <p className="text-[#F7F2E0]/70 text-xs leading-relaxed font-medium">
+                    For educational and self-management support only. Not a substitute for professional medical diagnosis or treatment.
+                  </p>
+                </div>
+                {[
+                  { heading: 'Product', links: ['Features', 'How It Works', 'Why HerBalance', 'Pricing'] },
+                  { heading: 'Support', links: ['FAQ', 'Contact', 'Help Center', 'Blog'] },
+                  { heading: 'Legal', links: ['Privacy', 'Terms', 'Disclaimer'] },
+                ].map(col => (
+                  <div key={col.heading}>
+                    <p className="font-black text-[#80AEE8] text-xs uppercase tracking-widest mb-3">{col.heading}</p>
+                    <div className="space-y-2.5">
+                      {col.links.map(l => (
+                        <a key={l} href="#" className="block text-[#F7F2E0]/80 text-sm hover:text-white transition-colors font-medium">{l}</a>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="border-t border-[#F7F2E0]/15 pt-5 flex flex-col md:flex-row items-center justify-between gap-3">
+                <p className="text-[#F7F2E0]/60 text-xs">© 2026 HerBalance. All rights reserved.</p>
+                <p className="text-[#F7F2E0]/60 text-xs text-center md:text-right max-w-md">
+                  This platform does not diagnose, treat, cure, or prevent any medical condition including PCOD/PCOS.
+                </p>
+              </div>
+            </div>
+          </footer>
+        </>
+      )}
+
+      {/* ── Modals & Overlays ── */}
       <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} onLoginSuccess={handleLoginSuccess} />
 
       {/* ── 🔒 FOUNDER ACCESS PIN MODAL ── */}
       {showPinModal && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-[1000] flex items-center justify-center p-4">
           <div className="bg-[#FCFBF5] rounded-3xl p-6 max-w-xs w-full shadow-2xl border border-[#EDE5CD]">
             <div className="text-center mb-4">
               <span className="text-3xl">👑</span>
@@ -850,13 +885,13 @@ export default function App({ onNavigate }) {
                 <button
                   type="button"
                   onClick={() => { setShowPinModal(false); setPinInput(''); }}
-                  className="flex-1 border border-[#EDE5CD] text-[#5B0015] py-2 rounded-xl text-xs font-bold hover:bg-[#F7F2E0]"
+                  className="flex-1 border border-[#EDE5CD] text-[#5B0015] py-2 rounded-xl text-xs font-bold hover:bg-[#F7F2E0] cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 bg-[#5B0015] hover:bg-[#450010] text-[#F7F2E0] py-2 rounded-xl text-xs font-bold transition-all shadow-sm"
+                  className="flex-1 bg-[#5B0015] hover:bg-[#450010] text-[#F7F2E0] py-2 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
                 >
                   Unlock ➔
                 </button>
