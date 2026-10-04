@@ -7,20 +7,36 @@ export default {
   theme: {
     extend: {
       colors: {
-        health: {
-          bg: '#FFF7E6',
-          card: '#FFFFFF',
-          primary: '#0F766E',
-          accent: '#E11D48',
-          textMain: '#2D3A47',
-          textMuted: '#2D3A47',
-          warning: '#F59E0B',
-          success: '#10B981',
+        // ── Main Color Palette Tokens ──
+        bordeaux: {
+          DEFAULT: '#5B0015',
+          dark: '#450010',
+          light: '#720b22',
+        },
+        horizon: {
+          DEFAULT: '#80AEE8',
+          light: '#A5C7F0',
+          dark: '#5D93D8',
+        },
+        ivory: {
+          DEFAULT: '#F7F2E0',
+          dark: '#EDE5CD',
+          light: '#FCFBF5',
+        },
+
+        // ── Direct Theme Semantic Mappings (High Contrast & Readability) ──
+        brand: {
+          primary: '#5B0015',      // Night Bordeaux (Primary Text, Buttons, Deep Accents)
+          secondary: '#80AEE8',    // Cool Horizon (Active Indicators, Highlights)
+          surface: '#FCFBF5',      // Clean Card Contrast Surface
+          bg: '#F7F2E0',           // Ivory Mist (Main Background)
+          border: '#EDE5CD',       // Neutral Contrast Border
+          muted: '#6B2333',        // Readable Muted Text
         }
       },
-      borderRadius: {
-        '2xl': '1rem',
-        '3xl': '1.5rem',
+      fontFamily: {
+        display: ['Plus Jakarta Sans', 'sans-serif'],
+        sans: ['Inter', 'sans-serif'],
       }
     },
   },

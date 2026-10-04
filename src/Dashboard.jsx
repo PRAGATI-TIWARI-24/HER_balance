@@ -29,6 +29,9 @@ export default function Dashboard({ user, onLogout }) {
   // ─── Push Notification State ───
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
+  // ─── 🎉 CELEBRATION MODAL POPUP STATE ───
+  const [showCelebrationModal, setShowCelebrationModal] = useState(false);
+
   // ─── 🛡️ 3-DAY HORMONE CALIBRATION STATE (ZERO LEAKAGE) ───
   const [calibrationDays, setCalibrationDays] = useState(() => {
     return Number(localStorage.getItem(`${userKey}_calibrationDays`)) || 1;
@@ -187,6 +190,23 @@ export default function Dashboard({ user, onLogout }) {
 
   const waterSchedule = ["8 AM", "10 AM", "12 PM", "2 PM", "4 PM", "6 PM", "8 PM", "10 PM"];
 
+  // ─── Target Completion Evaluation ───
+  const isWaterDone = waterCount >= 8;
+  const isExerciseDone = exerciseMins >= 30;
+  const isSleepDone = loggedSleep >= 8;
+  const isAllGoalsDone = isWaterDone && isExerciseDone && isSleepDone;
+
+  useEffect(() => {
+    if (isAllGoalsDone) {
+      const alreadyCelebrated = localStorage.getItem(`${userKey}_celebrated_${todayDateStr}`);
+      if (!alreadyCelebrated) {
+        setShowCelebrationModal(true);
+        localStorage.setItem(`${userKey}_celebrated_${todayDateStr}`, 'true');
+        sendInstantNotification("🥳 Daily Goals Crushed!", "Incredible consistency! Aaj ke saare lifestyle targets achieve ho gaye!");
+      }
+    }
+  }, [isAllGoalsDone, userKey, todayDateStr]);
+
   // ─── Analytics Aggregation States ───
   const [weeklyWaterData, setWeeklyWaterData] = useState([]);
   const [symptomAnalytics, setSymptomAnalytics] = useState([]);
@@ -247,7 +267,7 @@ export default function Dashboard({ user, onLogout }) {
         });
       });
 
-      const palette = ['bg-rose-400', 'bg-amber-400', 'bg-purple-400', 'bg-teal-400', 'bg-indigo-400'];
+      const palette = ['bg-[#5B0015]', 'bg-[#80AEE8]', 'bg-[#720b22]', 'bg-[#5D93D8]', 'bg-[#450010]'];
       const sortedSymptoms = Object.entries(counts)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 5)
@@ -563,11 +583,6 @@ export default function Dashboard({ user, onLogout }) {
     pushDailyLogToSupabase({ medications: updated });
   };
 
-  const isWaterDone = waterCount >= 8;
-  const isExerciseDone = exerciseMins >= 30;
-  const isSleepDone = loggedSleep >= 8;
-  const isAllGoalsDone = isWaterDone && isExerciseDone && isSleepDone;
-
   const handleAddWater = () => {
     if (waterCount < 8) {
       const nextCount = waterCount + 1;
@@ -630,14 +645,14 @@ export default function Dashboard({ user, onLogout }) {
         title: 'Phase 1: Follicular Rhythm Ritual 🌱',
         seeds: 'Flaxseeds + Pumpkin Seeds (1 tbsp each)',
         benefit: 'Rich in Lignans & Zinc to naturally modulate estrogen & encourage healthy ovulation.',
-        color: 'border-emerald-200 bg-emerald-50/70 text-emerald-950',
+        color: 'border-[#80AEE8] bg-[#F7F2E0] text-[#5B0015]',
         badge: 'Estrogen Harmony'
       }
     : {
         title: 'Phase 2: Luteal Hormone Boost ✨',
         seeds: 'Sesame Seeds + Sunflower Seeds (1 tbsp each)',
         benefit: 'High in Selenium & Vitamin E to support progesterone and curb pre-period cramps.',
-        color: 'border-purple-200 bg-purple-50/70 text-purple-950',
+        color: 'border-[#5B0015] bg-[#F7F2E0] text-[#5B0015]',
         badge: 'Progesterone Boost'
       };
 
@@ -726,7 +741,7 @@ export default function Dashboard({ user, onLogout }) {
     alert("🎉 Payment Details Received! Aapka HerBalance Care Pass review ke liye submit ho gaya hai.");
   };
 
-  // ── 🌟 UNBREAKABLE DATE SAVE HANDLER ──
+  // ── Date Apply Handler ──
   const handleApplyCustomDate = (e) => {
     if (e) e.preventDefault();
 
@@ -759,7 +774,7 @@ export default function Dashboard({ user, onLogout }) {
     );
   };
 
-  // ── Symptom Journal Save (+ Calibration Day Increment) ──
+  // ── Symptom Journal Save ──
   const handleSaveSymptomJournal = () => {
     let updatedStatus = 'Tracked';
 
@@ -825,30 +840,27 @@ export default function Dashboard({ user, onLogout }) {
     html2pdf().set(opt).from(element).save();
   };
 
-  // Calibration Condition Check: Only unlocks after 3 logged days or genuine late cycle
   const isCalibrationComplete = calibrationDays >= 3 || (isDelayed && isCycleSetup);
 
   return (
-    <div className="min-h-screen bg-[#FAF9F6] p-4 md:p-8 animate-in fade-in duration-500 relative">
+    <div className="min-h-screen bg-[#F7F2E0] p-4 md:p-8 animate-in fade-in duration-500 relative text-[#5B0015]">
       
       {/* ── Header Section ── */}
       <div className="max-w-6xl mx-auto flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 mt-2">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold text-[#29272D]">
-              Hello, <span className="text-[#8B7BB5]">{user?.name || 'Beautiful'}</span> 🌸
+            <h1 className="text-3xl font-black text-[#5B0015]">
+              Hello, <span className="text-[#80AEE8]">{user?.name || 'Beautiful'}</span> 🌸
             </h1>
             <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${
               syncStatus.includes('Cloud Synced') 
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
-                : syncStatus.includes('Syncing') 
-                  ? 'bg-amber-50 text-amber-700 border-amber-200' 
-                  : 'bg-slate-100 text-[#7A7880] border-[#E8E4DE]'
+                ? 'bg-[#80AEE8]/20 text-[#5B0015] border-[#80AEE8]' 
+                : 'bg-[#FCFBF5] text-[#5B0015]/70 border-[#EDE5CD]'
             }`}>
               {syncStatus}
             </span>
           </div>
-          <p className="text-[#7A7880] mt-1 text-sm">
+          <p className="text-[#5B0015]/80 mt-1 text-sm font-medium">
             Date: <b>{todayDateStr}</b> • Your Private Health Sanctuary
           </p>
         </div>
@@ -856,39 +868,40 @@ export default function Dashboard({ user, onLogout }) {
         <div className="flex flex-wrap items-center gap-2.5">
           <button
             onClick={() => setShowLabModal(true)}
-            className="bg-teal-50 border border-teal-200 text-teal-700 hover:bg-teal-100 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
+            className="bg-[#FCFBF5] border border-[#80AEE8] text-[#5B0015] hover:bg-[#80AEE8]/20 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
           >
             🧪 Lab Analyzer
           </button>
 
           <button
             onClick={() => setShowPdfModal(true)}
-            className="bg-[#29272D] text-white hover:bg-black px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
+            className="bg-[#5B0015] text-[#F7F2E0] hover:bg-[#450010] px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
           >
             📄 Doctor PDF Report
           </button>
 
           <button
             onClick={handleSetupReminders}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 border ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 border cursor-pointer ${
               notificationsEnabled 
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
-                : 'bg-purple-50 text-[#8B7BB5] border-purple-200 hover:bg-purple-100'
+                ? 'bg-[#80AEE8] text-[#5B0015] border-[#80AEE8]' 
+                : 'bg-[#FCFBF5] text-[#5B0015] border-[#EDE5CD] hover:border-[#80AEE8]'
             }`}
           >
             {notificationsEnabled ? '🔔 Reminders Active' : '🔔 Reminders'}
           </button>
 
+          {/* ── 🚨 STANDOUT SOS CRAMP BUTTON ── */}
           <button
             onClick={() => setShowSosModal(true)}
-            className="bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
+            className="bg-[#5B0015] text-[#F7F2E0] hover:bg-[#450010] hover:scale-105 active:scale-95 px-4 py-2 rounded-xl text-xs font-black transition-all shadow-lg shadow-[#5B0015]/25 border-2 border-[#80AEE8] flex items-center gap-1.5 cursor-pointer animate-pulse"
           >
-            🆘 Cramp SOS
+            <span className="text-sm">🆘</span> Cramp SOS
           </button>
 
           <button 
             onClick={onLogout}
-            className="border border-[#E8E4DE] text-[#29272D] hover:border-[#8B7BB5] hover:text-[#8B7BB5] px-4 py-2 rounded-xl font-semibold transition-colors bg-white shadow-sm text-xs"
+            className="border border-[#EDE5CD] text-[#5B0015] hover:border-[#5B0015] px-4 py-2 rounded-xl font-bold transition-colors bg-[#FCFBF5] shadow-sm text-xs cursor-pointer"
           >
             Log Out
           </button>
@@ -896,13 +909,13 @@ export default function Dashboard({ user, onLogout }) {
       </div>
 
       {/* ── Tab Switcher ── */}
-      <div className="max-w-6xl mx-auto mb-6 bg-white p-1.5 rounded-2xl border border-[#E8E4DE] flex gap-2 shadow-sm w-full sm:w-fit">
+      <div className="max-w-6xl mx-auto mb-6 bg-[#FCFBF5] p-1.5 rounded-2xl border border-[#EDE5CD] flex gap-2 shadow-sm w-full sm:w-fit">
         <button
           onClick={() => setActiveTab('dashboard')}
-          className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+          className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 cursor-pointer ${
             activeTab === 'dashboard'
-              ? 'bg-[#29272D] text-white shadow-sm'
-              : 'text-[#7A7880] hover:text-[#29272D]'
+              ? 'bg-[#5B0015] text-[#F7F2E0] shadow-sm'
+              : 'text-[#5B0015]/70 hover:text-[#5B0015]'
           }`}
         >
           <span>🏠 Today's Dashboard</span>
@@ -913,10 +926,10 @@ export default function Dashboard({ user, onLogout }) {
             setActiveTab('analytics');
             fetchAnalyticsHistory();
           }}
-          className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+          className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 cursor-pointer ${
             activeTab === 'analytics'
-              ? 'bg-[#8B7BB5] text-white shadow-sm'
-              : 'text-[#7A7880] hover:text-[#8B7BB5]'
+              ? 'bg-[#80AEE8] text-[#5B0015] shadow-sm'
+              : 'text-[#5B0015]/70 hover:text-[#5B0015]'
           }`}
         >
           <span>📊 Health Analytics & Trends</span>
@@ -925,20 +938,20 @@ export default function Dashboard({ user, onLogout }) {
 
       {/* ── 🌸 EMPATHETIC DELAY TRIGGER BANNER ── */}
       {isDelayed && isCalibrationComplete && (
-        <div className="max-w-6xl mx-auto mb-6 bg-gradient-to-r from-amber-50/90 via-rose-50/80 to-purple-50/90 border border-amber-200/80 p-5 rounded-3xl shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="max-w-6xl mx-auto mb-6 bg-[#FCFBF5] border border-[#EDE5CD] p-5 rounded-3xl shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-start gap-3.5">
-            <span className="text-3xl p-2 bg-white rounded-2xl shadow-sm border border-amber-100">🌿</span>
+            <span className="text-3xl p-2 bg-[#F7F2E0] rounded-2xl border border-[#EDE5CD]">🌿</span>
             <div>
               <div className="flex items-center gap-2">
-                <span className="bg-amber-200/70 text-amber-900 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                <span className="bg-[#80AEE8] text-[#5B0015] text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
                   Gentle Rhythm Note
                 </span>
-                <span className="text-xs font-bold text-amber-950">Period is {delayDays} Days Past Expected Date</span>
+                <span className="text-xs font-bold text-[#5B0015]">Period is {delayDays} Days Past Expected Date</span>
               </div>
-              <h4 className="font-extrabold text-sm text-[#29272D] mt-1">
+              <h4 className="font-bold text-sm text-[#5B0015] mt-1">
                 Fret not! PCOD mein 8-15 din ka delay bohot normal hai.
               </h4>
-              <p className="text-xs text-[#7A7880] mt-0.5 leading-relaxed max-w-2xl">
+              <p className="text-xs text-[#5B0015]/75 mt-0.5 leading-relaxed max-w-2xl font-medium">
                 Cortisol (stress), irregular sleep, ya follicular pause ki wajah se ovulation shift ho jata hai. Panic hone ki zaroorat nahi hai.
               </p>
             </div>
@@ -947,13 +960,13 @@ export default function Dashboard({ user, onLogout }) {
           <div className="flex items-center gap-2.5 w-full md:w-auto shrink-0">
             <button
               onClick={() => setShowEngineBlogModal(true)}
-              className="flex-1 md:flex-none bg-white hover:bg-[#FAF9F6] border border-amber-200 text-amber-950 font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-sm"
+              className="flex-1 md:flex-none bg-[#F7F2E0] hover:bg-white border border-[#EDE5CD] text-[#5B0015] font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-sm cursor-pointer"
             >
               📖 Engine Kaise Kaam Karega?
             </button>
             <button
               onClick={() => setShowKitModal(true)}
-              className="flex-1 md:flex-none bg-[#29272D] hover:bg-black text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-sm"
+              className="flex-1 md:flex-none bg-[#5B0015] hover:bg-[#450010] text-[#F7F2E0] font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-sm cursor-pointer"
             >
               {kitSubscribed ? "✓ Protocol Active" : "Unlock Protocol (₹20)"}
             </button>
@@ -961,19 +974,19 @@ export default function Dashboard({ user, onLogout }) {
         </div>
       )}
 
-      {/* ── SOS Relief Banner ── */}
+      {/* ── 🚨 STANDOUT SOS BANNER ── */}
       {symptomStatus === 'Needs Attention' && (
-        <div className="max-w-6xl mx-auto mb-6 bg-rose-50 border border-rose-200 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+        <div className="max-w-6xl mx-auto mb-6 bg-[#5B0015] text-[#F7F2E0] border-2 border-[#80AEE8] p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xl">
           <div className="flex items-start gap-3">
-            <span className="text-2xl">🚨</span>
+            <span className="text-2xl p-2 bg-white/10 rounded-xl">🚨</span>
             <div>
-              <p className="text-rose-900 font-bold text-sm">Discomfort / Cramps Logged Today</p>
-              <p className="text-rose-700 text-xs">Need natural relief methods or emergency caregiver contact?</p>
+              <p className="font-black text-sm text-[#F7F2E0]">Discomfort / Cramps Logged Today</p>
+              <p className="text-xs text-[#F7F2E0]/85 font-medium">Need natural relief methods or emergency caregiver contact?</p>
             </div>
           </div>
           <button
             onClick={() => setShowSosModal(true)}
-            className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition-colors whitespace-nowrap"
+            className="bg-[#80AEE8] hover:bg-[#A5C7F0] text-[#5B0015] font-black text-xs px-5 py-2.5 rounded-xl transition-all shadow-md active:scale-95 whitespace-nowrap cursor-pointer"
           >
             Open Relief Box 🌸
           </button>
@@ -986,86 +999,92 @@ export default function Dashboard({ user, onLogout }) {
       {activeTab === 'dashboard' && (
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           
-          {/* ── 🌟 STANDOUT: 3-DAY CALIBRATION & 100% PRICE-MASKED BANNER ── */}
-          <div className="lg:col-span-3 rounded-3xl p-6 sm:p-7 relative overflow-hidden bg-gradient-to-r from-[#29272D] via-[#35313A] to-[#1E1C22] text-white shadow-xl border border-purple-500/20">
-            <div className="absolute top-0 right-0 w-72 h-72 bg-[#8B7BB5]/20 rounded-full blur-3xl pointer-events-none" />
+          {/* ── 🌟 STANDOUT: 3-DAY CALIBRATION CARD (100% VISIBLE & CREAM TEXT UPGRADE) ── */}
+          <div className="lg:col-span-3 rounded-3xl p-6 sm:p-7 relative overflow-hidden bg-[#5B0015] shadow-2xl border-2 border-[#80AEE8]/50 text-[#F7F2E0]">
+            <div className="absolute top-0 right-0 w-80 h-80 bg-[#80AEE8]/20 rounded-full blur-3xl pointer-events-none" />
 
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 relative z-10">
-              <div className="space-y-2 max-w-xl">
+              <div className="space-y-3 max-w-xl">
                 
                 {/* Badges */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   {kitSubscribed ? (
-                    <span className="bg-emerald-400 text-black text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                    <span className="bg-[#80AEE8] text-[#5B0015] text-[11px] font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
                       ✓ Active Care Protocol
                     </span>
                   ) : !isCalibrationComplete ? (
-                    <span className="bg-purple-400/25 text-purple-200 border border-purple-300/30 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                      🔬 Biological Rhythm Calibration: Day {calibrationDays}/3
+                    <span className="bg-[#F7F2E0] text-[#5B0015] text-[11px] font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-sm border border-[#EDE5CD]">
+                      🔬 Rhythm Calibration: Day {calibrationDays}/3
                     </span>
                   ) : (
-                    <span className="bg-gradient-to-r from-amber-400 to-rose-400 text-black text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                      ⚠️ Hormone Shift Signature Decoded
+                    <span className="bg-[#80AEE8] text-[#5B0015] text-[11px] font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
+                      ⚠ Hormone Shift Signature Decoded
                     </span>
                   )}
-                  <span className="text-xs text-purple-300 font-semibold">• Natural Science Protocol</span>
+                  <span className="text-xs text-[#80AEE8] font-bold tracking-wide">
+                    • Natural Science Protocol
+                  </span>
                 </div>
 
-                <h3 className="text-2xl font-black tracking-tight">
+                {/* 2. Main Title (SOLID CREAM / IVORY TEXT - 100% HIGH VISIBILITY) */}
+                <p className="text-2xl sm:text-3xl font-black text-[#80AEE8] leading-tight tracking-wide">
                   PCOD Hormone Shift & Organic Seed Protocol 🌸
-                </h3>
+                </p>
 
-                <p className="text-xs text-white/70 leading-relaxed">
+                {/* 3. Description (HIGH CONTRAST CREAM TEXT) */}
+                <p className="text-xs sm:text-sm text-[#F7F2E0] leading-relaxed font-semibold">
                   PCOD bodies standard 28-day cycle follow nahi karti. Hamara engine continuous daily logs se actual biological state decode karta hai.
                 </p>
 
                 {/* Left Inner Block */}
                 {kitSubscribed ? (
-                  <div className={`mt-3 p-4 rounded-2xl border ${todaySeedData.color} flex items-start gap-3.5 shadow-sm`}>
-                    <span className="text-3xl">🥣</span>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="text-xs font-black">{todaySeedData.title}</p>
-                        <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-white/90 border">
+                  <div className="mt-3 p-4 rounded-2xl bg-[#FCFBF5] border-2 border-[#80AEE8] flex items-start gap-3.5 shadow-md text-[#5B0015]">
+                    <span className="text-3xl p-1 bg-[#F7F2E0] rounded-xl border border-[#EDE5CD]">🥣</span>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <p className="text-xs font-black text-[#5B0015]">{todaySeedData.title}</p>
+                        <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-[#80AEE8] text-[#5B0015]">
                           {todaySeedData.badge}
                         </span>
                       </div>
-                      <p className="text-xs font-bold mt-1">{todaySeedData.seeds}</p>
-                      <p className="text-[11px] opacity-85 mt-0.5">{todaySeedData.benefit}</p>
+                      <p className="text-xs font-extrabold text-[#5B0015] mt-1">{todaySeedData.seeds}</p>
+                      <p className="text-[11px] text-[#5B0015]/85 mt-0.5 font-medium leading-relaxed">{todaySeedData.benefit}</p>
                     </div>
                   </div>
                 ) : !isCalibrationComplete ? (
-                  <div className="mt-3 p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md space-y-2">
+                  <div className="mt-3 p-4 rounded-2xl bg-black/40 border border-[#80AEE8]/50 backdrop-blur-md space-y-2.5">
                     <div className="flex justify-between items-center text-xs">
-                      <span className="font-bold text-purple-200">Decoding Daily Hormone Variance</span>
-                      <span className="font-mono text-purple-300">{Math.round((calibrationDays / 3) * 100)}% Complete</span>
+                      <span className="font-extrabold text-[#FFFDF5]">Decoding Daily Hormone Variance</span>
+                      <span className="font-mono text-[#80AEE8] font-black text-xs">
+                        {Math.round((calibrationDays / 3) * 100)}% Complete
+                      </span>
                     </div>
-                    <div className="w-full bg-white/10 h-2 rounded-full overflow-hidden">
+                    <div className="w-full bg-white/20 h-2.5 rounded-full overflow-hidden p-0.5">
                       <div 
                         style={{ width: `${(calibrationDays / 3) * 100}%` }}
-                        className="bg-gradient-to-r from-purple-400 to-[#8B7BB5] h-full rounded-full transition-all duration-500"
+                        className="bg-[#80AEE8] h-full rounded-full transition-all duration-500 shadow-sm"
                       />
                     </div>
-                    <p className="text-[11px] text-white/60">
+                    <p className="text-[11px] text-[#F7F2E0] font-semibold">
                       Roz symptoms aur water log karein. Day 3 par aapka natural biological shift signature evaluate hoga.
                     </p>
                   </div>
                 ) : (
-                  <div className="mt-3 p-4 rounded-2xl bg-gradient-to-r from-purple-950/60 to-black/60 border border-purple-400/30 backdrop-blur-md flex items-center justify-between gap-4">
+                  <div className="mt-3 p-4 rounded-2xl bg-black/40 border-2 border-[#80AEE8] backdrop-blur-md flex items-center justify-between gap-4 shadow-inner">
                     <div className="flex items-center gap-3">
-                      <span className="text-2xl p-2 bg-purple-500/20 rounded-xl">🔒</span>
+                      <span className="text-2xl p-2 bg-[#80AEE8]/20 rounded-xl border border-[#80AEE8]/40">🔒</span>
                       <div>
-                        <p className="text-xs font-extrabold text-amber-300">
+                        <p className="text-xs font-black text-[#80AEE8] tracking-wide">
                           Hormone Shift Signature: Locked
                         </p>
-                        <p className="text-[11px] text-white/70 mt-0.5">
+                        <p className="text-[11px] text-[#FFFDF5] mt-0.5 font-semibold leading-relaxed">
                           Ovarian pause state detect hui hai. AI-proof protocol unlock karne ke liye Care Pass activate karein.
                         </p>
                       </div>
                     </div>
                     <button
                       onClick={() => setShowEngineBlogModal(true)}
-                      className="text-xs text-purple-300 hover:text-white underline font-semibold shrink-0"
+                      className="text-xs text-[#80AEE8] hover:text-white underline font-black shrink-0 cursor-pointer"
                     >
                       Read Logic ➔
                     </button>
@@ -1073,45 +1092,49 @@ export default function Dashboard({ user, onLogout }) {
                 )}
               </div>
 
-              {/* ── 🛡️ RIGHT SIDE: PRICE COMPLETELY HIDDEN UNTIL DAY 3 ── */}
-              <div className="bg-white/10 backdrop-blur-md p-5 rounded-2xl border border-white/10 flex flex-col items-center text-center w-full lg:w-64 shrink-0">
+              {/* ── 🛡️ RIGHT SIDE: HIGH CONTRAST STANDOUT CALL TO ACTION ── */}
+              <div className="bg-[#FCFBF5] text-[#5B0015] p-5 sm:p-6 rounded-3xl border-2 border-[#80AEE8] flex flex-col items-center text-center w-full lg:w-68 shrink-0 shadow-2xl">
                 
                 {kitSubscribed ? (
                   <div className="space-y-2 py-2">
                     <span className="text-3xl">✨</span>
-                    <p className="text-xs font-bold text-emerald-300">Protocol Active</p>
-                    <p className="text-[10px] text-white/70">Doorstep kit dispatch queue enabled.</p>
+                    <p className="text-sm font-black text-[#5B0015]">Protocol Active</p>
+                    <p className="text-[11px] text-[#5B0015]/75 font-semibold">Doorstep kit dispatch queue enabled.</p>
                   </div>
                 ) : !isCalibrationComplete ? (
                   <div className="space-y-2 py-1 w-full">
-                    <span className="text-[10px] uppercase font-bold text-purple-200">Engine Calibrating</span>
+                    <span className="text-[10px] uppercase font-black tracking-widest text-[#5B0015]/70 bg-[#80AEE8]/25 px-2.5 py-0.5 rounded-md">
+                      Engine Calibrating
+                    </span>
                     <div className="my-2 flex flex-col items-center">
-                      <span className="text-3xl font-black text-purple-300">Day {calibrationDays}</span>
-                      <span className="text-[10px] text-white/60">of 3 Days Logging</span>
+                      <span className="text-3xl font-black text-[#5B0015]">Day {calibrationDays}</span>
+                      <span className="text-[11px] text-[#5B0015]/75 font-bold">of 3 Days Logging</span>
                     </div>
-                    <p className="text-[10px] text-purple-200/80 mb-2 leading-relaxed">
-                      Continuous daily logs se aapki body ka baseline pattern lock ho raha hai.
+                    <p className="text-[11px] text-[#5B0015]/80 mb-3 leading-relaxed font-semibold">
+                      Daily logs se aapki body ka baseline rhythm lock ho raha hai.
                     </p>
-                    <div className="w-full bg-white/20 py-2 rounded-xl text-[11px] font-bold text-white/80">
+                    <div className="w-full bg-[#80AEE8]/20 border border-[#80AEE8] py-2 rounded-xl text-xs font-black text-[#5B0015]">
                       🔒 Analysis in Progress
                     </div>
                   </div>
                 ) : (
                   <>
-                    <span className="text-[10px] uppercase font-bold text-white/60">One-Time Activation</span>
+                    <span className="text-[10px] uppercase font-black text-[#5B0015]/70 tracking-wider">
+                      One-Time Activation
+                    </span>
                     <div className="flex items-baseline gap-1 my-1">
-                      <span className="text-3xl font-black text-amber-300">₹20</span>
-                      <span className="text-xs text-white/60">only</span>
+                      <span className="text-4xl font-black text-[#5B0015]">₹20</span>
+                      <span className="text-xs text-[#5B0015]/70 font-bold">only</span>
                     </div>
-                    <p className="text-[10px] text-emerald-300 font-semibold mb-3">
+                    <p className="text-[11px] text-[#5B0015] font-extrabold mb-3">
                       ✓ Instant UPI • No recurring debit
                     </p>
 
                     <button
                       onClick={() => setShowKitModal(true)}
-                      className="w-full bg-gradient-to-r from-[#8B7BB5] to-[#B46A72] hover:opacity-95 text-white font-bold py-2.5 rounded-xl text-xs shadow-lg transition-transform active:scale-95"
+                      className="w-full bg-[#5B0015] hover:bg-[#450010] text-[#F7F2E0] font-black py-3 rounded-xl text-xs shadow-lg transition-transform active:scale-95 cursor-pointer"
                     >
-                      Unlock Signature (₹20 Pass)
+                      Unlock Signature (₹20 Pass) ➔
                     </button>
                   </>
                 )}
@@ -1121,29 +1144,29 @@ export default function Dashboard({ user, onLogout }) {
           </div>
 
           {/* 1. CYCLE TRACKER CARD */}
-          <div className="bg-white p-6 rounded-3xl shadow-sm border border-[#E8E4DE] hover:shadow-md transition-shadow">
+          <div className="bg-[#FCFBF5] p-6 rounded-3xl shadow-sm border border-[#EDE5CD]">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-bold text-[#29272D] flex items-center gap-2">
+              <h2 className="text-lg font-black text-[#5B0015] flex items-center gap-2">
                 🩸 Cycle Rhythm
               </h2>
-              <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${
+              <span className={`text-[10px] font-black px-2.5 py-1 rounded-full ${
                 symptomStatus === 'Needs Attention' 
-                  ? 'bg-rose-100 text-rose-600 animate-pulse' 
-                  : 'bg-[#EAE6F4] text-[#8B7BB5]'
+                  ? 'bg-[#5B0015] text-[#F7F2E0] animate-pulse' 
+                  : 'bg-[#80AEE8]/30 text-[#5B0015]'
               }`}>
                 {symptomStatus}
               </span>
             </div>
 
             {(!isCycleSetup || isEditingCycle) ? (
-              <form onSubmit={handleApplyCustomDate} className="bg-[#FAF9F6] rounded-2xl p-4 border border-[#E8E4DE] space-y-3 animate-in fade-in duration-200">
+              <form onSubmit={handleApplyCustomDate} className="bg-[#F7F2E0] rounded-2xl p-4 border border-[#EDE5CD] space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-xs font-bold text-[#29272D]">Pick Your Period Start Date</span>
+                  <span className="text-xs font-bold text-[#5B0015]">Pick Your Period Start Date</span>
                   {isCycleSetup && (
                     <button
                       type="button"
                       onClick={() => setIsEditingCycle(false)}
-                      className="text-[11px] font-semibold text-[#7A7880] hover:text-[#29272D]"
+                      className="text-[11px] font-bold text-[#5B0015]/70 hover:text-[#5B0015] cursor-pointer"
                     >
                       Cancel
                     </button>
@@ -1151,45 +1174,33 @@ export default function Dashboard({ user, onLogout }) {
                 </div>
 
                 <div>
-                  <span className="text-[10px] text-[#7A7880] font-bold uppercase tracking-wider block mb-1">
+                  <span className="text-[10px] text-[#5B0015]/70 font-bold uppercase tracking-wider block mb-1">
                     Quick Pick (September Presets):
                   </span>
                   <div className="flex flex-wrap gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setQuickDate('10', '09', '2026')}
-                      className="px-2.5 py-1 text-[11px] rounded-lg bg-purple-100 hover:bg-purple-200 text-[#8B7BB5] font-bold transition-all"
-                    >
-                      ⚡ 10 September
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setQuickDate('15', '09', '2026')}
-                      className="px-2.5 py-1 text-[11px] rounded-lg bg-purple-100 hover:bg-purple-200 text-[#8B7BB5] font-bold transition-all"
-                    >
-                      ⚡ 15 September
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setQuickDate('20', '09', '2026')}
-                      className="px-2.5 py-1 text-[11px] rounded-lg bg-purple-100 hover:bg-purple-200 text-[#8B7BB5] font-bold transition-all"
-                    >
-                      ⚡ 20 September
-                    </button>
+                    {['10', '15', '20'].map(d => (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => setQuickDate(d, '09', '2026')}
+                        className="px-2.5 py-1 text-[11px] rounded-lg bg-[#80AEE8]/40 hover:bg-[#80AEE8] text-[#5B0015] font-black transition-all cursor-pointer"
+                      >
+                        ⚡ {d} September
+                      </button>
+                    ))}
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-bold text-[#7A7880] uppercase tracking-wider block mb-1">
+                  <label className="text-[10px] font-bold text-[#5B0015]/70 uppercase tracking-wider block mb-1">
                     Select Day, Month & Year:
                   </label>
                   <div className="grid grid-cols-3 gap-2">
                     <div>
-                      <label className="text-[9px] text-[#7A7880] block font-semibold">Day</label>
                       <select
                         value={selDay}
                         onChange={(e) => setSelDay(e.target.value)}
-                        className="w-full p-2 text-xs border border-[#E8E4DE] rounded-xl bg-white font-bold text-[#29272D] outline-none focus:ring-1 focus:ring-[#8B7BB5]"
+                        className="w-full p-2 text-xs border border-[#EDE5CD] rounded-xl bg-white font-bold text-[#5B0015] outline-none"
                       >
                         {Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0')).map(d => (
                           <option key={d} value={d}>{d}</option>
@@ -1198,11 +1209,10 @@ export default function Dashboard({ user, onLogout }) {
                     </div>
 
                     <div>
-                      <label className="text-[9px] text-[#7A7880] block font-semibold">Month</label>
                       <select
                         value={selMonth}
                         onChange={(e) => setSelMonth(e.target.value)}
-                        className="w-full p-2 text-xs border border-purple-200 bg-purple-50 rounded-xl font-bold text-[#8B7BB5] outline-none focus:ring-1 focus:ring-[#8B7BB5]"
+                        className="w-full p-2 text-xs border border-[#80AEE8]/40 bg-white rounded-xl font-bold text-[#5B0015] outline-none"
                       >
                         <option value="01">Jan (01)</option>
                         <option value="02">Feb (02)</option>
@@ -1220,11 +1230,10 @@ export default function Dashboard({ user, onLogout }) {
                     </div>
 
                     <div>
-                      <label className="text-[9px] text-[#7A7880] block font-semibold">Year</label>
                       <select
                         value={selYear}
                         onChange={(e) => setSelYear(e.target.value)}
-                        className="w-full p-2 text-xs border border-[#E8E4DE] rounded-xl bg-white font-bold text-[#29272D] outline-none focus:ring-1 focus:ring-[#8B7BB5]"
+                        className="w-full p-2 text-xs border border-[#EDE5CD] rounded-xl bg-white font-bold text-[#5B0015] outline-none"
                       >
                         <option value="2025">2025</option>
                         <option value="2026">2026</option>
@@ -1234,7 +1243,7 @@ export default function Dashboard({ user, onLogout }) {
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-bold text-[#7A7880] uppercase tracking-wider block">
+                  <label className="text-[10px] font-bold text-[#5B0015]/70 uppercase tracking-wider block">
                     Average Cycle Length (Days)
                   </label>
                   <input
@@ -1242,65 +1251,54 @@ export default function Dashboard({ user, onLogout }) {
                     min="15"
                     max="120"
                     required
-                    className="w-full mt-1 p-2 text-xs border border-[#E8E4DE] rounded-xl bg-white font-bold text-[#29272D] outline-none focus:ring-1 focus:ring-[#8B7BB5]"
+                    className="w-full mt-1 p-2 text-xs border border-[#EDE5CD] rounded-xl bg-white font-bold text-[#5B0015] outline-none"
                     value={cycleLength}
                     onChange={(e) => setCycleLength(Number(e.target.value))}
                   />
                 </div>
 
-                <div className="bg-white p-2.5 rounded-xl border border-[#E8E4DE] text-[11px] text-[#7A7880]">
-                  Target Date: <b className="text-[#8B7BB5]">{selYear}-{selMonth}-{selDay}</b>
-                </div>
-
                 <button
                   type="submit"
-                  className="w-full bg-[#8B7BB5] hover:bg-[#726496] text-white py-2.5 rounded-xl text-xs font-bold transition-all shadow-md active:scale-[0.99]"
+                  className="w-full bg-[#5B0015] hover:bg-[#450010] text-[#F7F2E0] py-2.5 rounded-xl text-xs font-black transition-all shadow-md active:scale-[0.99] cursor-pointer"
                 >
                   Save Date Permanently 🌸
                 </button>
               </form>
             ) : (
               <div className="space-y-4">
-                <div className="bg-[#FAF9F6] rounded-2xl p-5 text-center border border-[#E8E4DE]">
-                  <p className="text-xs text-[#7A7880] font-medium mb-1">Cycle Projection</p>
-                  <p className={`text-3xl font-extrabold ${daysRemainingText.includes('Late') ? 'text-amber-800' : 'text-[#8B7BB5]'}`}>
+                <div className="bg-[#F7F2E0] rounded-2xl p-5 text-center border border-[#EDE5CD]">
+                  <p className="text-xs text-[#5B0015]/70 font-bold uppercase tracking-wider mb-1">Cycle Projection</p>
+                  <p className="text-3xl font-black text-[#5B0015]">
                     {daysRemainingText}
                   </p>
-                  <p className="text-[11px] text-[#7A7880] mt-1.5">
-                    Last Period Started: <b className="text-[#29272D] bg-white px-2.5 py-0.5 rounded-lg border border-[#E8E4DE]">{lastDate}</b>
+                  <p className="text-[11px] text-[#5B0015]/80 mt-1.5 font-medium">
+                    Last Period Started: <b className="text-[#5B0015] bg-white px-2.5 py-0.5 rounded-lg border border-[#EDE5CD]">{lastDate}</b>
                   </p>
 
-                  {saveSuccessNotice && (
-                    <p className="text-xs text-emerald-600 font-bold mt-2 animate-in fade-in">
-                      ✓ Saved: {lastDate}! Cycle Updated.
-                    </p>
-                  )}
-                  
-                  {/* ZERO-LEAKAGE PHASE LOCK */}
-                  <div className="mt-2.5 pt-2 border-t border-[#E8E4DE]">
+                  <div className="mt-2.5 pt-2 border-t border-[#EDE5CD]">
                     {kitSubscribed ? (
-                      <p className="text-xs text-[#8B7BB5] font-bold">
+                      <p className="text-xs text-[#5B0015] font-bold">
                         Biological Phase: <span className="underline">{currentPhaseInternal}</span>
                       </p>
                     ) : (
                       <button 
                         type="button"
                         onClick={() => setShowEngineBlogModal(true)}
-                        className="text-[11px] text-[#7A7880] hover:text-[#8B7BB5] font-semibold flex items-center justify-center gap-1 mx-auto"
+                        className="text-[11px] text-[#5B0015]/80 hover:text-[#5B0015] font-bold flex items-center justify-center gap-1 mx-auto cursor-pointer"
                       >
                         <span>🔒 Biological Phase: <b>Encrypted</b></span>
-                        <span className="text-[#8B7BB5] underline">Unlock Pass</span>
+                        <span className="text-[#80AEE8] underline">Unlock Pass</span>
                       </button>
                     )}
                   </div>
                 </div>
 
                 {loggedSymptomsList.length > 0 && (
-                  <div className="bg-[#FAF9F6] p-3 rounded-xl border border-[#E8E4DE]">
-                    <p className="text-[10px] font-bold text-[#7A7880] uppercase mb-1.5">Today's Logged Symptoms:</p>
+                  <div className="bg-[#F7F2E0] p-3 rounded-xl border border-[#EDE5CD]">
+                    <p className="text-[10px] font-bold text-[#5B0015]/70 uppercase mb-1.5">Today's Logged Symptoms:</p>
                     <div className="flex flex-wrap gap-1">
                       {loggedSymptomsList.map((s, idx) => (
-                        <span key={idx} className="bg-[#EAE6F4] text-[#8B7BB5] text-[10px] font-semibold px-2 py-0.5 rounded-md">
+                        <span key={idx} className="bg-[#80AEE8]/40 text-[#5B0015] text-[10px] font-bold px-2 py-0.5 rounded-md">
                           {s}
                         </span>
                       ))}
@@ -1308,18 +1306,12 @@ export default function Dashboard({ user, onLogout }) {
                   </div>
                 )}
 
-                <div className="flex justify-between items-center text-xs px-1 text-[#7A7880]">
+                <div className="flex justify-between items-center text-xs px-1 text-[#5B0015]/80 font-medium">
                   <span>Cycle Length: <b>{cycleLength} Days</b></span>
                   <button 
                     type="button"
-                    onClick={() => {
-                      const p = parseSavedDate(lastDate);
-                      setSelDay(p.day);
-                      setSelMonth(p.month);
-                      setSelYear(p.year);
-                      setIsEditingCycle(true);
-                    }} 
-                    className="font-bold text-[#8B7BB5] hover:underline cursor-pointer"
+                    onClick={() => setIsEditingCycle(true)} 
+                    className="font-black text-[#80AEE8] hover:underline cursor-pointer"
                   >
                     Edit Date
                   </button>
@@ -1329,25 +1321,25 @@ export default function Dashboard({ user, onLogout }) {
           </div>
 
           {/* 2. SYMPTOM JOURNAL BLOCK */}
-          <div className="bg-white p-6 rounded-3xl shadow-sm border border-[#E8E4DE] hover:shadow-md transition-shadow space-y-4">
+          <div className="bg-[#FCFBF5] p-6 rounded-3xl shadow-sm border border-[#EDE5CD] space-y-4">
             <div className="flex justify-between items-center">
-              <h2 className="text-lg font-bold text-[#29272D] flex items-center gap-2">
+              <h2 className="text-lg font-black text-[#5B0015] flex items-center gap-2">
                 🌸 Symptom Journal
               </h2>
-              <span className="text-[10px] text-[#7A7880] font-semibold uppercase">Daily Feed</span>
+              <span className="text-[10px] text-[#5B0015]/70 font-bold uppercase tracking-wider">Daily Feed</span>
             </div>
 
             <div>
-              <p className="text-[11px] font-bold text-[#7A7880] uppercase tracking-wider mb-1.5">Period Flow Today:</p>
+              <p className="text-[11px] font-bold text-[#5B0015]/70 uppercase tracking-wider mb-1.5">Period Flow Today:</p>
               <div className="flex gap-1.5">
                 {flowOptions.map((f) => (
                   <button
                     key={f}
                     onClick={() => setSelectedFlow(f)}
-                    className={`flex-1 py-1 rounded-xl text-xs font-medium border transition-all ${
+                    className={`flex-1 py-1 rounded-xl text-xs font-black border transition-all cursor-pointer ${
                       selectedFlow === f
-                        ? 'bg-[#8B7BB5] text-white border-[#8B7BB5]'
-                        : 'bg-[#FAF9F6] text-[#29272D] border-[#E8E4DE] hover:border-[#8B7BB5]'
+                        ? 'bg-[#5B0015] text-[#F7F2E0] border-[#5B0015] shadow-sm'
+                        : 'bg-[#F7F2E0] text-[#5B0015] border-[#EDE5CD] hover:border-[#80AEE8]'
                     }`}
                   >
                     {f}
@@ -1357,7 +1349,7 @@ export default function Dashboard({ user, onLogout }) {
             </div>
 
             <div>
-              <p className="text-[11px] font-bold text-[#7A7880] uppercase tracking-wider mb-1.5">Physical Discomfort:</p>
+              <p className="text-[11px] font-bold text-[#5B0015]/70 uppercase tracking-wider mb-1.5">Physical Discomfort:</p>
               <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-1">
                 {symptomOptions.map((s) => {
                   const active = selectedSymptoms.includes(s);
@@ -1365,10 +1357,10 @@ export default function Dashboard({ user, onLogout }) {
                     <button
                       key={s}
                       onClick={() => toggleSymptom(s)}
-                      className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all ${
+                      className={`px-2.5 py-1 rounded-full text-[11px] font-bold transition-all cursor-pointer ${
                         active
-                          ? 'bg-[#D99AA5] text-white shadow-sm'
-                          : 'bg-[#FAF9F6] text-[#7A7880] border border-[#E8E4DE] hover:border-[#D99AA5]'
+                          ? 'bg-[#80AEE8] text-[#5B0015] shadow-sm border border-[#80AEE8]'
+                          : 'bg-[#F7F2E0] text-[#5B0015]/80 border border-[#EDE5CD] hover:border-[#80AEE8]'
                       }`}
                     >
                       {s} {active ? '✓' : '+'}
@@ -1379,16 +1371,16 @@ export default function Dashboard({ user, onLogout }) {
             </div>
 
             <div>
-              <p className="text-[11px] font-bold text-[#7A7880] uppercase tracking-wider mb-1.5">Mood & Emotional Balance:</p>
+              <p className="text-[11px] font-bold text-[#5B0015]/70 uppercase tracking-wider mb-1.5">Mood & Emotional Balance:</p>
               <div className="flex flex-wrap gap-1.5">
                 {moodOptions.map((m) => (
                   <button
                     key={m}
                     onClick={() => setSelectedMood(m)}
-                    className={`px-2.5 py-1 rounded-xl text-xs font-medium border transition-all ${
+                    className={`px-2.5 py-1 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
                       selectedMood === m
-                        ? 'bg-[#A8BFA3] text-white border-[#A8BFA3]'
-                        : 'bg-[#FAF9F6] text-[#29272D] border-[#E8E4DE]'
+                        ? 'bg-[#5B0015] text-[#F7F2E0] border-[#5B0015] shadow-sm'
+                        : 'bg-[#F7F2E0] text-[#5B0015] border-[#EDE5CD] hover:border-[#80AEE8]'
                     }`}
                   >
                     {m}
@@ -1399,55 +1391,54 @@ export default function Dashboard({ user, onLogout }) {
 
             <button
               onClick={handleSaveSymptomJournal}
-              className="w-full bg-[#8B7BB5] hover:bg-[#726496] text-white font-semibold py-2.5 rounded-xl text-xs transition-colors shadow-sm"
+              className="w-full bg-[#5B0015] hover:bg-[#450010] text-[#F7F2E0] font-black py-2.5 rounded-xl text-xs transition-colors shadow-sm cursor-pointer"
             >
               {journalSavedMsg ? '✓ Journal Logged & Saved!' : 'Save & Sync Tracker'}
             </button>
           </div>
 
           {/* 3. MEDICATION & SUPPLEMENT TRACKER */}
-          <div className="bg-white p-6 rounded-3xl shadow-sm border border-[#E8E4DE] hover:shadow-md transition-shadow flex flex-col justify-between">
+          <div className="bg-[#FCFBF5] p-6 rounded-3xl shadow-sm border border-[#EDE5CD] flex flex-col justify-between">
             <div>
               <div className="flex justify-between items-center mb-3">
-                <h2 className="text-lg font-bold text-[#29272D] flex items-center gap-2">
+                <h2 className="text-lg font-black text-[#5B0015] flex items-center gap-2">
                   💊 Meds & Supplements
                 </h2>
-                <span className="text-[10px] font-bold bg-[#EAE6F4] text-[#8B7BB5] px-2.5 py-0.5 rounded-full">
+                <span className="text-[10px] font-black bg-[#80AEE8]/30 text-[#5B0015] px-2.5 py-0.5 rounded-full">
                   {medications.filter(m => m.taken).length} / {medications.length} Done
                 </span>
               </div>
 
               <div className="space-y-2 max-h-40 overflow-y-auto pr-1 mb-3">
                 {medications.length === 0 ? (
-                  <p className="text-xs text-[#7A7880] text-center py-4">No medications added yet.</p>
+                  <p className="text-xs text-[#5B0015]/60 text-center py-4">No medications added yet.</p>
                 ) : (
                   medications.map((m) => (
                     <div 
                       key={m.id}
                       className={`flex items-center justify-between p-2.5 rounded-xl border text-xs transition-all ${
                         m.taken 
-                          ? 'bg-emerald-50/60 border-emerald-200 line-through text-[#7A7880]' 
-                          : 'bg-[#FAF9F6] border-[#E8E4DE] text-[#29272D]'
+                          ? 'bg-[#80AEE8]/20 border-[#80AEE8]/40 line-through text-[#5B0015]/60' 
+                          : 'bg-[#F7F2E0] border-[#EDE5CD] text-[#5B0015]'
                       }`}
                     >
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleToggleMed(m.id)}
-                          className={`w-5 h-5 rounded-lg flex items-center justify-center font-bold text-xs transition-colors ${
-                            m.taken ? 'bg-emerald-500 text-white' : 'border border-[#E8E4DE] bg-white'
+                          className={`w-5 h-5 rounded-lg flex items-center justify-center font-black text-xs transition-colors cursor-pointer ${
+                            m.taken ? 'bg-[#5B0015] text-[#F7F2E0]' : 'border border-[#EDE5CD] bg-white'
                           }`}
                         >
                           {m.taken ? '✓' : ''}
                         </button>
                         <div>
-                          <span className="font-semibold block">{m.name}</span>
-                          <span className="text-[10px] text-[#7A7880]">{m.time}</span>
+                          <span className="font-bold block">{m.name}</span>
+                          <span className="text-[10px] text-[#5B0015]/70">{m.time}</span>
                         </div>
                       </div>
                       <button
                         onClick={() => handleDeleteMed(m.id)}
-                        className="text-[#7A7880] hover:text-red-500 text-xs px-1"
-                        title="Delete"
+                        className="text-[#5B0015]/60 hover:text-[#5B0015] text-xs px-1 font-bold cursor-pointer"
                       >
                         ✕
                       </button>
@@ -1457,20 +1448,20 @@ export default function Dashboard({ user, onLogout }) {
               </div>
             </div>
 
-            <form onSubmit={handleAddMedication} className="pt-2 border-t border-[#E8E4DE]">
-              <p className="text-[10px] font-bold text-[#7A7880] uppercase tracking-wider mb-1.5">+ Add Supplement / Med</p>
+            <form onSubmit={handleAddMedication} className="pt-2 border-t border-[#EDE5CD]">
+              <p className="text-[10px] font-bold text-[#5B0015]/70 uppercase tracking-wider mb-1.5">+ Add Supplement / Med</p>
               <div className="flex gap-1.5 mb-1.5">
                 <input
                   type="text"
                   placeholder="Medicine name..."
                   value={newMedName}
                   onChange={(e) => setNewMedName(e.target.value)}
-                  className="flex-1 p-2 text-xs border border-[#E8E4DE] rounded-xl bg-[#FAF9F6] outline-none focus:ring-1 focus:ring-[#8B7BB5]"
+                  className="flex-1 p-2 text-xs border border-[#EDE5CD] rounded-xl bg-white outline-none focus:ring-1 focus:ring-[#80AEE8] text-[#5B0015]"
                 />
                 <select
                   value={newMedTime}
                   onChange={(e) => setNewMedTime(e.target.value)}
-                  className="p-2 text-xs border border-[#E8E4DE] rounded-xl bg-[#FAF9F6] outline-none text-[#29272D]"
+                  className="p-2 text-xs border border-[#EDE5CD] rounded-xl bg-white outline-none text-[#5B0015] font-bold"
                 >
                   <option value="Morning">Morning</option>
                   <option value="Afternoon">Afternoon</option>
@@ -1480,7 +1471,7 @@ export default function Dashboard({ user, onLogout }) {
               <button
                 type="submit"
                 disabled={!newMedName.trim()}
-                className="w-full bg-[#8B7BB5] hover:bg-[#726496] text-white text-xs font-semibold py-2 rounded-xl transition-colors disabled:opacity-50"
+                className="w-full bg-[#5B0015] hover:bg-[#450010] text-[#F7F2E0] text-xs font-bold py-2 rounded-xl transition-colors disabled:opacity-50 cursor-pointer"
               >
                 Add Medicine
               </button>
@@ -1488,20 +1479,20 @@ export default function Dashboard({ user, onLogout }) {
           </div>
 
           {/* 4. AI DIET TRACKER CARD */}
-          <div className="bg-white p-6 rounded-3xl shadow-sm border border-[#E8E4DE] hover:shadow-md transition-shadow lg:col-span-3">
+          <div className="bg-[#FCFBF5] p-6 rounded-3xl shadow-sm border border-[#EDE5CD] lg:col-span-3">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-xl">🥗</span>
-              <h3 className="font-bold text-[#29272D] text-lg">AI Diet & Hormone Balance</h3>
+              <h3 className="font-bold text-[#5B0015] text-lg">AI Diet & Hormone Balance</h3>
             </div>
-            <p className="text-[#7A7880] text-sm mb-4">Log daily food & sleep habits for customized hormone recommendations.</p>
+            <p className="text-[#5B0015]/75 text-sm mb-4">Log daily food & sleep habits for customized hormone recommendations.</p>
 
             {!aiTip ? (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                 <div className="md:col-span-2 space-y-3">
                   <div>
-                    <label className="text-[11px] font-bold text-[#7A7880] uppercase tracking-wider">What did you eat today?</label>
+                    <label className="text-[11px] font-bold text-[#5B0015]/70 uppercase tracking-wider">What did you eat today?</label>
                     <textarea
-                      className="w-full mt-1 p-2.5 text-sm border border-[#E8E4DE] rounded-xl bg-[#FAFAFA] focus:ring-1 focus:ring-[#8B7BB5] outline-none resize-none"
+                      className="w-full mt-1 p-2.5 text-sm border border-[#EDE5CD] rounded-xl bg-white focus:ring-1 focus:ring-[#80AEE8] outline-none resize-none text-[#5B0015]"
                       rows="2"
                       placeholder="Jaise: Sprouted salad, nuts, aur green tea..."
                       value={diet}
@@ -1510,9 +1501,9 @@ export default function Dashboard({ user, onLogout }) {
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-[11px] font-bold text-[#7A7880] uppercase tracking-wider">Sleep</label>
+                      <label className="text-[11px] font-bold text-[#5B0015]/70 uppercase tracking-wider">Sleep</label>
                       <select
-                        className="w-full mt-1 p-2 text-sm border border-[#E8E4DE] rounded-xl bg-[#FAFAFA] focus:ring-1 focus:ring-[#8B7BB5] outline-none text-[#29272D]"
+                        className="w-full mt-1 p-2 text-sm border border-[#EDE5CD] rounded-xl bg-white outline-none text-[#5B0015] font-bold"
                         value={sleep}
                         onChange={(e) => setSleep(e.target.value)}
                       >
@@ -1522,9 +1513,9 @@ export default function Dashboard({ user, onLogout }) {
                       </select>
                     </div>
                     <div>
-                      <label className="text-[11px] font-bold text-[#7A7880] uppercase tracking-wider">Stress Level</label>
+                      <label className="text-[11px] font-bold text-[#5B0015]/70 uppercase tracking-wider">Stress Level</label>
                       <select
-                        className="w-full mt-1 p-2 text-sm border border-[#E8E4DE] rounded-xl bg-[#FAFAFA] focus:ring-1 focus:ring-[#8B7BB5] outline-none text-[#29272D]"
+                        className="w-full mt-1 p-2 text-sm border border-[#EDE5CD] rounded-xl bg-white outline-none text-[#5B0015] font-bold"
                         value={stress}
                         onChange={(e) => setStress(e.target.value)}
                       >
@@ -1540,7 +1531,7 @@ export default function Dashboard({ user, onLogout }) {
                   <button
                     onClick={fetchPersonalizedPlan}
                     disabled={loading || !diet}
-                    className="w-full bg-[#29272D] text-white py-3 rounded-xl font-medium hover:bg-[#3f3c44] transition-colors disabled:opacity-60 text-sm"
+                    className="w-full bg-[#5B0015] text-[#F7F2E0] py-3 rounded-xl font-bold hover:bg-[#450010] transition-colors disabled:opacity-60 text-sm cursor-pointer"
                   >
                     {loading ? "Generating..." : "Get AI Recommendation"}
                   </button>
@@ -1548,13 +1539,13 @@ export default function Dashboard({ user, onLogout }) {
               </div>
             ) : (
               <div className="flex flex-col">
-                <div className="bg-[#F4F2F7] border border-[#E3DEEA] p-3 rounded-xl text-xs text-[#29272D] leading-relaxed mb-3 shadow-inner">
-                  <div className="font-bold text-[#8B7BB5] mb-1 text-[10px] uppercase tracking-wider">✨ AI Insight</div>
+                <div className="bg-[#F7F2E0] border border-[#EDE5CD] p-3 rounded-xl text-xs text-[#5B0015] leading-relaxed mb-3">
+                  <div className="font-bold text-[#80AEE8] mb-1 text-[10px] uppercase tracking-wider">✨ AI Insight</div>
                   {aiTip}
                 </div>
                 <button
                   onClick={() => setAiTip(null)}
-                  className="w-full bg-white border border-[#E8E4DE] text-[#29272D] py-2 rounded-xl font-medium hover:bg-[#FAFAFA] transition-colors text-xs"
+                  className="w-full bg-white border border-[#EDE5CD] text-[#5B0015] py-2 rounded-xl font-bold hover:bg-[#F7F2E0] text-xs cursor-pointer"
                 >
                   Log Another Meal
                 </button>
@@ -1563,51 +1554,55 @@ export default function Dashboard({ user, onLogout }) {
           </div>
 
           {/* 5. DAILY QUICK LOGS */}
-          <div className="bg-white p-6 rounded-3xl shadow-sm border border-[#E8E4DE] hover:shadow-md transition-shadow lg:col-span-3">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-bold text-[#29272D] flex items-center gap-2">
-                📝 Daily Quick Logs ({todayDateStr})
-              </h2>
+          <div className="bg-[#FCFBF5] p-6 rounded-3xl shadow-sm border border-[#EDE5CD] lg:col-span-3">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-5">
+              <div>
+                <h2 className="text-lg font-black text-[#5B0015] flex items-center gap-2">
+                  📝 Daily Quick Logs ({todayDateStr})
+                </h2>
+                <p className="text-xs text-[#5B0015]/70 font-medium">Keep daily habits consistent for healthy hormones.</p>
+              </div>
+
+              {/* 🎉 STANDOUT COMPLETED BANNER */}
               {isAllGoalsDone && (
-                <span className="text-xs font-bold bg-[#EAE6F4] text-[#8B7BB5] px-3 py-1 rounded-full animate-bounce">
-                  🥳 All Daily Goals Complete!
-                </span>
+                <button
+                  onClick={() => setShowCelebrationModal(true)}
+                  className="bg-[#5B0015] text-[#F7F2E0] border-2 border-[#80AEE8] px-4 py-2 rounded-2xl text-xs font-black shadow-lg flex items-center gap-2 cursor-pointer hover:scale-105 active:scale-95 transition-all animate-bounce"
+                >
+                  <span>🏆</span>
+                  <span>All Daily Goals Smashed! Click for Trophy ✨</span>
+                </button>
               )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {/* Water Tracker */}
-              <div className={`transition-all duration-300 rounded-2xl p-4 flex flex-col justify-between border ${
-                isWaterDone 
-                  ? 'bg-gradient-to-b from-emerald-50 to-teal-50 border-emerald-300 shadow-sm' 
-                  : 'bg-[#FAF9F6] border-[#E8E4DE]'
-              }`}>
+              {/* Water */}
+              <div className="rounded-2xl p-4 flex flex-col justify-between border bg-[#F7F2E0] border-[#EDE5CD]">
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-2xl">{isWaterDone ? '🎉' : '💧'}</span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                      isWaterDone ? 'bg-emerald-200 text-emerald-800' : 'bg-[#EAE6F4] text-[#8B7BB5]'
+                    <span className="text-2xl">💧</span>
+                    <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full ${
+                      isWaterDone ? 'bg-[#80AEE8] text-[#5B0015]' : 'bg-[#80AEE8]/30 text-[#5B0015]'
                     }`}>
-                      {isWaterDone ? 'Target Reached!' : '1 Glass every ~2 hrs'}
+                      {isWaterDone ? '✓ Target Reached!' : '1 Glass every ~2 hrs'}
                     </span>
                   </div>
-                  <p className="font-bold text-[#29272D] text-sm">Water Intake</p>
-                  <p className="text-2xl font-extrabold text-[#8B7BB5] mt-1">
-                    {waterCount} <span className="text-xs font-normal text-[#7A7880]">/ 8 Glasses</span>
+                  <p className="font-bold text-[#5B0015] text-sm">Water Intake</p>
+                  <p className="text-2xl font-black text-[#5B0015] mt-1">
+                    {waterCount} <span className="text-xs font-normal text-[#5B0015]/70">/ 8 Glasses</span>
                   </p>
 
                   <div className="mt-3">
-                    <p className="text-[10px] font-bold text-[#7A7880] uppercase tracking-wider mb-1.5">Schedule (8 AM - 10 PM)</p>
                     <div className="grid grid-cols-4 gap-1">
                       {waterSchedule.map((time, index) => {
                         const isDrank = waterCount > index;
                         return (
                           <div 
                             key={index} 
-                            className={`text-center p-1 rounded-lg border text-[9px] font-semibold transition-all ${
+                            className={`text-center p-1 rounded-lg border text-[9px] font-bold transition-all ${
                               isDrank 
-                                ? 'bg-[#8B7BB5] text-white border-[#8B7BB5]' 
-                                : 'bg-white text-[#7A7880] border-[#E8E4DE]'
+                                ? 'bg-[#5B0015] text-[#F7F2E0] border-[#5B0015]' 
+                                : 'bg-white text-[#5B0015]/70 border-[#EDE5CD]'
                             }`}
                           >
                             {isDrank ? '✅' : time}
@@ -1622,40 +1617,33 @@ export default function Dashboard({ user, onLogout }) {
                   <button
                     onClick={handleAddWater}
                     disabled={isWaterDone}
-                    className={`flex-1 text-xs font-medium py-2 rounded-xl transition-colors ${
-                      isWaterDone ? 'bg-emerald-600 text-white cursor-default' : 'bg-[#29272D] text-white hover:bg-black'
-                    }`}
+                    className="flex-1 text-xs font-bold py-2 rounded-xl bg-[#5B0015] text-[#F7F2E0] hover:bg-[#450010] disabled:opacity-50 cursor-pointer"
                   >
                     {isWaterDone ? 'Goal Complete!' : '+1 Glass'}
                   </button>
                   <button
                     onClick={() => { setWaterCount(0); pushDailyLogToSupabase({ water_count: 0 }); }}
-                    className="px-2 border border-[#E8E4DE] text-[#7A7880] text-xs rounded-xl hover:bg-white"
-                    title="Reset"
+                    className="px-2 border border-[#EDE5CD] text-[#5B0015]/70 text-xs rounded-xl hover:bg-white cursor-pointer"
                   >
                     ↺
                   </button>
                 </div>
               </div>
 
-              {/* Exercise Tracker */}
-              <div className={`transition-all duration-300 rounded-2xl p-4 flex flex-col justify-between border ${
-                isExerciseDone 
-                  ? 'bg-gradient-to-b from-emerald-50 to-teal-50 border-emerald-300 shadow-sm' 
-                  : 'bg-[#FAF9F6] border-[#E8E4DE]'
-              }`}>
+              {/* Exercise */}
+              <div className="rounded-2xl p-4 flex flex-col justify-between border bg-[#F7F2E0] border-[#EDE5CD]">
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-2xl">{isExerciseDone ? '🏋️‍♀' : '🏃‍♀️'}</span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                      isExerciseDone ? 'bg-emerald-200 text-emerald-800' : 'bg-[#EAE6F4] text-[#8B7BB5]'
+                    <span className="text-2xl">🏃‍♀️</span>
+                    <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full ${
+                      isExerciseDone ? 'bg-[#80AEE8] text-[#5B0015]' : 'bg-[#80AEE8]/30 text-[#5B0015]'
                     }`}>
-                      {isExerciseDone ? 'Target Reached!' : 'Target: 30m'}
+                      {isExerciseDone ? '✓ Target Reached!' : 'Target: 30m'}
                     </span>
                   </div>
-                  <p className="font-bold text-[#29272D] text-sm">Gentle Movement</p>
-                  <p className="text-2xl font-extrabold text-[#8B7BB5] mt-1">
-                    {exerciseMins} <span className="text-xs font-normal text-[#7A7880]">Mins</span>
+                  <p className="font-bold text-[#5B0015] text-sm">Gentle Movement</p>
+                  <p className="text-2xl font-black text-[#5B0015] mt-1">
+                    {exerciseMins} <span className="text-xs font-normal text-[#5B0015]/70">Mins</span>
                   </p>
                 </div>
                 <div className="flex gap-1.5 mt-4">
@@ -1665,40 +1653,33 @@ export default function Dashboard({ user, onLogout }) {
                       setExerciseMins(next);
                       pushDailyLogToSupabase({ exercise_mins: next });
                     }}
-                    className={`flex-1 text-xs font-medium py-2 rounded-xl transition-colors ${
-                      isExerciseDone ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-[#29272D] text-white hover:bg-black'
-                    }`}
+                    className="flex-1 text-xs font-bold py-2 rounded-xl bg-[#5B0015] text-[#F7F2E0] hover:bg-[#450010] cursor-pointer"
                   >
                     +15 m
                   </button>
                   <button
                     onClick={() => { setExerciseMins(0); pushDailyLogToSupabase({ exercise_mins: 0 }); }}
-                    className="px-2 border border-[#E8E4DE] text-[#7A7880] text-xs rounded-xl hover:bg-white"
-                    title="Reset"
+                    className="px-2 border border-[#EDE5CD] text-[#5B0015]/70 text-xs rounded-xl hover:bg-white cursor-pointer"
                   >
                     ↺
                   </button>
                 </div>
               </div>
 
-              {/* Sleep Tracker */}
-              <div className={`transition-all duration-300 rounded-2xl p-4 flex flex-col justify-between border ${
-                isSleepDone 
-                  ? 'bg-gradient-to-b from-emerald-50 to-teal-50 border-emerald-300 shadow-sm' 
-                  : 'bg-[#FAF9F6] border-[#E8E4DE]'
-              }`}>
+              {/* Sleep */}
+              <div className="rounded-2xl p-4 flex flex-col justify-between border bg-[#F7F2E0] border-[#EDE5CD]">
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-2xl">{isSleepDone ? '✨' : '😴'}</span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                      isSleepDone ? 'bg-emerald-200 text-emerald-800' : 'bg-[#EAE6F4] text-[#8B7BB5]'
+                    <span className="text-2xl">😴</span>
+                    <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full ${
+                      isSleepDone ? 'bg-[#80AEE8] text-[#5B0015]' : 'bg-[#80AEE8]/30 text-[#5B0015]'
                     }`}>
-                      {isSleepDone ? 'Target Reached!' : 'Target: 8h'}
+                      {isSleepDone ? '✓ Target Reached!' : 'Target: 8h'}
                     </span>
                   </div>
-                  <p className="font-bold text-[#29272D] text-sm">Restful Sleep</p>
-                  <p className="text-2xl font-extrabold text-[#8B7BB5] mt-1">
-                    {loggedSleep} <span className="text-xs font-normal text-[#7A7880]">Hours</span>
+                  <p className="font-bold text-[#5B0015] text-sm">Restful Sleep</p>
+                  <p className="text-2xl font-black text-[#5B0015] mt-1">
+                    {loggedSleep} <span className="text-xs font-normal text-[#5B0015]/70">Hours</span>
                   </p>
                 </div>
                 <div className="flex gap-1.5 mt-4">
@@ -1708,16 +1689,13 @@ export default function Dashboard({ user, onLogout }) {
                       setLoggedSleep(next);
                       pushDailyLogToSupabase({ logged_sleep: next });
                     }}
-                    className={`flex-1 text-xs font-medium py-2 rounded-xl transition-colors ${
-                      isSleepDone ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-[#29272D] text-white hover:bg-black'
-                    }`}
+                    className="flex-1 text-xs font-bold py-2 rounded-xl bg-[#5B0015] text-[#F7F2E0] hover:bg-[#450010] cursor-pointer"
                   >
                     +1 Hour
                   </button>
                   <button
                     onClick={() => { setLoggedSleep(0); pushDailyLogToSupabase({ logged_sleep: 0 }); }}
-                    className="px-2 border border-[#E8E4DE] text-[#7A7880] text-xs rounded-xl hover:bg-white"
-                    title="Reset"
+                    className="px-2 border border-[#EDE5CD] text-[#5B0015]/70 text-xs rounded-xl hover:bg-white cursor-pointer"
                   >
                     ↺
                   </button>
@@ -1731,167 +1709,153 @@ export default function Dashboard({ user, onLogout }) {
       )}
 
       {/* ════════════════════════════════════════════════════════════════ */}
-      {/* TAB 2: HEALTH ANALYTICS & TRENDS                                */}
+      {/* TAB 2: HEALTH ANALYTICS                                         */}
       {/* ════════════════════════════════════════════════════════════════ */}
       {activeTab === 'analytics' && (
-        <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in duration-300">
-          
+        <div className="max-w-6xl mx-auto space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-white p-5 rounded-3xl border border-[#E8E4DE] shadow-sm flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-purple-50 text-[#8B7BB5] flex items-center justify-center text-2xl font-bold">
+            <div className="bg-[#FCFBF5] p-5 rounded-3xl border border-[#EDE5CD] shadow-sm flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-[#80AEE8]/30 text-[#5B0015] flex items-center justify-center text-2xl font-bold">
                 🎯
               </div>
               <div>
-                <p className="text-[10px] font-bold text-[#7A7880] uppercase tracking-wider">Health Consistency</p>
-                <p className="text-xl font-extrabold text-[#29272D]">
+                <p className="text-[10px] font-bold text-[#5B0015]/70 uppercase tracking-wider">Health Consistency</p>
+                <p className="text-xl font-black text-[#5B0015]">
                   {weeklyWaterData.filter(d => d.glasses >= 8).length >= 4 ? '88% High' : '72% Normal'}
                 </p>
               </div>
             </div>
 
-            <div className="bg-white p-5 rounded-3xl border border-[#E8E4DE] shadow-sm flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-500 flex items-center justify-center text-2xl font-bold">
+            <div className="bg-[#FCFBF5] p-5 rounded-3xl border border-[#EDE5CD] shadow-sm flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-[#5B0015]/15 text-[#5B0015] flex items-center justify-center text-2xl font-bold">
                 🩸
               </div>
               <div>
-                <p className="text-[10px] font-bold text-[#7A7880] uppercase tracking-wider">Avg Cycle Length</p>
-                <p className="text-xl font-extrabold text-[#29272D]">{cycleLength} Days</p>
+                <p className="text-[10px] font-bold text-[#5B0015]/70 uppercase tracking-wider">Avg Cycle Length</p>
+                <p className="text-xl font-black text-[#5B0015]">{cycleLength} Days</p>
               </div>
             </div>
 
-            <div className="bg-white p-5 rounded-3xl border border-[#E8E4DE] shadow-sm flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl font-bold">
+            <div className="bg-[#FCFBF5] p-5 rounded-3xl border border-[#EDE5CD] shadow-sm flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-[#80AEE8]/30 text-[#5B0015] flex items-center justify-center text-2xl font-bold">
                 💊
               </div>
               <div>
-                <p className="text-[10px] font-bold text-[#7A7880] uppercase tracking-wider">Med Adherence</p>
-                <p className="text-xl font-extrabold text-[#29272D]">{avgMedAdherence}%</p>
+                <p className="text-[10px] font-bold text-[#5B0015]/70 uppercase tracking-wider">Med Adherence</p>
+                <p className="text-xl font-black text-[#5B0015]">{avgMedAdherence}%</p>
               </div>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
-            {/* Real 7-Day Water Chart */}
-            <div className="bg-white p-6 rounded-3xl shadow-sm border border-[#E8E4DE]">
-              <div className="flex justify-between items-center mb-6">
-                <div>
-                  <h3 className="font-bold text-[#29272D] text-base flex items-center gap-2">
-                    💧 7-Day Water Intake Chart
-                  </h3>
-                  <p className="text-xs text-[#7A7880] mt-0.5">Target: 8 Glasses / Day (Live History)</p>
-                </div>
-                <span className="text-xs font-bold text-[#8B7BB5] bg-purple-50 px-2.5 py-1 rounded-full">
-                  Real Supabase Logs
-                </span>
-              </div>
-
-              <div className="flex items-end justify-between h-44 pt-4 px-2 border-b border-[#E8E4DE]">
-                {weeklyWaterData.length > 0 ? (
-                  weeklyWaterData.map((item, idx) => {
-                    const heightPercentage = Math.min((item.glasses / 8) * 100, 100);
-                    const isGoalMet = item.glasses >= 8;
-
-                    return (
-                      <div key={idx} className="flex flex-col items-center gap-2 flex-1">
-                        <span className="text-[10px] font-bold text-[#7A7880]">{item.glasses}g</span>
-                        <div className="w-full max-w-[28px] bg-slate-100 rounded-t-xl h-32 flex items-end overflow-hidden">
-                          <div 
-                            style={{ height: `${heightPercentage}%` }}
-                            className={`w-full transition-all duration-500 rounded-t-xl ${
-                              isGoalMet 
-                                ? 'bg-gradient-to-t from-emerald-400 to-teal-500' 
-                                : 'bg-gradient-to-t from-[#8B7BB5] to-purple-400'
-                            }`}
-                          />
-                        </div>
-                        <span className={`text-[11px] font-semibold ${item.day === 'Today' ? 'text-[#8B7BB5] font-extrabold' : 'text-[#7A7880]'}`}>
-                          {item.day}
-                        </span>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <p className="text-xs text-[#7A7880] text-center w-full py-8">Loading history...</p>
-                )}
-              </div>
-            </div>
-
-            {/* Real Symptom Trends */}
-            <div className="bg-white p-6 rounded-3xl shadow-sm border border-[#E8E4DE]">
-              <div className="flex justify-between items-center mb-6">
-                <div>
-                  <h3 className="font-bold text-[#29272D] text-base flex items-center gap-2">
-                    📊 Top Symptom Trends
-                  </h3>
-                  <p className="text-xs text-[#7A7880] mt-0.5">Most frequent symptoms from daily history</p>
-                </div>
-                <span className="text-xs font-bold text-rose-500 bg-rose-50 px-2.5 py-1 rounded-full">
-                  History Overview
-                </span>
-              </div>
-
-              <div className="space-y-4">
-                {symptomAnalytics.length > 0 ? (
-                  symptomAnalytics.map((sym, idx) => {
-                    const maxCount = Math.max(...symptomAnalytics.map(s => s.count), 1);
-                    const widthPercent = Math.min((sym.count / maxCount) * 100, 100);
-
-                    return (
-                      <div key={idx} className="space-y-1">
-                        <div className="flex justify-between text-xs font-semibold">
-                          <span className="text-[#29272D]">{sym.name}</span>
-                          <span className="text-[#7A7880]">{sym.count} {sym.count === 1 ? 'Time' : 'Times'}</span>
-                        </div>
-                        <div className="w-full bg-[#FAF9F6] h-3 rounded-full overflow-hidden border border-[#E8E4DE]">
-                          <div 
-                            style={{ width: `${widthPercent}%` }}
-                            className={`h-full ${sym.color} rounded-full transition-all duration-500`}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div className="text-center py-8">
-                    <p className="text-xs text-[#7A7880]">Abhi tak symptoms history log nahi hui hai.</p>
-                    <p className="text-[10px] text-[#8B7BB5] mt-1">Roz journal save karein taaki real trends generate ho sakein.</p>
+            {/* Water Chart */}
+            <div className="bg-[#FCFBF5] p-6 rounded-3xl shadow-sm border border-[#EDE5CD]">
+              <h3 className="font-bold text-[#5B0015] text-base mb-4">💧 7-Day Water Intake Chart</h3>
+              <div className="flex items-end justify-between h-44 pt-4 px-2 border-b border-[#EDE5CD]">
+                {weeklyWaterData.map((item, idx) => (
+                  <div key={idx} className="flex flex-col items-center gap-2 flex-1">
+                    <span className="text-[10px] font-bold text-[#5B0015]/70">{item.glasses}g</span>
+                    <div className="w-full max-w-[28px] bg-white rounded-t-xl h-32 flex items-end overflow-hidden border border-[#EDE5CD]">
+                      <div 
+                        style={{ height: `${Math.min((item.glasses / 8) * 100, 100)}%` }}
+                        className="w-full bg-[#80AEE8] rounded-t-xl"
+                      />
+                    </div>
+                    <span className="text-[11px] font-bold text-[#5B0015]">{item.day}</span>
                   </div>
-                )}
+                ))}
               </div>
             </div>
 
-          </div>
-
-          <div className="bg-gradient-to-r from-purple-900 to-[#29272D] text-white p-6 rounded-3xl shadow-md flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="space-y-2 text-center md:text-left">
-              <span className="bg-purple-500/30 text-purple-200 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                💡 Monthly Health Summary
-              </span>
-              <h3 className="text-xl font-bold">Real-time History Sync Active</h3>
-              <p className="text-xs text-purple-200 max-w-xl leading-relaxed">
-                Aapka database roz ka record maintain kar raha hai. Daily logs se graph automatically adjust hota rahega.
-              </p>
+            {/* Symptom Trends */}
+            <div className="bg-[#FCFBF5] p-6 rounded-3xl shadow-sm border border-[#EDE5CD]">
+              <h3 className="font-bold text-[#5B0015] text-base mb-4">📊 Top Symptom Trends</h3>
+              <div className="space-y-4">
+                {symptomAnalytics.map((sym, idx) => (
+                  <div key={idx} className="space-y-1">
+                    <div className="flex justify-between text-xs font-bold text-[#5B0015]">
+                      <span>{sym.name}</span>
+                      <span>{sym.count} Times</span>
+                    </div>
+                    <div className="w-full bg-white h-3 rounded-full overflow-hidden border border-[#EDE5CD]">
+                      <div 
+                        style={{ width: `${Math.min((sym.count / Math.max(...symptomAnalytics.map(s => s.count), 1)) * 100, 100)}%` }}
+                        className={`h-full ${sym.color} rounded-full`}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── 🏆 ENGAGING CELEBRATION MODAL POPUP (ALL TARGETS COMPLETED) ── */}
+      {showCelebrationModal && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-[#5B0015] text-[#F7F2E0] w-full max-w-md rounded-3xl p-6 sm:p-8 shadow-2xl border-4 border-[#80AEE8] text-center relative animate-in zoom-in-95 duration-200">
             
             <button
-              onClick={() => setActiveTab('dashboard')}
-              className="bg-white text-[#29272D] hover:bg-purple-50 font-bold px-6 py-3 rounded-2xl text-xs transition-all whitespace-nowrap shadow-sm"
+              onClick={() => setShowCelebrationModal(false)}
+              className="absolute top-4 right-4 text-[#F7F2E0]/70 hover:text-white font-black bg-white/10 w-8 h-8 rounded-full flex items-center justify-center border border-white/20 cursor-pointer"
             >
-              Back to Today's Logs ➔
+              ✕
+            </button>
+
+            {/* Bouncing Trophy Badge */}
+            <div className="w-20 h-20 bg-[#80AEE8] text-[#5B0015] rounded-3xl mx-auto flex items-center justify-center text-4xl shadow-xl mb-4 border-2 border-[#F7F2E0] animate-bounce">
+              🏆
+            </div>
+
+            <span className="bg-[#80AEE8] text-[#5B0015] text-[11px] font-black px-3.5 py-1 rounded-full uppercase tracking-wider shadow-sm inline-block mb-2">
+              🎉 100% Goals Smashed!
+            </span>
+
+            <h3 className="text-2xl sm:text-3xl font-black text-[#F7F2E0] tracking-tight">
+              Queen, You Did It! 🌸
+            </h3>
+
+            <p className="text-xs sm:text-sm text-[#F7F2E0]/85 mt-2 leading-relaxed font-medium">
+              Aaj aapne apne PCOD healing routine ke teeno primary pillars poore kar liye hain:
+            </p>
+
+            <div className="my-5 space-y-2 bg-black/30 p-4 rounded-2xl border border-[#80AEE8]/40 text-left text-xs">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-[#F7F2E0]">💧 Hydro Target (8 Glasses)</span>
+                <span className="font-black text-[#80AEE8]">Completed ✓</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-[#F7F2E0]">🏃‍♀️ Gentle Movement (30+ Mins)</span>
+                <span className="font-black text-[#80AEE8]">Completed ✓</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-[#F7F2E0]">😴 Restful Sleep (8+ Hours)</span>
+                <span className="font-black text-[#80AEE8]">Completed ✓</span>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-[#80AEE8] font-bold mb-4">
+              Consistency is the real medicine for hormones. We are proud of you! ✨
+            </p>
+
+            <button
+              onClick={() => setShowCelebrationModal(false)}
+              className="w-full bg-[#80AEE8] hover:bg-[#A5C7F0] text-[#5B0015] font-black py-3 rounded-2xl text-xs transition-transform active:scale-95 shadow-xl cursor-pointer"
+            >
+              Keep Glowing, Thank You! 💖
             </button>
           </div>
-
         </div>
       )}
 
       {/* ── 📖 MINI-BLOG MODAL ── */}
       {showEngineBlogModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white text-[#29272D] w-full max-w-xl rounded-3xl p-6 sm:p-8 shadow-2xl border border-[#E8E4DE] max-h-[90vh] overflow-y-auto relative">
+          <div className="bg-[#FCFBF5] text-[#5B0015] w-full max-w-xl rounded-3xl p-6 sm:p-8 shadow-2xl border border-[#EDE5CD] max-h-[90vh] overflow-y-auto relative">
             <button
               onClick={() => setShowEngineBlogModal(false)}
-              className="absolute top-4 right-4 text-[#7A7880] hover:text-[#29272D] font-bold bg-[#FAF9F6] w-8 h-8 rounded-full flex items-center justify-center border border-[#E8E4DE]"
+              className="absolute top-4 right-4 text-[#5B0015] font-bold bg-[#F7F2E0] w-8 h-8 rounded-full flex items-center justify-center border border-[#EDE5CD] cursor-pointer"
             >
               ✕
             </button>
@@ -1899,40 +1863,40 @@ export default function Dashboard({ user, onLogout }) {
             <div className="flex items-center gap-2.5 mb-4">
               <span className="text-3xl">🔬</span>
               <div>
-                <span className="bg-purple-100 text-[#8B7BB5] text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                <span className="bg-[#80AEE8]/30 text-[#5B0015] text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
                   Science-Backed Transparency
                 </span>
-                <h3 className="text-xl font-extrabold text-[#29272D] mt-1">
+                <h3 className="text-xl font-extrabold text-[#5B0015] mt-1">
                   PCOD Cycles Delay Kyu Hote Hain?
                 </h3>
               </div>
             </div>
 
-            <div className="space-y-4 text-xs text-[#29272D]/90 leading-relaxed">
-              <div className="bg-[#FAF9F6] p-4 rounded-2xl border border-[#E8E4DE] space-y-1.5">
-                <h4 className="font-extrabold text-[#8B7BB5] text-sm">1. Generic Apps Kaha Fail Ho Jaati Hain?</h4>
-                <p className="text-[11px] text-[#7A7880]">
+            <div className="space-y-4 text-xs text-[#5B0015]/90 leading-relaxed font-medium">
+              <div className="bg-[#F7F2E0] p-4 rounded-2xl border border-[#EDE5CD] space-y-1.5">
+                <h4 className="font-extrabold text-[#5B0015] text-sm">1. Generic Apps Kaha Fail Ho Jaati Hain?</h4>
+                <p className="text-[11px] text-[#5B0015]/75">
                   Standard period apps math ke standard 28-day rule par chalti hain. PCOD mein ovulation 14th day par fix nahi hota. Jab cycle 35 din cross karta hai, woh bolti hain <i>"You are late"</i>, par yeh nahi batati ki body kis specific pause state par ruki hui hai.
                 </p>
               </div>
 
-              <div className="bg-amber-50/70 p-4 rounded-2xl border border-amber-200/70 space-y-1.5">
-                <h4 className="font-extrabold text-amber-950 text-sm">2. Body "Pause State" Mein Kyu Jaati Hai?</h4>
-                <p className="text-[11px] text-amber-900">
+              <div className="bg-[#80AEE8]/15 p-4 rounded-2xl border border-[#80AEE8]/30 space-y-1.5">
+                <h4 className="font-extrabold text-[#5B0015] text-sm">2. Body "Pause State" Mein Kyu Jaati Hai?</h4>
+                <p className="text-[11px] text-[#5B0015]/80">
                   Late sleeping, exam/work stress (cortisol spike), ya insulin fluctuations se ovary egg release karne mein delay karti hai. Is time pregnancy panic ki jagah gentle natural rhythm support chahiye hota hai.
                 </p>
               </div>
 
-              <div className="bg-emerald-50/70 p-4 rounded-2xl border border-emerald-200/70 space-y-1.5">
-                <h4 className="font-extrabold text-emerald-950 text-sm">3. Hamara Engine Kaise Decode Karta Hai?</h4>
-                <p className="text-[11px] text-emerald-900">
+              <div className="bg-[#F7F2E0] p-4 rounded-2xl border border-[#EDE5CD] space-y-1.5">
+                <h4 className="font-extrabold text-[#5B0015] text-sm">3. Hamara Engine Kaise Decode Karta Hai?</h4>
+                <p className="text-[11px] text-[#5B0015]/75">
                   Hum aapke continuous 3-day logs (sleep hours, water intake, symptoms like acne/cramps, aur previous cycle pattern) ko map karte hain. Engine bata deta hai ki body kis signature stage par hai taaki doorstep kit se cycle naturally encourage ho sake.
                 </p>
               </div>
 
-              <div className="p-4 rounded-2xl bg-purple-50 border border-purple-200 text-purple-950 space-y-2">
+              <div className="p-4 rounded-2xl bg-[#5B0015] text-[#F7F2E0] border border-[#80AEE8]/40 space-y-2">
                 <div className="flex items-center gap-1.5">
-                  <span className="font-extrabold text-xs">🌸 Hamara Promise (Zero Fraud & Pure Trust):</span>
+                  <span className="font-extrabold text-xs text-[#80AEE8]">🌸 Hamara Promise (Zero Fraud & Pure Trust):</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px]">
                   <p>✓ <b>Sirf ₹20 One-time:</b> No auto-debit, koi recurring charge nahi.</p>
@@ -1949,13 +1913,13 @@ export default function Dashboard({ user, onLogout }) {
                   setShowEngineBlogModal(false);
                   setShowKitModal(true);
                 }}
-                className="flex-1 bg-[#29272D] hover:bg-black text-white font-bold py-3 rounded-2xl text-xs transition-colors shadow-md"
+                className="flex-1 bg-[#5B0015] hover:bg-[#450010] text-[#F7F2E0] font-bold py-3 rounded-2xl text-xs transition-colors shadow-md cursor-pointer"
               >
                 Unlock My Hormone Protocol (₹20 Only) 🌸
               </button>
               <button
                 onClick={() => setShowEngineBlogModal(false)}
-                className="border border-[#E8E4DE] text-[#7A7880] px-4 py-3 rounded-2xl text-xs font-semibold"
+                className="border border-[#EDE5CD] text-[#5B0015]/70 px-4 py-3 rounded-2xl text-xs font-semibold cursor-pointer"
               >
                 Close
               </button>
@@ -1964,41 +1928,41 @@ export default function Dashboard({ user, onLogout }) {
         </div>
       )}
 
-      {/* ── 🌟 SEED KIT RESERVATION & UPI PAYMENT MODAL (2-STEP CHECKOUT) ── */}
+      {/* ── 🌟 SEED KIT & UPI PAYMENT MODAL (2-STEP CHECKOUT) ── */}
       {showKitModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white text-[#29272D] w-full max-w-lg rounded-3xl p-6 sm:p-7 shadow-2xl border border-[#E8E4DE] max-h-[92vh] overflow-y-auto relative">
+          <div className="bg-[#FCFBF5] text-[#5B0015] w-full max-w-lg rounded-3xl p-6 sm:p-7 shadow-2xl border border-[#EDE5CD] max-h-[92vh] overflow-y-auto relative">
             <button
               onClick={() => {
                 setShowKitModal(false);
                 setCheckoutStep('address');
               }}
-              className="absolute top-4 right-4 text-[#7A7880] hover:text-[#29272D] font-bold bg-[#FAF9F6] w-8 h-8 rounded-full flex items-center justify-center border border-[#E8E4DE]"
+              className="absolute top-4 right-4 text-[#5B0015] font-bold bg-[#F7F2E0] w-8 h-8 rounded-full flex items-center justify-center border border-[#EDE5CD] cursor-pointer"
             >
               ✕
             </button>
 
-            {/* ── STEP 1: ADDRESS DETAILS ── */}
+            {/* STEP 1: ADDRESS */}
             {checkoutStep === 'address' && (
               <>
                 <div className="flex items-center gap-2.5 mb-3">
                   <span className="text-3xl">🌱</span>
                   <div>
-                    <h3 className="text-lg font-extrabold text-[#29272D]">Delivery & Care Pass</h3>
-                    <p className="text-xs text-[#7A7880]">Step 1 of 2 • Structured Delivery Address</p>
+                    <h3 className="text-lg font-black text-[#5B0015]">Delivery & Care Pass</h3>
+                    <p className="text-xs text-[#5B0015]/70">Step 1 of 2 • Structured Delivery Address</p>
                   </div>
                 </div>
 
-                <div className="bg-purple-50 border border-purple-100 p-3 rounded-2xl text-xs text-purple-900 mb-4 space-y-1">
-                  <p className="font-extrabold text-[#8B7BB5]">✨ Pass Perks (₹20 One-Time):</p>
+                <div className="bg-[#F7F2E0] border border-[#EDE5CD] p-3 rounded-2xl text-xs text-[#5B0015] mb-4 space-y-1">
+                  <p className="font-extrabold text-[#5B0015]">✨ Pass Perks (₹20 One-Time):</p>
                   <p className="text-[11px]">• Unlocks real-time Biological Phase & daily seeds portion.</p>
                   <p className="text-[11px]">• Priority doorstep dispatch for monthly seed packs at 25% off.</p>
-                  <p className="text-[11px] text-emerald-800 font-bold">• 100% Secure UPI Payment • No recurring debit.</p>
+                  <p className="text-[11px] text-[#5B0015] font-bold">• 100% Secure UPI Payment • No recurring debit.</p>
                 </div>
 
                 <form onSubmit={handleProceedToPayment} className="space-y-3">
                   <div>
-                    <label className="text-[10px] font-bold text-[#7A7880] uppercase tracking-wider">
+                    <label className="text-[10px] font-bold text-[#5B0015]/70 uppercase tracking-wider">
                       WhatsApp Mobile Number (Order & Courier Updates) *
                     </label>
                     <input
@@ -2008,12 +1972,12 @@ export default function Dashboard({ user, onLogout }) {
                       required
                       value={subWhatsApp}
                       onChange={(e) => setSubWhatsApp(e.target.value)}
-                      className="w-full mt-1 p-2.5 text-xs border border-[#E8E4DE] rounded-xl outline-none focus:ring-1 focus:ring-[#8B7BB5]"
+                      className="w-full mt-1 p-2.5 text-xs border border-[#EDE5CD] rounded-xl bg-white outline-none focus:ring-1 focus:ring-[#80AEE8] font-bold"
                     />
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-bold text-[#7A7880] uppercase tracking-wider">
+                    <label className="text-[10px] font-bold text-[#5B0015]/70 uppercase tracking-wider">
                       Flat, House No., Building, Apartment *
                     </label>
                     <input
@@ -2022,12 +1986,12 @@ export default function Dashboard({ user, onLogout }) {
                       required
                       value={subHouseNo}
                       onChange={(e) => setSubHouseNo(e.target.value)}
-                      className="w-full mt-1 p-2.5 text-xs border border-[#E8E4DE] rounded-xl outline-none focus:ring-1 focus:ring-[#8B7BB5]"
+                      className="w-full mt-1 p-2.5 text-xs border border-[#EDE5CD] rounded-xl bg-white outline-none focus:ring-1 focus:ring-[#80AEE8]"
                     />
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-bold text-[#7A7880] uppercase tracking-wider">
+                    <label className="text-[10px] font-bold text-[#5B0015]/70 uppercase tracking-wider">
                       Area, Street, Sector, Locality *
                     </label>
                     <input
@@ -2036,13 +2000,13 @@ export default function Dashboard({ user, onLogout }) {
                       required
                       value={subArea}
                       onChange={(e) => setSubArea(e.target.value)}
-                      className="w-full mt-1 p-2.5 text-xs border border-[#E8E4DE] rounded-xl outline-none focus:ring-1 focus:ring-[#8B7BB5]"
+                      className="w-full mt-1 p-2.5 text-xs border border-[#EDE5CD] rounded-xl bg-white outline-none focus:ring-1 focus:ring-[#80AEE8]"
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[10px] font-bold text-[#7A7880] uppercase tracking-wider">
+                      <label className="text-[10px] font-bold text-[#5B0015]/70 uppercase tracking-wider">
                         Landmark (Optional)
                       </label>
                       <input
@@ -2050,12 +2014,12 @@ export default function Dashboard({ user, onLogout }) {
                         placeholder="e.g. Near City Hospital"
                         value={subLandmark}
                         onChange={(e) => setSubLandmark(e.target.value)}
-                        className="w-full mt-1 p-2.5 text-xs border border-[#E8E4DE] rounded-xl outline-none focus:ring-1 focus:ring-[#8B7BB5]"
+                        className="w-full mt-1 p-2.5 text-xs border border-[#EDE5CD] rounded-xl bg-white outline-none focus:ring-1 focus:ring-[#80AEE8]"
                       />
                     </div>
 
                     <div>
-                      <label className="text-[10px] font-bold text-[#7A7880] uppercase tracking-wider">
+                      <label className="text-[10px] font-bold text-[#5B0015]/70 uppercase tracking-wider">
                         Pincode (6-Digits) *
                       </label>
                       <input
@@ -2066,14 +2030,14 @@ export default function Dashboard({ user, onLogout }) {
                         required
                         value={subPincode}
                         onChange={(e) => setSubPincode(e.target.value)}
-                        className="w-full mt-1 p-2.5 text-xs border border-[#E8E4DE] rounded-xl outline-none focus:ring-1 focus:ring-[#8B7BB5]"
+                        className="w-full mt-1 p-2.5 text-xs border border-[#EDE5CD] rounded-xl bg-white outline-none focus:ring-1 focus:ring-[#80AEE8]"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[10px] font-bold text-[#7A7880] uppercase tracking-wider">
+                      <label className="text-[10px] font-bold text-[#5B0015]/70 uppercase tracking-wider">
                         Town / City *
                       </label>
                       <input
@@ -2082,12 +2046,12 @@ export default function Dashboard({ user, onLogout }) {
                         required
                         value={subCity}
                         onChange={(e) => setSubCity(e.target.value)}
-                        className="w-full mt-1 p-2.5 text-xs border border-[#E8E4DE] rounded-xl outline-none focus:ring-1 focus:ring-[#8B7BB5]"
+                        className="w-full mt-1 p-2.5 text-xs border border-[#EDE5CD] rounded-xl bg-white outline-none focus:ring-1 focus:ring-[#80AEE8]"
                       />
                     </div>
 
                     <div>
-                      <label className="text-[10px] font-bold text-[#7A7880] uppercase tracking-wider">
+                      <label className="text-[10px] font-bold text-[#5B0015]/70 uppercase tracking-wider">
                         State *
                       </label>
                       <input
@@ -2096,29 +2060,14 @@ export default function Dashboard({ user, onLogout }) {
                         required
                         value={subState}
                         onChange={(e) => setSubState(e.target.value)}
-                        className="w-full mt-1 p-2.5 text-xs border border-[#E8E4DE] rounded-xl outline-none focus:ring-1 focus:ring-[#8B7BB5]"
+                        className="w-full mt-1 p-2.5 text-xs border border-[#EDE5CD] rounded-xl bg-white outline-none focus:ring-1 focus:ring-[#80AEE8]"
                       />
                     </div>
                   </div>
 
-                  {subCity && (
-                    <div className="pt-1">
-                      <a
-                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                          `${subHouseNo ? subHouseNo + ', ' : ''}${subArea ? subArea + ', ' : ''}${subCity}, ${subPincode}`
-                        )}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[11px] font-semibold text-[#8B7BB5] hover:text-[#726496] flex items-center gap-1 inline-block"
-                      >
-                        📍 Verify Address on Google Maps ↗
-                      </a>
-                    </div>
-                  )}
-
                   <button
                     type="submit"
-                    className="w-full bg-[#29272D] hover:bg-black text-white font-bold py-3.5 rounded-2xl text-xs transition-colors shadow-md mt-2 flex items-center justify-center gap-1.5"
+                    className="w-full bg-[#5B0015] hover:bg-[#450010] text-[#F7F2E0] font-black py-3.5 rounded-2xl text-xs transition-colors shadow-md mt-2 flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <span>Continue to Payment (₹20) ➔</span>
                   </button>
@@ -2126,19 +2075,19 @@ export default function Dashboard({ user, onLogout }) {
               </>
             )}
 
-            {/* ── STEP 2: INSTANT UPI PAYMENT & QR CODE ── */}
+            {/* STEP 2: UPI PAYMENT */}
             {checkoutStep === 'payment' && (
               <div className="space-y-4">
                 <div className="flex items-center gap-2.5">
                   <span className="text-3xl">💳</span>
                   <div>
-                    <h3 className="text-lg font-extrabold text-[#29272D]">Instant UPI Payment</h3>
-                    <p className="text-xs text-[#7A7880]">Step 2 of 2 • Pay ₹20 via GPay, PhonePe ya Paytm</p>
+                    <h3 className="text-lg font-black text-[#5B0015]">Instant UPI Payment</h3>
+                    <p className="text-xs text-[#5B0015]/70">Step 2 of 2 • Pay ₹20 via GPay, PhonePe ya Paytm</p>
                   </div>
                 </div>
 
-                <div className="bg-[#FAF9F6] p-4 rounded-2xl border border-[#E8E4DE] flex flex-col items-center text-center">
-                  <div className="bg-white p-2.5 rounded-2xl border border-[#E8E4DE] shadow-sm mb-3">
+                <div className="bg-[#F7F2E0] p-4 rounded-2xl border border-[#EDE5CD] flex flex-col items-center text-center">
+                  <div className="bg-white p-2.5 rounded-2xl border border-[#EDE5CD] shadow-sm mb-3">
                     <img
                       src={qrCodeUrl}
                       alt="UPI QR Code"
@@ -2146,19 +2095,19 @@ export default function Dashboard({ user, onLogout }) {
                     />
                   </div>
 
-                  <p className="text-xs font-bold text-[#29272D]">
+                  <p className="text-xs font-bold text-[#5B0015]">
                     Scan QR with any UPI App
                   </p>
-                  <p className="text-[11px] text-[#7A7880] mt-0.5">
-                    Amount: <b className="text-[#8B7BB5] text-sm">₹20.00</b> • Payee: <b>{PAYEE_NAME}</b>
+                  <p className="text-[11px] text-[#5B0015]/75 mt-0.5">
+                    Amount: <b className="text-[#5B0015] text-sm">₹20.00</b> • Payee: <b>{PAYEE_NAME}</b>
                   </p>
-                  <p className="text-[10px] text-gray-500 mt-0.5 font-mono bg-white px-2.5 py-0.5 rounded-md border border-gray-200">
+                  <p className="text-[10px] text-[#5B0015]/80 mt-0.5 font-mono bg-white px-2.5 py-0.5 rounded-md border border-[#EDE5CD]">
                     UPI ID: {UPI_ID}
                   </p>
 
                   <a
                     href={upiLink}
-                    className="w-full mt-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs shadow-sm transition-all flex items-center justify-center gap-2"
+                    className="w-full mt-3 bg-[#5B0015] hover:bg-[#450010] text-[#F7F2E0] font-black py-2.5 rounded-xl text-xs shadow-sm transition-all flex items-center justify-center gap-2"
                   >
                     <span>⚡ Pay via UPI App (GPay / PhonePe / Paytm)</span>
                   </a>
@@ -2166,7 +2115,7 @@ export default function Dashboard({ user, onLogout }) {
 
                 <form onSubmit={handleConfirmPayment} className="space-y-3">
                   <div>
-                    <label className="text-[10px] font-bold text-[#7A7880] uppercase tracking-wider">
+                    <label className="text-[10px] font-bold text-[#5B0015]/70 uppercase tracking-wider">
                       Enter 12-Digit UPI Ref / UTR No. *
                     </label>
                     <input
@@ -2175,9 +2124,9 @@ export default function Dashboard({ user, onLogout }) {
                       required
                       value={utrInput}
                       onChange={(e) => setUtrInput(e.target.value)}
-                      className="w-full mt-1 p-2.5 text-xs border border-[#E8E4DE] rounded-xl outline-none focus:ring-1 focus:ring-[#8B7BB5]"
+                      className="w-full mt-1 p-2.5 text-xs border border-[#EDE5CD] rounded-xl bg-white font-mono text-[#5B0015] outline-none focus:ring-1 focus:ring-[#80AEE8]"
                     />
-                    <span className="text-[10px] text-[#7A7880] mt-0.5 block">
+                    <span className="text-[10px] text-[#5B0015]/70 mt-0.5 block">
                       Payment karne ke baad transaction details se 12-digit UTR enter karein.
                     </span>
                   </div>
@@ -2186,16 +2135,16 @@ export default function Dashboard({ user, onLogout }) {
                     <button
                       type="button"
                       onClick={() => setCheckoutStep('address')}
-                      className="border border-[#E8E4DE] text-[#7A7880] hover:text-[#29272D] px-4 py-3 rounded-2xl text-xs font-semibold"
+                      className="border border-[#EDE5CD] text-[#5B0015] px-4 py-3 rounded-2xl text-xs font-bold cursor-pointer hover:bg-[#F7F2E0]"
                     >
                       ← Back
                     </button>
                     <button
                       type="submit"
                       disabled={paymentPending}
-                      className="flex-1 bg-[#29272D] hover:bg-black text-white font-bold py-3 rounded-2xl text-xs transition-colors shadow-md disabled:opacity-50"
+                      className="flex-1 bg-[#5B0015] hover:bg-[#450010] text-[#F7F2E0] font-black py-3 rounded-2xl text-xs transition-colors shadow-md disabled:opacity-50 cursor-pointer"
                     >
-                      {paymentPending ? "Verifying..." : "Confirm Payment & Activate Pass 🌸"}
+                      {paymentPending ? "Verifying..." : "Confirm Payment 🌸"}
                     </button>
                   </div>
                 </form>
@@ -2209,65 +2158,71 @@ export default function Dashboard({ user, onLogout }) {
       {/* ── 📄 CLINICAL DOCTOR MEDICAL PDF REPORT MODAL ── */}
       {showPdfModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white w-full max-w-3xl rounded-3xl p-6 sm:p-8 shadow-2xl border border-[#E8E4DE] max-h-[92vh] overflow-y-auto relative">
+          <div className="bg-[#FCFBF5] text-[#5B0015] w-full max-w-3xl rounded-3xl p-6 sm:p-8 shadow-2xl border border-[#EDE5CD] max-h-[92vh] overflow-y-auto relative">
             <button
               onClick={() => setShowPdfModal(false)}
-              className="no-print absolute top-4 right-4 text-[#7A7880] hover:text-[#29272D] font-bold text-lg bg-[#FAF9F6] w-8 h-8 rounded-full flex items-center justify-center border border-[#E8E4DE]"
+              className="no-print absolute top-4 right-4 text-[#5B0015] hover:text-black font-bold text-lg bg-[#F7F2E0] w-8 h-8 rounded-full flex items-center justify-center border border-[#EDE5CD] cursor-pointer"
             >
               ✕
             </button>
 
-            <div id="printable-doctor-report" className="p-4 bg-white text-[#29272D] font-sans space-y-5">
-              <div className="border-b-2 border-[#8B7BB5] pb-4 flex justify-between items-start">
+            <div id="printable-doctor-report" className="p-4 bg-white text-[#5B0015] font-sans space-y-5 rounded-2xl border border-[#EDE5CD]">
+              
+              {/* Header */}
+              <div className="border-b-2 border-[#5B0015] pb-4 flex justify-between items-start">
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-2xl">🩺</span>
-                    <h2 className="text-xl font-extrabold text-[#29272D] uppercase tracking-wide">
+                    <h2 className="text-xl font-extrabold text-[#5B0015] uppercase tracking-wide">
                       HerBalance Clinical Health Summary
                     </h2>
                   </div>
-                  <p className="text-[11px] text-[#7A7880] mt-0.5">
+                  <p className="text-[11px] text-[#5B0015]/75 mt-0.5 font-medium">
                     Continuous Hormonal Pattern & Lifestyle Tracking Record (Rotterdam PCOD Reference)
                   </p>
                 </div>
                 <div className="text-right">
-                  <span className="bg-purple-100 text-[#8B7BB5] text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                  <span className="bg-[#80AEE8]/30 text-[#5B0015] border border-[#80AEE8] text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider">
                     Confidential Report
                   </span>
-                  <p className="text-[11px] text-[#7A7880] mt-1.5 font-medium">Generated: {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+                  <p className="text-[11px] text-[#5B0015]/70 mt-1.5 font-medium">
+                    Generated: {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  </p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-[#FAF9F6] p-3.5 rounded-2xl border border-[#E8E4DE] text-xs">
+              {/* Patient Basic Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-[#F7F2E0] p-3.5 rounded-2xl border border-[#EDE5CD] text-xs">
                 <div>
-                  <p className="text-[10px] font-bold text-[#7A7880] uppercase">Patient Identifier</p>
-                  <p className="font-bold text-[#29272D] text-sm mt-0.5">{user?.name || userKey}</p>
+                  <p className="text-[10px] font-bold text-[#5B0015]/70 uppercase">Patient Identifier</p>
+                  <p className="font-black text-[#5B0015] text-sm mt-0.5">{user?.name || userKey}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold text-[#7A7880] uppercase">Menstrual Phase</p>
-                  <p className="font-bold text-[#8B7BB5] text-sm mt-0.5">{kitSubscribed ? currentPhaseInternal : 'Encrypted (Care Pass)'}</p>
+                  <p className="text-[10px] font-bold text-[#5B0015]/70 uppercase">Menstrual Phase</p>
+                  <p className="font-black text-[#80AEE8] text-sm mt-0.5">{kitSubscribed ? currentPhaseInternal : 'Encrypted (Care Pass)'}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold text-[#7A7880] uppercase">Current Rhythm</p>
-                  <p className={`font-bold text-sm mt-0.5 ${daysRemainingText.includes('Late') ? 'text-amber-800' : 'text-emerald-700'}`}>
+                  <p className="text-[10px] font-bold text-[#5B0015]/70 uppercase">Current Rhythm</p>
+                  <p className={`font-black text-sm mt-0.5 ${daysRemainingText.includes('Late') ? 'text-amber-800' : 'text-[#5B0015]'}`}>
                     {daysRemainingText}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold text-[#7A7880] uppercase">Clinical Status</p>
-                  <p className={`font-bold text-sm mt-0.5 ${symptomStatus === 'Needs Attention' ? 'text-rose-600' : 'text-emerald-700'}`}>
+                  <p className="text-[10px] font-bold text-[#5B0015]/70 uppercase">Clinical Status</p>
+                  <p className={`font-black text-sm mt-0.5 ${symptomStatus === 'Needs Attention' ? 'text-rose-700' : 'text-emerald-700'}`}>
                     {symptomStatus}
                   </p>
                 </div>
               </div>
 
+              {/* Endocrine Profile Table */}
               <div className="space-y-2">
-                <h4 className="text-xs font-bold text-[#29272D] uppercase tracking-wider flex items-center gap-1.5">
+                <h4 className="text-xs font-black text-[#5B0015] uppercase tracking-wider flex items-center gap-1.5">
                   <span>1. Laboratory Endocrine Profile (Blood Biomarkers)</span>
                 </h4>
                 
-                <table className="w-full text-left border-collapse border border-[#E8E4DE] rounded-xl overflow-hidden text-xs">
-                  <thead className="bg-[#F4F2F7] text-[#29272D] font-bold border-b border-[#E8E4DE]">
+                <table className="w-full text-left border-collapse border border-[#EDE5CD] rounded-xl overflow-hidden text-xs">
+                  <thead className="bg-[#F7F2E0] text-[#5B0015] font-black border-b border-[#EDE5CD]">
                     <tr>
                       <th className="p-2.5">Biomarker</th>
                       <th className="p-2.5">Logged Value</th>
@@ -2275,38 +2230,38 @@ export default function Dashboard({ user, onLogout }) {
                       <th className="p-2.5">Diagnostic Inference</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#E8E4DE]">
+                  <tbody className="divide-y divide-[#EDE5CD]">
                     <tr>
-                      <td className="p-2.5 font-semibold text-[#29272D]">LH : FSH Ratio</td>
-                      <td className="p-2.5 font-bold">{lhFshRatio ? `${lhFshRatio} : 1` : 'Not Logged'}</td>
-                      <td className="p-2.5 text-[#7A7880]">1:1 (Follicular phase)</td>
+                      <td className="p-2.5 font-bold text-[#5B0015]">LH : FSH Ratio</td>
+                      <td className="p-2.5 font-black">{lhFshRatio ? `${lhFshRatio} : 1` : 'Not Logged'}</td>
+                      <td className="p-2.5 text-[#5B0015]/70">1:1 (Follicular phase)</td>
                       <td className="p-2.5">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                          isRatioHigh ? 'bg-amber-100 text-amber-900' : 'bg-emerald-100 text-emerald-800'
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-black ${
+                          isRatioHigh ? 'bg-[#5B0015]/15 text-[#5B0015]' : 'bg-[#80AEE8]/30 text-[#5B0015]'
                         }`}>
                           {isRatioHigh ? 'Elevated (PCOD Marker)' : (lhFshRatio ? 'Normal' : 'Pending')}
                         </span>
                       </td>
                     </tr>
                     <tr>
-                      <td className="p-2.5 font-semibold text-[#29272D]">Total Testosterone</td>
-                      <td className="p-2.5 font-bold">{testNum ? `${testNum} ng/dL` : 'Not Logged'}</td>
-                      <td className="p-2.5 text-[#7A7880]">15 - 45 ng/dL</td>
+                      <td className="p-2.5 font-bold text-[#5B0015]">Total Testosterone</td>
+                      <td className="p-2.5 font-black">{testNum ? `${testNum} ng/dL` : 'Not Logged'}</td>
+                      <td className="p-2.5 text-[#5B0015]/70">15 - 45 ng/dL</td>
                       <td className="p-2.5">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                          isTestosteroneHigh ? 'bg-rose-100 text-rose-900' : 'bg-emerald-100 text-emerald-800'
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-black ${
+                          isTestosteroneHigh ? 'bg-[#5B0015] text-[#F7F2E0]' : 'bg-[#80AEE8]/30 text-[#5B0015]'
                         }`}>
                           {isTestosteroneHigh ? 'Hyperandrogenemia' : (testNum ? 'Normal Range' : 'Pending')}
                         </span>
                       </td>
                     </tr>
                     <tr>
-                      <td className="p-2.5 font-semibold text-[#29272D]">Thyroid (TSH)</td>
-                      <td className="p-2.5 font-bold">{tshNum ? `${tshNum} uIU/mL` : 'Not Logged'}</td>
-                      <td className="p-2.5 text-[#7A7880]">0.4 - 4.5 uIU/mL</td>
+                      <td className="p-2.5 font-bold text-[#5B0015]">Thyroid (TSH)</td>
+                      <td className="p-2.5 font-black">{tshNum ? `${tshNum} uIU/mL` : 'Not Logged'}</td>
+                      <td className="p-2.5 text-[#5B0015]/70">0.4 - 4.5 uIU/mL</td>
                       <td className="p-2.5">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                          isTshAbnormal ? 'bg-amber-100 text-amber-900' : (tshNum ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700')
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-black ${
+                          isTshAbnormal ? 'bg-amber-100 text-amber-950' : (tshNum ? 'bg-[#80AEE8]/30 text-[#5B0015]' : 'bg-slate-100 text-slate-700')
                         }`}>
                           {isTshAbnormal ? 'Borderline / Abnormal' : (tshNum ? 'Euthyroid' : 'Pending')}
                         </span>
@@ -2316,62 +2271,65 @@ export default function Dashboard({ user, onLogout }) {
                 </table>
               </div>
 
+              {/* Cycle Dynamics */}
               <div className="space-y-2">
-                <h4 className="text-xs font-bold text-[#29272D] uppercase tracking-wider">
+                <h4 className="text-xs font-black text-[#5B0015] uppercase tracking-wider">
                   2. Menstrual Pattern & Cycle Dynamics
                 </h4>
-                <div className="grid grid-cols-3 gap-3 border border-[#E8E4DE] rounded-xl p-3 text-xs bg-[#FAF9F6]">
+                <div className="grid grid-cols-3 gap-3 border border-[#EDE5CD] rounded-xl p-3 text-xs bg-[#F7F2E0]">
                   <div>
-                    <span className="text-[#7A7880] block text-[10px] uppercase font-bold">LMP (Last Period)</span>
-                    <span className="font-bold text-[#29272D] text-xs">{lastDate || 'Not Configured'}</span>
+                    <span className="text-[#5B0015]/70 block text-[10px] uppercase font-bold">LMP (Last Period)</span>
+                    <span className="font-black text-[#5B0015] text-xs">{lastDate || 'Not Configured'}</span>
                   </div>
                   <div>
-                    <span className="text-[#7A7880] block text-[10px] uppercase font-bold">Reported Cycle Length</span>
-                    <span className="font-bold text-[#29272D] text-xs">{cycleLength} Days</span>
+                    <span className="text-[#5B0015]/70 block text-[10px] uppercase font-bold">Reported Cycle Length</span>
+                    <span className="font-black text-[#5B0015] text-xs">{cycleLength} Days</span>
                   </div>
                   <div>
-                    <span className="text-[#7A7880] block text-[10px] uppercase font-bold">Latest Logged Flow</span>
-                    <span className="font-bold text-[#8B7BB5] text-xs">{selectedFlow}</span>
+                    <span className="text-[#5B0015]/70 block text-[10px] uppercase font-bold">Latest Logged Flow</span>
+                    <span className="font-black text-[#80AEE8] text-xs">{selectedFlow}</span>
                   </div>
                 </div>
               </div>
 
+              {/* Multi-Day Symptoms */}
               <div className="space-y-2">
-                <h4 className="text-xs font-bold text-[#29272D] uppercase tracking-wider">
+                <h4 className="text-xs font-black text-[#5B0015] uppercase tracking-wider">
                   3. Symptom Incidence (Database Multi-Day History)
                 </h4>
-                <div className="border border-[#E8E4DE] rounded-xl p-3.5 text-xs space-y-2.5">
+                <div className="border border-[#EDE5CD] rounded-xl p-3.5 text-xs space-y-2.5 bg-white">
                   <div className="flex flex-wrap gap-2">
                     {symptomAnalytics.length > 0 ? (
                       symptomAnalytics.map((sym, idx) => (
-                        <span key={idx} className="bg-rose-50 border border-rose-200 text-rose-800 px-3 py-1 rounded-lg font-semibold flex items-center gap-1.5">
+                        <span key={idx} className="bg-[#F7F2E0] border border-[#EDE5CD] text-[#5B0015] px-3 py-1 rounded-lg font-bold flex items-center gap-1.5">
                           <span>{sym.name}</span>
-                          <span className="bg-rose-200/80 px-1.5 py-0.2 rounded text-[10px] font-extrabold">{sym.count}x</span>
+                          <span className="bg-[#80AEE8] text-[#5B0015] px-1.5 py-0.2 rounded text-[10px] font-black">{sym.count}x</span>
                         </span>
                       ))
                     ) : (
-                      <span className="text-[#7A7880] italic">No repeated symptom history recorded in current logging cycle.</span>
+                      <span className="text-[#5B0015]/70 italic font-medium">No repeated symptom history recorded in current logging cycle.</span>
                     )}
                   </div>
                 </div>
               </div>
 
+              {/* Meds Adherence */}
               <div className="space-y-2">
-                <h4 className="text-xs font-bold text-[#29272D] uppercase tracking-wider flex justify-between items-center">
+                <h4 className="text-xs font-black text-[#5B0015] uppercase tracking-wider flex justify-between items-center">
                   <span>4. Prescribed Medication & Supplement Compliance</span>
-                  <span className="text-[#8B7BB5] font-bold text-[11px]">Overall Adherence: {avgMedAdherence}%</span>
+                  <span className="text-[#80AEE8] font-black text-[11px]">Overall Adherence: {avgMedAdherence}%</span>
                 </h4>
-                <div className="border border-[#E8E4DE] rounded-xl p-3 text-xs">
+                <div className="border border-[#EDE5CD] rounded-xl p-3 text-xs bg-white">
                   {medications.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {medications.map((m) => (
-                        <div key={m.id} className="flex justify-between items-center bg-[#FAF9F6] p-2 rounded-lg border border-[#E8E4DE]">
+                        <div key={m.id} className="flex justify-between items-center bg-[#F7F2E0] p-2 rounded-lg border border-[#EDE5CD]">
                           <div>
-                            <span className="font-bold text-[#29272D]">{m.name}</span>
-                            <span className="text-[10px] text-[#7A7880] block">Schedule: {m.time}</span>
+                            <span className="font-bold text-[#5B0015]">{m.name}</span>
+                            <span className="text-[10px] text-[#5B0015]/70 block font-medium">Schedule: {m.time}</span>
                           </div>
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                            m.taken ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-[#7A7880]'
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-black ${
+                            m.taken ? 'bg-[#80AEE8] text-[#5B0015]' : 'bg-slate-100 text-[#5B0015]/60'
                           }`}>
                             {m.taken ? 'Taken' : 'Pending'}
                           </span>
@@ -2379,19 +2337,20 @@ export default function Dashboard({ user, onLogout }) {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-[#7A7880] italic">No active supplements or medications listed by patient.</p>
+                    <p className="text-[#5B0015]/70 italic font-medium">No active supplements or medications listed by patient.</p>
                   )}
                 </div>
               </div>
 
-              <div className="border-t-2 border-[#E8E4DE] pt-4 grid grid-cols-2 gap-4 text-xs">
+              {/* Stamp and Signature */}
+              <div className="border-t-2 border-[#EDE5CD] pt-4 grid grid-cols-2 gap-4 text-xs">
                 <div>
-                  <p className="text-[10px] font-bold text-[#7A7880] uppercase">Designated Emergency Caregiver</p>
-                  <p className="font-bold text-[#29272D] mt-0.5">{sosContactName || 'Not Set'} ({sosContactNumber || 'N/A'})</p>
+                  <p className="text-[10px] font-bold text-[#5B0015]/70 uppercase">Designated Emergency Caregiver</p>
+                  <p className="font-black text-[#5B0015] mt-0.5">{sosContactName || 'Not Set'} ({sosContactNumber || 'N/A'})</p>
                 </div>
                 <div className="text-right flex flex-col justify-end">
-                  <div className="inline-block border-b border-dashed border-[#7A7880] w-48 ml-auto mb-1"></div>
-                  <p className="text-[10px] font-bold text-[#7A7880] uppercase">Consulting Gynecologist Signature / Stamp</p>
+                  <div className="inline-block border-b border-dashed border-[#5B0015]/60 w-48 ml-auto mb-1"></div>
+                  <p className="text-[10px] font-bold text-[#5B0015]/70 uppercase">Consulting Gynecologist Signature / Stamp</p>
                 </div>
               </div>
 
@@ -2400,13 +2359,13 @@ export default function Dashboard({ user, onLogout }) {
             <div className="no-print mt-6 flex gap-3">
               <button
                 onClick={handlePrintPdf}
-                className="flex-1 bg-[#8B7BB5] hover:bg-[#726496] text-white font-bold py-3 rounded-2xl text-xs transition-colors shadow-sm flex items-center justify-center gap-2"
+                className="flex-1 bg-[#5B0015] hover:bg-[#450010] text-[#F7F2E0] font-black py-3 rounded-2xl text-xs transition-colors shadow-sm flex items-center justify-center gap-2 cursor-pointer"
               >
                 <span>🖨️ Download / Print Clinical PDF</span>
               </button>
               <button
                 onClick={() => setShowPdfModal(false)}
-                className="border border-[#E8E4DE] text-[#7A7880] hover:text-[#29272D] px-5 py-3 rounded-2xl text-xs font-semibold"
+                className="border border-[#EDE5CD] text-[#5B0015] hover:bg-[#F7F2E0] px-5 py-3 rounded-2xl text-xs font-bold cursor-pointer"
               >
                 Close
               </button>
@@ -2418,91 +2377,91 @@ export default function Dashboard({ user, onLogout }) {
 
       {/* ── 🧪 LAB REPORT VALUE ANALYZER MODAL ── */}
       {showLabModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white w-full max-w-lg rounded-3xl p-6 shadow-2xl border border-teal-100 max-h-[90vh] overflow-y-auto relative">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-[#FCFBF5] text-[#5B0015] w-full max-w-lg rounded-3xl p-6 shadow-2xl border border-[#EDE5CD] max-h-[90vh] overflow-y-auto relative">
             <button
               onClick={() => setShowLabModal(false)}
-              className="absolute top-4 right-4 text-[#7A7880] hover:text-[#29272D] font-bold text-lg bg-[#FAF9F6] w-8 h-8 rounded-full flex items-center justify-center border border-[#E8E4DE]"
+              className="absolute top-4 right-4 text-[#5B0015] hover:text-black font-bold text-lg bg-[#F7F2E0] w-8 h-8 rounded-full flex items-center justify-center border border-[#EDE5CD] cursor-pointer"
             >
               ✕
             </button>
 
-            <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center gap-2.5 mb-4">
               <span className="text-3xl">🧪</span>
               <div>
-                <h3 className="text-xl font-bold text-[#29272D]">PCOD Lab Report Checker</h3>
-                <p className="text-xs text-[#7A7880]">Apne latest blood test values compare karein</p>
+                <h3 className="text-xl font-black text-[#5B0015]">PCOD Lab Report Checker</h3>
+                <p className="text-xs text-[#5B0015]/75 font-medium">Apne latest blood test values compare karein</p>
               </div>
             </div>
 
-            <form onSubmit={handleSaveLabValues} className="space-y-3">
+            <form onSubmit={handleSaveLabValues} className="space-y-3.5">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] font-bold text-[#7A7880] uppercase">LH (mIU/mL)</label>
+                  <label className="text-[10px] font-bold text-[#5B0015]/75 uppercase">LH (mIU/mL)</label>
                   <input
                     type="number"
                     step="0.1"
                     placeholder="e.g. 11.2"
                     value={labValues.lh}
                     onChange={(e) => setLabValues({ ...labValues, lh: e.target.value })}
-                    className="w-full mt-1 p-2 text-xs border border-[#E8E4DE] rounded-xl outline-none focus:ring-1 focus:ring-teal-500"
+                    className="w-full mt-1 p-2.5 text-xs border border-[#EDE5CD] bg-white rounded-xl outline-none focus:ring-1 focus:ring-[#80AEE8] font-bold text-[#5B0015]"
                   />
-                  <span className="text-[9px] text-[#7A7880]">Normal: 2 - 10</span>
+                  <span className="text-[9px] text-[#5B0015]/70 font-semibold">Normal: 2 - 10</span>
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-bold text-[#7A7880] uppercase">FSH (mIU/mL)</label>
+                  <label className="text-[10px] font-bold text-[#5B0015]/75 uppercase">FSH (mIU/mL)</label>
                   <input
                     type="number"
                     step="0.1"
                     placeholder="e.g. 5.1"
                     value={labValues.fsh}
                     onChange={(e) => setLabValues({ ...labValues, fsh: e.target.value })}
-                    className="w-full mt-1 p-2 text-xs border border-[#E8E4DE] rounded-xl outline-none focus:ring-1 focus:ring-teal-500"
+                    className="w-full mt-1 p-2.5 text-xs border border-[#EDE5CD] bg-white rounded-xl outline-none focus:ring-1 focus:ring-[#80AEE8] font-bold text-[#5B0015]"
                   />
-                  <span className="text-[9px] text-[#7A7880]">Normal: 3 - 8</span>
+                  <span className="text-[9px] text-[#5B0015]/70 font-semibold">Normal: 3 - 8</span>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] font-bold text-[#7A7880] uppercase">Testosterone (ng/dL)</label>
+                  <label className="text-[10px] font-bold text-[#5B0015]/75 uppercase">Testosterone (ng/dL)</label>
                   <input
                     type="number"
                     step="0.1"
                     placeholder="e.g. 52.0"
                     value={labValues.testosterone}
                     onChange={(e) => setLabValues({ ...labValues, testosterone: e.target.value })}
-                    className="w-full mt-1 p-2 text-xs border border-[#E8E4DE] rounded-xl outline-none focus:ring-1 focus:ring-teal-500"
+                    className="w-full mt-1 p-2.5 text-xs border border-[#EDE5CD] bg-white rounded-xl outline-none focus:ring-1 focus:ring-[#80AEE8] font-bold text-[#5B0015]"
                   />
-                  <span className="text-[9px] text-[#7A7880]">Normal: 15 - 45</span>
+                  <span className="text-[9px] text-[#5B0015]/70 font-semibold">Normal: 15 - 45</span>
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-bold text-[#7A7880] uppercase">TSH (Thyroid) (uIU/mL)</label>
+                  <label className="text-[10px] font-bold text-[#5B0015]/75 uppercase">TSH (Thyroid) (uIU/mL)</label>
                   <input
                     type="number"
                     step="0.1"
                     placeholder="e.g. 2.8"
                     value={labValues.tsh}
                     onChange={(e) => setLabValues({ ...labValues, tsh: e.target.value })}
-                    className="w-full mt-1 p-2 text-xs border border-[#E8E4DE] rounded-xl outline-none focus:ring-1 focus:ring-teal-500"
+                    className="w-full mt-1 p-2.5 text-xs border border-[#EDE5CD] bg-white rounded-xl outline-none focus:ring-1 focus:ring-[#80AEE8] font-bold text-[#5B0015]"
                   />
-                  <span className="text-[9px] text-[#7A7880]">Normal: 0.4 - 4.5</span>
+                  <span className="text-[9px] text-[#5B0015]/70 font-semibold">Normal: 0.4 - 4.5</span>
                 </div>
               </div>
 
               <button
                 type="submit"
-                className="w-full bg-[#8B7BB5] hover:bg-[#726496] text-white py-2 rounded-xl text-xs font-semibold transition-colors mt-2"
+                className="w-full bg-[#5B0015] hover:bg-[#450010] text-[#F7F2E0] py-2.5 rounded-xl text-xs font-black transition-colors mt-2 cursor-pointer shadow-md"
               >
-                Save Lab Values
+                Save Lab Values 🌸
               </button>
             </form>
 
             <button
               onClick={() => setShowLabModal(false)}
-              className="w-full mt-4 bg-[#29272D] text-white font-semibold py-2.5 rounded-xl text-xs hover:bg-black transition-colors"
+              className="w-full mt-3 bg-[#F7F2E0] border border-[#EDE5CD] text-[#5B0015] font-bold py-2 rounded-xl text-xs hover:bg-white transition-colors cursor-pointer"
             >
               Close
             </button>
@@ -2510,13 +2469,13 @@ export default function Dashboard({ user, onLogout }) {
         </div>
       )}
 
-      {/* ── SOS RELIEF MODAL POPUP ── */}
+      {/* ── 🆘 SOS RELIEF MODAL POPUP ── */}
       {showSosModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white w-full max-w-lg rounded-3xl p-6 shadow-2xl border border-rose-100 max-h-[90vh] overflow-y-auto relative">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-[#FCFBF5] text-[#5B0015] w-full max-w-lg rounded-3xl p-6 shadow-2xl border-2 border-[#5B0015]/20 max-h-[90vh] overflow-y-auto relative">
             <button
               onClick={() => setShowSosModal(false)}
-              className="absolute top-4 right-4 text-[#7A7880] hover:text-[#29272D] font-bold text-lg bg-[#FAF9F6] w-8 h-8 rounded-full flex items-center justify-center border border-[#E8E4DE]"
+              className="absolute top-4 right-4 text-[#5B0015] font-bold text-lg bg-[#F7F2E0] w-8 h-8 rounded-full flex items-center justify-center border border-[#EDE5CD] cursor-pointer"
             >
               ✕
             </button>
@@ -2524,52 +2483,52 @@ export default function Dashboard({ user, onLogout }) {
             <div className="flex items-center gap-2 mb-4">
               <span className="text-3xl">🌸</span>
               <div>
-                <h3 className="text-xl font-bold text-[#29272D]">SOS Cramp Relief Box</h3>
-                <p className="text-xs text-[#7A7880]">Natural relief methods & Caregiver help</p>
+                <h3 className="text-xl font-black text-[#5B0015]">SOS Cramp Relief Box</h3>
+                <p className="text-xs text-[#5B0015]/75 font-medium">Natural relief methods & Caregiver help</p>
               </div>
             </div>
 
             <div className="space-y-3">
-              <div className="bg-rose-50 border border-rose-100 p-3.5 rounded-2xl flex items-start gap-3">
+              <div className="bg-[#F7F2E0] border border-[#EDE5CD] p-3.5 rounded-2xl flex items-start gap-3">
                 <span className="text-2xl">🔥</span>
                 <div>
-                  <p className="text-xs font-bold text-rose-900">Heat Therapy (Most Effective)</p>
-                  <p className="text-[11px] text-rose-700 mt-0.5 leading-relaxed">
+                  <p className="text-xs font-black text-[#5B0015]">Heat Therapy (Most Effective)</p>
+                  <p className="text-[11px] text-[#5B0015]/80 mt-0.5 leading-relaxed font-medium">
                     Lower abdomen par 15-20 min ke liye Hot Water Bag rakhein. Pelvic muscles relax hoti hain.
                   </p>
                 </div>
               </div>
 
-              <div className="bg-amber-50 border border-amber-100 p-3.5 rounded-2xl flex items-start gap-3">
+              <div className="bg-[#80AEE8]/15 border border-[#80AEE8]/40 p-3.5 rounded-2xl flex items-start gap-3">
                 <span className="text-2xl">🧘‍♀️</span>
                 <div>
-                  <p className="text-xs font-bold text-amber-900">Gentle Stretch (Child's Pose)</p>
-                  <p className="text-[11px] text-amber-800 mt-0.5 leading-relaxed">
+                  <p className="text-xs font-black text-[#5B0015]">Gentle Stretch (Child's Pose)</p>
+                  <p className="text-[11px] text-[#5B0015]/80 mt-0.5 leading-relaxed font-medium">
                     Child's Pose mein 5 minute rest karein. Lower back aur pelvic pressure instantly ease hota hai.
                   </p>
                 </div>
               </div>
 
-              <div className="bg-emerald-50 border border-emerald-100 p-3.5 rounded-2xl flex items-start gap-3">
+              <div className="bg-[#F7F2E0] border border-[#EDE5CD] p-3.5 rounded-2xl flex items-start gap-3">
                 <span className="text-2xl">🍵</span>
                 <div>
-                  <p className="text-xs font-bold text-emerald-900">Warm Ginger or Chamomile Tea</p>
-                  <p className="text-[11px] text-emerald-800 mt-0.5 leading-relaxed">
+                  <p className="text-xs font-black text-[#5B0015]">Warm Ginger or Chamomile Tea</p>
+                  <p className="text-[11px] text-[#5B0015]/80 mt-0.5 leading-relaxed font-medium">
                     Warm adrak tea pelvic muscle contractions ko naturally soothe karti hai.
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="mt-5 p-4 rounded-2xl bg-gradient-to-r from-rose-50 to-pink-50 border border-rose-200">
+            <div className="mt-5 p-4 rounded-2xl bg-[#F7F2E0] border border-[#EDE5CD]">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <span className="text-xl">🚨</span>
-                  <span className="text-xs font-bold text-rose-950 uppercase tracking-wider">Emergency Contact Center</span>
+                  <span className="text-xs font-black text-[#5B0015] uppercase tracking-wider">Emergency Contact Center</span>
                 </div>
                 <button
                   onClick={() => setIsEditingSosContact(!isEditingSosContact)}
-                  className="text-[11px] font-semibold text-[#8B7BB5] hover:underline"
+                  className="text-[11px] font-black text-[#80AEE8] hover:underline cursor-pointer"
                 >
                   {isEditingSosContact ? 'Cancel' : (sosContactNumber ? 'Edit' : '+ Add Contact')}
                 </button>
@@ -2582,7 +2541,7 @@ export default function Dashboard({ user, onLogout }) {
                     placeholder="Contact Name (e.g. Mom / Doctor / Partner)"
                     value={sosContactName}
                     onChange={(e) => setSosContactName(e.target.value)}
-                    className="w-full p-2 text-xs border border-rose-200 rounded-xl bg-white outline-none focus:ring-1 focus:ring-rose-400"
+                    className="w-full p-2 text-xs border border-[#EDE5CD] rounded-xl bg-white outline-none focus:ring-1 focus:ring-[#80AEE8] text-[#5B0015]"
                     required
                   />
                   <input
@@ -2590,12 +2549,12 @@ export default function Dashboard({ user, onLogout }) {
                     placeholder="10-digit Phone Number"
                     value={sosContactNumber}
                     onChange={(e) => setSosContactNumber(e.target.value)}
-                    className="w-full p-2 text-xs border border-rose-200 rounded-xl bg-white outline-none focus:ring-1 focus:ring-rose-400"
+                    className="w-full p-2 text-xs border border-[#EDE5CD] rounded-xl bg-white outline-none focus:ring-1 focus:ring-[#80AEE8] text-[#5B0015]"
                     required
                   />
                   <button
                     type="submit"
-                    className="w-full bg-[#8B7BB5] hover:bg-[#726496] text-white py-2 rounded-xl text-xs font-semibold transition-colors"
+                    className="w-full bg-[#5B0015] hover:bg-[#450010] text-[#F7F2E0] py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer"
                   >
                     Save Contact Details
                   </button>
@@ -2603,17 +2562,17 @@ export default function Dashboard({ user, onLogout }) {
               ) : (
                 <div className="mt-2 space-y-3">
                   {sosContactNumber ? (
-                    <div className="flex items-center justify-between text-xs bg-white/70 p-2.5 rounded-xl border border-rose-100">
+                    <div className="flex items-center justify-between text-xs bg-white p-2.5 rounded-xl border border-[#EDE5CD]">
                       <div>
-                        <p className="font-bold text-[#29272D]">{sosContactName || 'Emergency Contact'}</p>
-                        <p className="text-[11px] text-[#7A7880]">{sosContactNumber}</p>
+                        <p className="font-bold text-[#5B0015]">{sosContactName || 'Emergency Contact'}</p>
+                        <p className="text-[11px] text-[#5B0015]/70">{sosContactNumber}</p>
                       </div>
-                      <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                      <span className="text-xs font-black text-[#5B0015] bg-[#80AEE8]/30 px-2 py-0.5 rounded-full border border-[#80AEE8]">
                         Ready ✓
                       </span>
                     </div>
                   ) : (
-                    <p className="text-[11px] text-rose-700 italic">
+                    <p className="text-[11px] text-[#5B0015]/80 italic">
                       Emergency contact set nahi hai. Severe pain ke waqt turant alert bhejne ke liye add karein.
                     </p>
                   )}
@@ -2621,14 +2580,14 @@ export default function Dashboard({ user, onLogout }) {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <button
                       onClick={handleSendWhatsAppSos}
-                      className="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all"
+                      className="w-full bg-[#80AEE8] hover:bg-[#A5C7F0] text-[#5B0015] font-black py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
                     >
                       <span>💬 WhatsApp SOS</span>
                     </button>
                     
                     <button
                       onClick={handleMakeSosCall}
-                      className="w-full bg-rose-600 hover:bg-rose-700 active:scale-[0.98] text-white font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all"
+                      className="w-full bg-[#5B0015] hover:bg-[#450010] text-[#F7F2E0] font-black py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
                     >
                       <span>📞 Direct Call</span>
                     </button>
@@ -2639,7 +2598,7 @@ export default function Dashboard({ user, onLogout }) {
 
             <button
               onClick={() => setShowSosModal(false)}
-              className="w-full mt-5 bg-[#29272D] text-white font-semibold py-3 rounded-xl text-xs hover:bg-black transition-colors"
+              className="w-full mt-5 bg-[#5B0015] text-[#F7F2E0] font-bold py-3 rounded-xl text-xs hover:bg-[#450010] transition-colors cursor-pointer"
             >
               I Feel Better Now / Close
             </button>

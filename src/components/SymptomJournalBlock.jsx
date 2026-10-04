@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 export default function SymptomJournalBlock({ onSave }) {
   const [selectedSymptoms, setSelectedSymptoms] = useState([]);
   const [selectedFlow, setSelectedFlow] = useState('None');
-  const [selectedMood, setSelectedMood] = useState('😊 Neutral');
+  const [selectedMood, setSelectedMood] = useState('😊 Calm');
   const [isSaved, setIsSaved] = useState(false);
 
   const symptomOptions = ['Cramps', 'Bloating', 'Acne', 'Fatigue', 'Headache', 'Backache', 'Mood Swings'];
@@ -29,23 +29,28 @@ export default function SymptomJournalBlock({ onSave }) {
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-[#E8E4DE] p-5 shadow-sm space-y-4">
+    <div className="bg-[#FCFBF5] rounded-3xl border border-[#EDE5CD] p-6 shadow-sm space-y-4 text-[#5B0015]">
       <div className="flex items-center justify-between">
-        <h3 className="font-bold text-[#29272D] text-base">🌸 Symptom & Flow Journal</h3>
-        <span className="text-xs text-[#7A7880]">Today</span>
+        <h3 className="font-black text-[#5B0015] text-base flex items-center gap-2">
+          🌸 Symptom & Flow Journal
+        </h3>
+        <span className="text-[10px] font-bold text-[#5B0015]/70 uppercase tracking-wider bg-[#F7F2E0] px-2.5 py-1 rounded-full border border-[#EDE5CD]">
+          Today
+        </span>
       </div>
 
+      {/* Period Flow Selector */}
       <div>
-        <p className="text-xs font-semibold text-[#7A7880] mb-2">Period Flow Today:</p>
-        <div className="flex gap-2">
+        <p className="text-[11px] font-bold text-[#5B0015]/70 uppercase tracking-wider mb-2">Period Flow Today:</p>
+        <div className="flex gap-1.5">
           {flowOptions.map((f) => (
             <button
               key={f}
               onClick={() => setSelectedFlow(f)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${
+              className={`flex-1 py-1.5 rounded-xl text-xs font-black border transition-all cursor-pointer ${
                 selectedFlow === f
-                  ? 'bg-[#8B7BB5] text-white border-[#8B7BB5]'
-                  : 'bg-[#FAF9F6] text-[#29272D] border-[#E8E4DE] hover:border-[#8B7BB5]'
+                  ? 'bg-[#5B0015] text-[#F7F2E0] border-[#5B0015] shadow-sm'
+                  : 'bg-[#F7F2E0] text-[#5B0015] border-[#EDE5CD] hover:border-[#80AEE8]'
               }`}
             >
               {f}
@@ -54,19 +59,20 @@ export default function SymptomJournalBlock({ onSave }) {
         </div>
       </div>
 
+      {/* Physical Symptoms Multi-select */}
       <div>
-        <p className="text-xs font-semibold text-[#7A7880] mb-2">Physical Symptoms:</p>
-        <div className="flex flex-wrap gap-2">
+        <p className="text-[11px] font-bold text-[#5B0015]/70 uppercase tracking-wider mb-2">Physical Symptoms:</p>
+        <div className="flex flex-wrap gap-1.5">
           {symptomOptions.map((s) => {
             const active = selectedSymptoms.includes(s);
             return (
               <button
                 key={s}
                 onClick={() => toggleSymptom(s)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                className={`px-3 py-1.5 rounded-full text-[11px] font-bold transition-all cursor-pointer ${
                   active
-                    ? 'bg-[#D99AA5] text-white shadow-sm'
-                    : 'bg-[#FAF9F6] text-[#7A7880] border border-[#E8E4DE] hover:border-[#D99AA5]'
+                    ? 'bg-[#80AEE8] text-[#5B0015] shadow-sm border border-[#80AEE8]'
+                    : 'bg-[#F7F2E0] text-[#5B0015]/80 border border-[#EDE5CD] hover:border-[#80AEE8]'
                 }`}
               >
                 {s} {active ? '✓' : '+'}
@@ -76,17 +82,18 @@ export default function SymptomJournalBlock({ onSave }) {
         </div>
       </div>
 
+      {/* Mood Selector */}
       <div>
-        <p className="text-xs font-semibold text-[#7A7880] mb-2">How are you feeling?</p>
-        <div className="flex flex-wrap gap-2">
+        <p className="text-[11px] font-bold text-[#5B0015]/70 uppercase tracking-wider mb-2">Mood & Emotional Balance:</p>
+        <div className="flex flex-wrap gap-1.5">
           {moodOptions.map((m) => (
             <button
               key={m}
               onClick={() => setSelectedMood(m)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
                 selectedMood === m
-                  ? 'bg-[#A8BFA3] text-white border-[#A8BFA3]'
-                  : 'bg-[#FAF9F6] text-[#29272D] border-[#E8E4DE]'
+                  ? 'bg-[#5B0015] text-[#F7F2E0] border-[#5B0015] shadow-sm'
+                  : 'bg-[#F7F2E0] text-[#5B0015] border-[#EDE5CD] hover:border-[#80AEE8]'
               }`}
             >
               {m}
@@ -97,9 +104,9 @@ export default function SymptomJournalBlock({ onSave }) {
 
       <button
         onClick={handleSubmit}
-        className="w-full bg-[#8B7BB5] hover:bg-[#7A6AA4] text-white font-semibold py-2.5 rounded-xl text-xs transition-colors flex items-center justify-center gap-2"
+        className="w-full bg-[#5B0015] hover:bg-[#450010] text-[#F7F2E0] font-black py-2.5 rounded-xl text-xs transition-colors flex items-center justify-center gap-2 shadow-sm cursor-pointer mt-2"
       >
-        {isSaved ? '✓ Journal Logged & Cycle Updated!' : 'Save & Update Cycle Tracker'}
+        {isSaved ? '✓ Journal Logged & Cycle Updated!' : 'Save & Update Cycle Tracker 🌸'}
       </button>
     </div>
   );

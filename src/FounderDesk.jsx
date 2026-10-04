@@ -80,12 +80,10 @@ export default function FounderDesk({ onClose }) {
   };
 
   // ── 🛡️ STRICT WhatsApp Notification Guard ──
-  // Jab tak UTR na ho aur tick/approval na lage, tab tak message strictly blocked rahega!
   const handleSendWaAlert = (order, type = 'verified') => {
     const hasValidUtr = Boolean(order.utr_number && String(order.utr_number).trim().length >= 6);
     const isApproved = order.payment_status === 'verified' || order.payment_status === 'dispatched';
 
-    // Strict Lock: Bina UTR aur bina Approval ke koi update nahi ja sakti!
     if (!hasValidUtr || !isApproved) {
       alert("❌ Action Blocked!\nYeh order abhi verify ya approve nahi hua hai. Jab tak valid UTR na ho aur aap 'Approve & Mark Paid' na karein, tab tak koi WhatsApp message nahi bheja ja sakta.");
       return;
@@ -106,7 +104,6 @@ export default function FounderDesk({ onClose }) {
 
   // ── CSV Export For Courier Upload ──
   const handleExportCsv = () => {
-    // Sirf verified orders hi export honge
     const verifiedOnly = orders.filter(o => o.payment_status === 'verified' || o.payment_status === 'dispatched');
 
     if (verifiedOnly.length === 0) {
@@ -154,15 +151,15 @@ export default function FounderDesk({ onClose }) {
         <head>
           <title>HerBalance Shipping Labels</title>
           <style>
-            body { font-family: sans-serif; padding: 20px; }
-            .label-card { border: 2px dashed #444; border-radius: 12px; padding: 16px; margin-bottom: 20px; page-break-inside: avoid; }
-            .brand { font-size: 16px; font-weight: bold; color: #8B7BB5; margin-bottom: 8px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
-            .details { font-size: 13px; line-height: 1.5; margin-top: 6px; }
-            .badge { display: inline-block; background: #eee; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+            body { font-family: sans-serif; padding: 20px; background-color: #F7F2E0; }
+            .label-card { border: 2px dashed #5B0015; border-radius: 12px; padding: 16px; margin-bottom: 20px; page-break-inside: avoid; background: #FCFBF5; }
+            .brand { font-size: 16px; font-weight: 900; color: #5B0015; margin-bottom: 8px; border-bottom: 1px solid #EDE5CD; padding-bottom: 4px; }
+            .details { font-size: 13px; line-height: 1.5; margin-top: 6px; color: #5B0015; }
+            .badge { display: inline-block; background: #80AEE8; color: #5B0015; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
           </style>
         </head>
         <body>
-          <h2>HerBalance Dispatch Slips (${printableContent.length} Verified Orders)</h2>
+          <h2 style="color: #5B0015;">HerBalance Dispatch Slips (${printableContent.length} Verified Orders)</h2>
           ${printableContent.map(o => `
             <div class="label-card">
               <div class="brand">🌸 HerBalance Organic Kit Dispatch</div>
@@ -202,45 +199,45 @@ export default function FounderDesk({ onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-6 animate-in fade-in">
-      <div className="bg-[#FAF9F6] w-full max-w-6xl rounded-3xl shadow-2xl border border-[#E8E4DE] max-h-[95vh] flex flex-col overflow-hidden">
+      <div className="bg-[#FCFBF5] text-[#5B0015] w-full max-w-6xl rounded-3xl shadow-2xl border border-[#EDE5CD] max-h-[95vh] flex flex-col overflow-hidden">
         
         {/* ── Top Header ── */}
-        <div className="bg-white p-5 border-b border-[#E8E4DE] flex flex-wrap justify-between items-center gap-4">
+        <div className="bg-white p-5 border-b border-[#EDE5CD] flex flex-wrap justify-between items-center gap-4">
           <div className="flex items-center gap-3">
-            <span className="text-3xl p-2 bg-[#FAF9F6] rounded-2xl border border-[#E8E4DE]">👑</span>
+            <span className="text-3xl p-2 bg-[#F7F2E0] rounded-2xl border border-[#EDE5CD]">👑</span>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-xl font-black text-[#29272D]">Founder Orders & Logistics Control</h2>
-                <span className="bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase">
+                <h2 className="text-xl font-black text-[#5B0015]">Founder Orders & Logistics Control</h2>
+                <span className="bg-[#80AEE8]/30 text-[#5B0015] text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase border border-[#80AEE8]/50">
                   Strict Audit Guard 🛡️
                 </span>
               </div>
-              <p className="text-xs text-[#7A7880]">Bina valid UTR aur Founder approval ke koi message nahi jayega.</p>
+              <p className="text-xs text-[#5B0015]/70 font-medium">Bina valid UTR aur Founder approval ke koi message nahi jayega.</p>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
             <button
               onClick={handleExportCsv}
-              className="text-xs font-bold text-[#29272D] bg-[#FAF9F6] hover:bg-white px-3.5 py-2 rounded-xl border border-[#E8E4DE] transition-all flex items-center gap-1.5 shadow-sm"
+              className="text-xs font-bold text-[#5B0015] bg-[#F7F2E0] hover:bg-white px-3.5 py-2 rounded-xl border border-[#EDE5CD] transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
             >
               📥 Export CSV
             </button>
             <button
               onClick={handlePrintLabels}
-              className="text-xs font-bold text-white bg-[#8B7BB5] hover:bg-[#726496] px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-sm"
+              className="text-xs font-bold text-[#F7F2E0] bg-[#5B0015] hover:bg-[#450010] px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
             >
               🖨️ Print Labels
             </button>
             <button
               onClick={fetchOrders}
-              className="text-xs font-bold text-[#7A7880] hover:text-[#29272D] bg-[#FAF9F6] px-3 py-2 rounded-xl border border-[#E8E4DE] transition-all"
+              className="text-xs font-bold text-[#5B0015]/80 hover:text-[#5B0015] bg-[#F7F2E0] px-3 py-2 rounded-xl border border-[#EDE5CD] transition-all cursor-pointer"
             >
               🔄 Refresh
             </button>
             <button
               onClick={onClose}
-              className="bg-[#29272D] hover:bg-black text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm"
+              className="bg-[#5B0015] hover:bg-[#450010] text-[#F7F2E0] text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm cursor-pointer"
             >
               Close ✕
             </button>
@@ -248,38 +245,38 @@ export default function FounderDesk({ onClose }) {
         </div>
 
         {/* ── Accurate Financial Overview ── */}
-        <div className="p-5 grid grid-cols-1 sm:grid-cols-3 gap-4 border-b border-[#E8E4DE] bg-white/50">
-          <div className="bg-white p-4 rounded-2xl border border-emerald-100 shadow-sm">
+        <div className="p-5 grid grid-cols-1 sm:grid-cols-3 gap-4 border-b border-[#EDE5CD] bg-[#F7F2E0]/50">
+          <div className="bg-white p-4 rounded-2xl border border-[#EDE5CD] shadow-sm">
             <div className="flex justify-between items-center">
-              <p className="text-[10px] uppercase font-bold text-[#7A7880]">Real Verified Revenue</p>
-              <span className="text-[10px] bg-emerald-100 text-emerald-800 font-extrabold px-2 py-0.5 rounded-md">In Bank</span>
+              <p className="text-[10px] uppercase font-bold text-[#5B0015]/70">Real Verified Revenue</p>
+              <span className="text-[10px] bg-[#80AEE8]/30 text-[#5B0015] font-black px-2 py-0.5 rounded-md">In Bank</span>
             </div>
-            <p className="text-2xl font-black text-emerald-600 mt-1">₹{realRevenue}</p>
-            <span className="text-[10px] text-[#7A7880]">{verifiedOrders.length} verified transactions</span>
+            <p className="text-2xl font-black text-[#5B0015] mt-1">₹{realRevenue}</p>
+            <span className="text-[10px] text-[#5B0015]/70 font-semibold">{verifiedOrders.length} verified transactions</span>
           </div>
 
-          <div className="bg-white p-4 rounded-2xl border border-blue-100 shadow-sm">
+          <div className="bg-white p-4 rounded-2xl border border-[#EDE5CD] shadow-sm">
             <div className="flex justify-between items-center">
-              <p className="text-[10px] uppercase font-bold text-[#7A7880]">Needs Verification</p>
-              <span className="text-[10px] bg-blue-100 text-blue-800 font-extrabold px-2 py-0.5 rounded-md">UTR Submitted</span>
+              <p className="text-[10px] uppercase font-bold text-[#5B0015]/70">Needs Verification</p>
+              <span className="text-[10px] bg-[#80AEE8] text-[#5B0015] font-black px-2 py-0.5 rounded-md">UTR Submitted</span>
             </div>
-            <p className="text-2xl font-black text-blue-600 mt-1">{underReviewCount}</p>
-            <span className="text-[10px] text-[#7A7880]">Check bank statement to approve</span>
+            <p className="text-2xl font-black text-[#80AEE8] mt-1">{underReviewCount}</p>
+            <span className="text-[10px] text-[#5B0015]/70 font-semibold">Check bank statement to approve</span>
           </div>
 
-          <div className="bg-white p-4 rounded-2xl border border-rose-100 shadow-sm">
+          <div className="bg-white p-4 rounded-2xl border border-[#EDE5CD] shadow-sm">
             <div className="flex justify-between items-center">
-              <p className="text-[10px] uppercase font-bold text-[#7A7880]">Unpaid / Incomplete</p>
-              <span className="text-[10px] bg-rose-100 text-rose-800 font-extrabold px-2 py-0.5 rounded-md">No UTR</span>
+              <p className="text-[10px] uppercase font-bold text-[#5B0015]/70">Unpaid / Incomplete</p>
+              <span className="text-[10px] bg-[#5B0015]/10 text-[#5B0015] font-black px-2 py-0.5 rounded-md">No UTR</span>
             </div>
-            <p className="text-2xl font-black text-rose-500 mt-1">{unpaidCount}</p>
-            <span className="text-[10px] text-[#7A7880]">Address saved, payment pending</span>
+            <p className="text-2xl font-black text-[#5B0015]/80 mt-1">{unpaidCount}</p>
+            <span className="text-[10px] text-[#5B0015]/70 font-semibold">Address saved, payment pending</span>
           </div>
         </div>
 
         {/* ── Filter Toolbar ── */}
-        <div className="p-4 bg-[#FAF9F6] border-b border-[#E8E4DE] flex flex-wrap justify-between items-center gap-3">
-          <div className="flex flex-wrap gap-1.5 bg-white p-1 rounded-xl border border-[#E8E4DE]">
+        <div className="p-4 bg-[#F7F2E0] border-b border-[#EDE5CD] flex flex-wrap justify-between items-center gap-3">
+          <div className="flex flex-wrap gap-1.5 bg-white p-1 rounded-xl border border-[#EDE5CD]">
             {[
               { key: 'all', label: 'All Orders' },
               { key: 'under_review', label: '⏳ Check UTR' },
@@ -290,8 +287,8 @@ export default function FounderDesk({ onClose }) {
               <button
                 key={f.key}
                 onClick={() => setFilter(f.key)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  filter === f.key ? 'bg-[#29272D] text-white shadow-sm' : 'text-[#7A7880] hover:text-[#29272D]'
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  filter === f.key ? 'bg-[#5B0015] text-[#F7F2E0] shadow-sm' : 'text-[#5B0015]/70 hover:text-[#5B0015]'
                 }`}
               >
                 {f.label}
@@ -304,19 +301,19 @@ export default function FounderDesk({ onClose }) {
             placeholder="Search WhatsApp, UTR, City..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="p-2 text-xs border border-[#E8E4DE] rounded-xl bg-white outline-none focus:ring-1 focus:ring-[#8B7BB5] w-full sm:w-64"
+            className="p-2 text-xs border border-[#EDE5CD] rounded-xl bg-white outline-none focus:ring-2 focus:ring-[#80AEE8] text-[#5B0015] font-bold w-full sm:w-64"
           />
         </div>
 
         {/* ── Orders List ── */}
         <div className="flex-1 overflow-y-auto p-5">
           {loading ? (
-            <div className="text-center py-12 text-[#7A7880] text-sm">Loading live database... ⏳</div>
+            <div className="text-center py-12 text-[#5B0015]/70 text-sm font-bold">Loading live database... ⏳</div>
           ) : filteredOrders.length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-[#E8E4DE]">
+            <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-[#EDE5CD]">
               <p className="text-3xl mb-2">📋</p>
-              <p className="text-sm font-bold text-[#29272D]">Koi orders nahi mile</p>
-              <p className="text-xs text-[#7A7880] mt-1">Naye orders yahan automatically update honge.</p>
+              <p className="text-sm font-black text-[#5B0015]">Koi orders nahi mile</p>
+              <p className="text-xs text-[#5B0015]/70 mt-1">Naye orders yahan automatically update honge.</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -330,21 +327,21 @@ export default function FounderDesk({ onClose }) {
                 )}`;
 
                 return (
-                  <div key={order.id} className="bg-white rounded-2xl p-5 border border-[#E8E4DE] shadow-sm hover:shadow-md transition-shadow">
+                  <div key={order.id} className="bg-white rounded-2xl p-5 border border-[#EDE5CD] shadow-sm hover:shadow-md transition-shadow">
                     <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                       
                       {/* Left: Address & Customer Details */}
                       <div className="space-y-1.5 max-w-xl">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-extrabold text-sm text-[#29272D]">
+                          <span className="font-black text-sm text-[#5B0015]">
                             WhatsApp: +91 {order.whatsapp}
                           </span>
                           
-                          {/* 🛡️️ LOCKED WHATSAPP BUTTON (Only active when UTR exists and order is approved) */}
+                          {/* LOCKED WHATSAPP BUTTON */}
                           {isPaid ? (
                             <button
                               onClick={() => handleSendWaAlert(order, order.payment_status === 'dispatched' ? 'dispatched' : 'verified')}
-                              className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-[10px] font-bold px-2.5 py-1 rounded-md border border-emerald-200 transition-colors flex items-center gap-1"
+                              className="bg-[#80AEE8]/30 text-[#5B0015] hover:bg-[#80AEE8] text-[10px] font-black px-2.5 py-1 rounded-md border border-[#80AEE8] transition-colors flex items-center gap-1 cursor-pointer"
                             >
                               💬 Send WhatsApp Update
                             </button>
@@ -359,21 +356,21 @@ export default function FounderDesk({ onClose }) {
                           
                           {/* Payment State Pill */}
                           {isPaid ? (
-                            <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black px-2.5 py-0.5 rounded-full">
+                            <span className="bg-[#80AEE8] text-[#5B0015] text-[10px] font-black px-2.5 py-0.5 rounded-full">
                               ✓ PAYMENT VERIFIED
                             </span>
                           ) : isUnderReview ? (
-                            <span className="bg-blue-100 text-blue-800 text-[10px] font-black px-2.5 py-0.5 rounded-full animate-pulse">
+                            <span className="bg-[#80AEE8]/30 text-[#5B0015] border border-[#80AEE8] text-[10px] font-black px-2.5 py-0.5 rounded-full animate-pulse">
                               ⏳ UTR SUBMITTED (CHECK BANK)
                             </span>
                           ) : (
-                            <span className="bg-rose-100 text-rose-800 text-[10px] font-black px-2.5 py-0.5 rounded-full">
+                            <span className="bg-[#5B0015]/15 text-[#5B0015] border border-[#5B0015]/40 text-[10px] font-black px-2.5 py-0.5 rounded-full">
                               ⚠️ PAYMENT NOT DONE / NO UTR
                             </span>
                           )}
                         </div>
 
-                        <p className="text-xs text-[#29272D] leading-relaxed">
+                        <p className="text-xs text-[#5B0015] leading-relaxed font-medium">
                           <b>Delivery Address:</b> {order.house_no}, {order.area}{order.landmark ? `, Near ${order.landmark}` : ''}, <b>{order.city}</b>, {order.state} - <b>{order.pincode}</b>
                         </p>
 
@@ -382,32 +379,32 @@ export default function FounderDesk({ onClose }) {
                             href={mapsUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-[11px] font-bold text-[#8B7BB5] hover:underline"
+                            className="text-[11px] font-black text-[#80AEE8] hover:underline"
                           >
                             📍 Open Address in Maps ↗
                           </a>
-                          <span className="text-[11px] bg-purple-50 text-[#8B7BB5] px-2 py-0.5 rounded-md font-bold">
+                          <span className="text-[11px] bg-[#F7F2E0] text-[#5B0015] border border-[#EDE5CD] px-2 py-0.5 rounded-md font-bold">
                             Kit Required: {order.dispatch_phase || 'Phase 1 (Flax + Pumpkin)'}
                           </span>
                         </div>
                       </div>
 
                       {/* Right: Payment Box & Founder Action Buttons */}
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full lg:w-auto shrink-0 pt-3 lg:pt-0 border-t lg:border-t-0 border-[#E8E4DE]">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full lg:w-auto shrink-0 pt-3 lg:pt-0 border-t lg:border-t-0 border-[#EDE5CD]">
                         
-                        {/* Real Financial Audit Box */}
+                        {/* Financial Audit Box */}
                         <div className={`p-3 rounded-xl border text-left min-w-[175px] ${
                           isPaid 
-                            ? 'bg-emerald-50 border-emerald-200 text-emerald-950' 
+                            ? 'bg-[#80AEE8]/20 border-[#80AEE8] text-[#5B0015]' 
                             : isUnderReview 
-                              ? 'bg-blue-50 border-blue-200 text-blue-950' 
-                              : 'bg-rose-50 border-rose-200 text-rose-950'
+                              ? 'bg-[#F7F2E0] border-[#80AEE8] text-[#5B0015]' 
+                              : 'bg-[#5B0015]/10 border-[#5B0015]/30 text-[#5B0015]'
                         }`}>
                           <p className="text-[9px] uppercase font-bold opacity-75">Customer Bank UTR</p>
-                          <p className="font-mono text-xs font-black tracking-wide select-all">
+                          <p className="font-mono text-xs font-black tracking-wide select-all text-[#5B0015]">
                             {hasValidUtr ? order.utr_number : '❌ No UTR Entered'}
                           </p>
-                          <p className={`text-[10px] font-bold mt-0.5 ${isPaid ? 'text-emerald-700' : isUnderReview ? 'text-blue-700' : 'text-rose-700'}`}>
+                          <p className="text-[10px] font-black mt-0.5 text-[#5B0015]">
                             {isPaid ? '✓ ₹20.00 Received in Bank' : isUnderReview ? 'Verify ₹20 in UPI App' : '₹0.00 Received (Unpaid)'}
                           </p>
                         </div>
@@ -417,7 +414,6 @@ export default function FounderDesk({ onClose }) {
                           {!isPaid ? (
                             <button
                               onClick={() => {
-                                // Strict UTR Check: Bina valid UTR ke approve nahi hone dega
                                 if (!hasValidUtr) {
                                   alert("❌ Cannot Approve!\nIs order par customer ne koi valid UTR number nahi daala hai. Fake approval allow nahi hai.");
                                   return;
@@ -429,9 +425,9 @@ export default function FounderDesk({ onClose }) {
                                   handleSendWaAlert({ ...order, payment_status: 'verified' }, 'verified');
                                 }
                               }}
-                              className={`w-full text-xs font-bold py-2 rounded-xl transition-all shadow-sm ${
+                              className={`w-full text-xs font-bold py-2 rounded-xl transition-all shadow-sm cursor-pointer ${
                                 hasValidUtr 
-                                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white' 
+                                  ? 'bg-[#5B0015] hover:bg-[#450010] text-[#F7F2E0]' 
                                   : 'bg-gray-200 text-gray-500 cursor-not-allowed'
                               }`}
                             >
@@ -439,12 +435,12 @@ export default function FounderDesk({ onClose }) {
                             </button>
                           ) : order.payment_status === 'dispatched' ? (
                             <div className="flex gap-1">
-                              <span className="flex-1 text-center py-2 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-xl border border-emerald-200">
+                              <span className="flex-1 text-center py-2 bg-[#80AEE8]/30 text-[#5B0015] text-xs font-bold rounded-xl border border-[#80AEE8]">
                                 ✓ Dispatched 📦
                               </span>
                               <button
                                 onClick={() => handleSendWaAlert(order, 'dispatched')}
-                                className="bg-emerald-100 text-emerald-800 px-2 py-2 rounded-xl text-xs font-bold hover:bg-emerald-200"
+                                className="bg-[#80AEE8] text-[#5B0015] px-2 py-2 rounded-xl text-xs font-bold hover:bg-[#A5C7F0] cursor-pointer"
                                 title="Send Dispatch WhatsApp Update"
                               >
                                 💬
@@ -458,7 +454,7 @@ export default function FounderDesk({ onClose }) {
                                   handleSendWaAlert({ ...order, payment_status: 'dispatched' }, 'dispatched');
                                 }
                               }}
-                              className="w-full bg-[#29272D] hover:bg-black text-white text-xs font-bold py-2 rounded-xl transition-all shadow-sm"
+                              className="w-full bg-[#5B0015] hover:bg-[#450010] text-[#F7F2E0] text-xs font-bold py-2 rounded-xl transition-all shadow-sm cursor-pointer"
                             >
                               Mark Dispatched 📦
                             </button>
@@ -473,8 +469,8 @@ export default function FounderDesk({ onClose }) {
                               navigator.clipboard.writeText(`To: +91 ${order.whatsapp}\nAddress: ${order.house_no}, ${order.area}, ${order.city}, ${order.state} - ${order.pincode}\nItem: ${order.dispatch_phase}`);
                               alert("Shipping Label copied to clipboard! 📋");
                             }}
-                            className={`w-full text-[11px] font-semibold py-1 rounded-xl border ${
-                              isPaid ? 'bg-white hover:bg-[#FAF9F6] text-[#29272D] border-[#E8E4DE]' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'
+                            className={`w-full text-[11px] font-semibold py-1 rounded-xl border cursor-pointer ${
+                              isPaid ? 'bg-white hover:bg-[#F7F2E0] text-[#5B0015] border-[#EDE5CD]' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'
                             }`}
                           >
                             Copy Courier Text

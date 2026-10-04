@@ -3,25 +3,26 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 
 :root {
-  --color-background: #FAF9F6;
-  --color-foreground: #29272D;
-  --color-primary: #8B7BB5;
-  --color-primary-light: #A89FCC;
-  --color-secondary: #A8BFA3;
-  --color-accent: #D99AA5;
-  --color-card: #FFFFFF;
-  --color-muted: #F0EDE8;
-  --color-muted-fg: #7A7880;
-  --color-border: #E8E4DE;
+  /* ─── Color Palette Theme ─── */
+  --color-background: #F7F2E0;      /* Ivory Mist */
+  --color-foreground: #5B0015;      /* Night Bordeaux */
+  --color-primary: #5B0015;         /* Night Bordeaux (Primary Action & Brand) */
+  --color-primary-light: #7E1A31;   /* Lighter Bordeaux Shade */
+  --color-secondary: #80AEE8;       /* Cool Horizon (Secondary / Accents) */
+  --color-accent: #80AEE8;          /* Cool Horizon */
+  --color-card: #FFFFFF;            /* Clean Card Contrast */
+  --color-muted: #EDE6D0;           /* Soft Darkened Ivory for Neutral Containers */
+  --color-muted-fg: #6B2333;        /* Muted Readable Bordeaux for Subtext */
+  --color-border: #E5DCBF;          /* Subtle Ivory-Border */
 
   /* App.css support variables */
   --accent: var(--color-accent);
   --accent-bg: var(--color-muted);
-  --accent-border: var(--color-primary-light);
+  --accent-border: var(--color-secondary);
   --border: var(--color-border);
   --text-h: var(--color-foreground);
   --social-bg: var(--color-muted);
-  --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow: 0 4px 14px rgba(91, 0, 21, 0.08);
 
   --font-sans: 'Inter', sans-serif;
   --font-display: 'Plus Jakarta Sans', sans-serif;
@@ -47,15 +48,21 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+::selection {
+  background-color: #80AEE8;
+  color: #5B0015;
+}
+
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-display);
+  color: var(--color-foreground);
 }
 
 ::-webkit-scrollbar {
   width: 6px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #D5CFEA;
+  background: #80AEE8;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-track {

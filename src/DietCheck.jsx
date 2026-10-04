@@ -31,16 +31,19 @@ export default function DietCheck() {
   };
 
   return (
-    <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded-xl shadow-md border border-gray-200">
-      <h2 className="text-xl font-bold text-[#A8B58A] mb-4">Holistic AI Dietitian 🌿</h2>
+    <div className="max-w-md mx-auto mt-10 p-6 bg-[#FCFBF5] text-[#5B0015] rounded-3xl shadow-xl border border-[#EDE5CD]">
+      <h2 className="text-xl font-black text-[#5B0015] mb-4 flex items-center gap-2">
+        Holistic AI Dietitian 🥗
+      </h2>
       
       <div className="flex flex-col gap-4">
         {/* Diet Input */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">Aaj kya khaya?</label>
+          <label className="block text-xs font-bold uppercase tracking-wider text-[#5B0015]/80 mb-1">Aaj kya khaya?</label>
           <textarea 
-            className="w-full mt-1 p-2 border rounded-md outline-none focus:border-[#A8B58A]"
+            className="w-full mt-1 p-3 border border-[#EDE5CD] bg-white rounded-xl outline-none focus:ring-2 focus:ring-[#80AEE8] text-[#5B0015] font-semibold text-xs resize-none"
             placeholder="Jaise: 1 maggi aur cold drink..."
+            rows="3"
             value={diet}
             onChange={(e) => setDiet(e.target.value)}
           />
@@ -48,29 +51,29 @@ export default function DietCheck() {
 
         {/* Sleep Dropdown */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">Neend kaisi aayi?</label>
+          <label className="block text-xs font-bold uppercase tracking-wider text-[#5B0015]/80 mb-1">Neend kaisi aayi?</label>
           <select 
-            className="w-full mt-1 p-2 border rounded-md outline-none focus:border-[#A8B58A]"
+            className="w-full mt-1 p-2.5 border border-[#EDE5CD] bg-white rounded-xl outline-none focus:ring-2 focus:ring-[#80AEE8] text-[#5B0015] font-bold text-xs"
             value={sleep}
             onChange={(e) => setSleep(e.target.value)}
           >
-            <option value="Less than 6 hours">6 ghante se kam 🥱</option>
-            <option value="6-8 hours">6-8 ghante (Theek thaak) 😴</option>
-            <option value="More than 8 hours">8 ghante se zyada 🛌</option>
+            <option value="Less than 6 hours">6 ghante se kam 😴</option>
+            <option value="6-8 hours">6-8 ghante (Theek thaak) 😊</option>
+            <option value="More than 8 hours">8 ghante se zyada ✨</option>
           </select>
         </div>
 
         {/* Stress Dropdown */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">Stress level kaisa tha?</label>
+          <label className="block text-xs font-bold uppercase tracking-wider text-[#5B0015]/80 mb-1">Stress level kaisa tha?</label>
           <select 
-            className="w-full mt-1 p-2 border rounded-md outline-none focus:border-[#A8B58A]"
+            className="w-full mt-1 p-2.5 border border-[#EDE5CD] bg-white rounded-xl outline-none focus:ring-2 focus:ring-[#80AEE8] text-[#5B0015] font-bold text-xs"
             value={stress}
             onChange={(e) => setStress(e.target.value)}
           >
-            <option value="Low">Low (Ekdum chill) 😌</option>
+            <option value="Low">Low (Ekdum chill) 🌿</option>
             <option value="Medium">Medium (Thoda bahut) 😐</option>
-            <option value="High">High (Bohot zyada) 🤯</option>
+            <option value="High">High (Bohot zyada) 🚨</option>
           </select>
         </div>
 
@@ -78,15 +81,16 @@ export default function DietCheck() {
         <button 
           onClick={handleCheck}
           disabled={loading || !diet}
-          className="w-full bg-[#A8B58A] text-white py-2 rounded-md hover:bg-[#8e9a74] transition disabled:opacity-50"
+          className="w-full bg-[#5B0015] text-[#F7F2E0] py-3 rounded-xl hover:bg-[#450010] transition-all font-black text-xs shadow-md active:scale-95 disabled:opacity-50 cursor-pointer mt-1"
         >
-          {loading ? "AI Soch raha hai..." : "Ask AI Dietitian"}
+          {loading ? "AI Soch raha hai..." : "Ask AI Dietitian ➔"}
         </button>
 
         {/* AI Answer dikhane ki jagah */}
         {aiTip && (
-          <div className="mt-4 p-4 bg-purple-50 text-purple-800 rounded-md border border-purple-100 text-sm leading-relaxed">
-            <strong>AI Tip:</strong> {aiTip}
+          <div className="mt-4 p-4 bg-[#F7F2E0] text-[#5B0015] rounded-2xl border border-[#EDE5CD] text-xs leading-relaxed shadow-sm">
+            <strong className="block text-[#80AEE8] uppercase tracking-wider font-black mb-1">✨ AI Recommendation:</strong>
+            {aiTip}
           </div>
         )}
       </div>
