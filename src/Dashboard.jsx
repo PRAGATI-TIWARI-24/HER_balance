@@ -802,15 +802,26 @@ export default function Dashboard({ user, onLogout, onNewAssessment }) {
     setSymptomStatus(updatedStatus);
     setLoggedSymptomsList(selectedSymptoms);
 
-    if (calibrationDays < 3) {
-      const nextDays = calibrationDays + 1;
-      setCalibrationDays(nextDays);
-      localStorage.setItem(`${userKey}_calibrationDays`, String(nextDays));
+    // --- NAYA DATE CHECK LOGIC YAHAN HAI ---
+    // Check karte hain ki aaj ki date mein progress badhi hai ya nahi
+    const lastProgressDate = localStorage.getItem(`${userKey}_lastJournalDate`);
+
+    if (lastProgressDate !== todayDateStr) {
+      // Agar aaj progress nahi badhi hai, toh 3-day meter badha dein
+      if (calibrationDays < 3) {
+        const nextDays = calibrationDays + 1;
+        setCalibrationDays(nextDays);
+        localStorage.setItem(`${userKey}_calibrationDays`, String(nextDays));
+      }
+      // Aur aaj ki date ko save kar lein taaki aaj dobara na badhe
+      localStorage.setItem(`${userKey}_lastJournalDate`, todayDateStr);
     }
+    // ---------------------------------------
 
     localStorage.setItem(`${userKey}_symptomStatus`, updatedStatus);
     localStorage.setItem(`${userKey}_loggedSymptomsList`, JSON.stringify(selectedSymptoms));
 
+    // Yeh dono database syncs hamesha challenge (har click par data update hoga)
     pushProfileToSupabase({ symptom_status: updatedStatus });
     pushDailyLogToSupabase({ symptoms: selectedSymptoms });
 
