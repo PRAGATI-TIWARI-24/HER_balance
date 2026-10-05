@@ -74,7 +74,7 @@ def get_db():
 print("Loading HerBalance XGBoost AI Brain...")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-model_path = os.path.join(BASE_DIR, 'xgboost_model.pkl')
+model_path = os.path.join(BASE_DIR, 'pcod_xgboost_massive_model.pkl')
 
 print(f"Model yahan dhoondha ja raha hai: {model_path}")
 
