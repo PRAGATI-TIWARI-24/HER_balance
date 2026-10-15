@@ -5,7 +5,9 @@ import Dashboard from './Dashboard';
 import ScrollToTop from './components/ScrollToTop';
 import FounderDesk from './FounderDesk';
 import FloatingAIBot from './components/FloatingAIBot';
+import AppSplashScreen from './components/AppSplashScreen';
 import { supabase, isSupabaseConfigured } from './supabaseClient';
+import { syncGuestDataToSupabase } from './utils/syncService';
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
 const Icon = ({ path, size = 20, className = '' }) => (
@@ -263,7 +265,7 @@ function FAQ() {
 }
 
 // ─── 🎙️ AI Chat Component with Voice Input Mic ────────────────────────────────
-function AICompanionChat() {
+function AICompanionChat({ onServerWakeup }) {
   const [messages, setMessages] = useState([
     { sender: 'ai', text: "Hi! I'm HerBalance AI. How are you feeling today? Share your symptoms, or ask me anything about PCOD/PCOS. 🌸" }
   ]);
@@ -347,12 +349,19 @@ function AICompanionChat() {
     setInput("");
     setIsLoading(true);
 
+    const slowTimer = setTimeout(() => {
+      if (onServerWakeup) onServerWakeup(true);
+    }, 4500);
+
     try {
       const response = await fetch("https://her-balance.onrender.com/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: userText })
       });
+
+      clearTimeout(slowTimer);
+      if (onServerWakeup) onServerWakeup(false);
 
       if (!response.ok) throw new Error("Server error");
       
@@ -383,6 +392,8 @@ function AICompanionChat() {
         }
       }
     } catch (error) {
+      clearTimeout(slowTimer);
+      if (onServerWakeup) onServerWakeup(false);
       console.error("Chat error:", error);
       setMessages(prev => [...prev, { sender: 'ai', text: "Oops! AI backend is unreachable right now." }]);
       setIsLoading(false);
@@ -476,9 +487,12 @@ function AICompanionChat() {
 
 // ─── Main App ─────────────────────────────────────────────────────────────────
 export default function App({ onNavigate }) {
+  const [showSplash, setShowSplash] = useState(true);
   const [currentPage, setCurrentPage] = useState('landing');
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [user, setUser] = useState(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [serverWakingUp, setServerWakingUp] = useState(false);
 
   // ── 🛡️ FOUNDER DESK MODAL ACCESS ──
   const FOUNDER_PIN = "pragati";
@@ -486,31 +500,46 @@ export default function App({ onNavigate }) {
   const [pinInput, setPinInput] = useState('');
   const [showFounderDirect, setShowFounderDirect] = useState(false);
 
+  // ── 🔄 GUEST TO USER AUTO-SYNC HANDLER ──
+  const handleAutoSync = async (sessionUser) => {
+    if (!isSupabaseConfigured || !supabase || !sessionUser) return;
+    try {
+      setIsSyncing(true);
+      await syncGuestDataToSupabase(sessionUser);
+    } catch (err) {
+      console.error('Error during auto-sync:', err);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   // ── 🔄 SUPABASE AUTO-LOGIN & OAUTH SESSION LISTENER ──
   useEffect(() => {
-    if (isSupabaseConfigured && supabase) {
+    if (isSupabaseConfigured && supabase?.auth) {
       // 1. Initial active session check on load
-      supabase.auth.getSession().then(({ data: { session } }) => {
+      supabase.auth.getSession().then(({ data: { session } = {} }) => {
         if (session?.user) {
           const userName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || 'User';
           setUser({ id: session.user.id, name: userName });
           setCurrentPage('dashboard');
+          handleAutoSync(session.user);
         }
-      });
+      }).catch(err => console.error("Session fetch error:", err));
 
       // 2. Real-time OAuth redirection & state change listener
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      const { data: { subscription } = {} } = supabase.auth.onAuthStateChange((_event, session) => {
         if (session?.user) {
           const userName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || 'User';
           setUser({ id: session.user.id, name: userName });
           setCurrentPage('dashboard');
+          handleAutoSync(session.user);
         } else if (_event === 'SIGNED_OUT') {
           setUser(null);
           setCurrentPage('landing');
         }
       });
 
-      return () => subscription.unsubscribe();
+      return () => subscription?.unsubscribe?.();
     }
   }, []);
 
@@ -544,14 +573,16 @@ export default function App({ onNavigate }) {
     }
   };
 
-  const handleLoginSuccess = (userId, userName) => {
-    setUser({ id: userId, name: userName });
+  const handleLoginSuccess = async (userId, userName) => {
+    const newUser = { id: userId, name: userName };
+    setUser(newUser);
     setShowAuthModal(false);
     setCurrentPage('dashboard');
+    await handleAutoSync(newUser);
   };
 
   const handleLogout = async () => {
-    if (isSupabaseConfigured && supabase) {
+    if (isSupabaseConfigured && supabase?.auth) {
       await supabase.auth.signOut();
     }
     setUser(null);
@@ -572,10 +603,33 @@ export default function App({ onNavigate }) {
     <div className="min-h-screen bg-[#F7F2E0] text-[#5B0015] relative">
       <ScrollToTop />
 
-      {/* ── 🌸 1. GLOBAL FLOATING AI BOT (HAR WAQT VISIBLE: LANDING & DASHBOARD) ── */}
+      {/* ── 🚀 1. APP LAUNCH SPLASH ANIMATION SCREEN (BUTTERFLY & LOGO REVEAL) ── */}
+      {showSplash && (
+        <AppSplashScreen onFinish={() => setShowSplash(false)} />
+      )}
+
+      {/* ── 🚀 RENDER CLOUD COLD-START ALERT BANNER ── */}
+      {serverWakingUp && (
+        <div className="bg-[#FFF4E5] border-b border-[#FFE2B8] text-[#8C5300] px-4 py-2.5 text-xs sm:text-sm text-center flex items-center justify-center gap-2 sticky top-0 z-50 animate-pulse">
+          <svg className="w-4 h-4 animate-spin text-[#D97706]" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+          </svg>
+          <span>Cloud AI Engine wake ho raha hai (Render cold-start)... Kripya kuch second intezar karein.</span>
+        </div>
+      )}
+
+      {/* ── 🌿 CLOUD DATA SYNC STATUS BANNER ── */}
+      {isSyncing && (
+        <div className="bg-[#EBF5EE] border-b border-[#CBE7D3] text-[#25613B] px-4 py-1.5 text-xs text-center sticky top-0 z-50">
+          🌱 Guest logs cloud database ke sath synchronize ho rahe hain...
+        </div>
+      )}
+
+      {/* ── 🌸 2. GLOBAL FLOATING AI BOT (HAR WAQT VISIBLE: LANDING & DASHBOARD) ── */}
       <FloatingAIBot />
 
-      {/* ── 2. CONDITIONAL ROUTING: DASHBOARD VIEW ── */}
+      {/* ── 3. CONDITIONAL ROUTING: DASHBOARD VIEW ── */}
       {currentPage === 'dashboard' ? (
         <Dashboard 
           user={user} 
@@ -583,13 +637,13 @@ export default function App({ onNavigate }) {
           onNewAssessment={() => setCurrentPage('assessment')}
         />
       ) : currentPage === 'assessment' ? (
-        /* ── 3. CONDITIONAL ROUTING: ASSESSMENT VIEW ── */
+        /* ── 4. CONDITIONAL ROUTING: ASSESSMENT VIEW ── */
         <Assessment 
           onBack={() => setCurrentPage('landing')} 
           onCompleteAssessment={handleAssessmentCompleted}
         />
       ) : (
-        /* ── 4. LANDING PAGE VIEW ── */
+        /* ── 5. LANDING PAGE VIEW ── */
         <>
           <Navbar 
             onLoginClick={() => setShowAuthModal(true)} 
@@ -898,7 +952,7 @@ export default function App({ onNavigate }) {
                 </div>
               </div>
 
-              <AICompanionChat />
+              <AICompanionChat onServerWakeup={setServerWakingUp} />
             </div>
           </section>
 

@@ -17,8 +17,11 @@
     "@capacitor/core": "^8.5.2",
     "@capacitor/local-notifications": "^8.3.1",
     "@supabase/supabase-js": "^2.117.2",
+    "bootstrap": "^5.3.8",
+    "fastapi": "^0.0.8",
     "html2pdf.js": "^0.14.0",
     "lucide-react": "^1.47.0",
+    "python": "^0.0.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.4"
