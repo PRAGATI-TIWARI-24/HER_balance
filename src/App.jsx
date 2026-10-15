@@ -6,6 +6,7 @@ import ScrollToTop from './components/ScrollToTop';
 import FounderDesk from './FounderDesk';
 import FloatingAIBot from './components/FloatingAIBot';
 import AppSplashScreen from './components/AppSplashScreen';
+import PaymentModal from './components/PaymentModal';
 import { supabase, isSupabaseConfigured } from './supabaseClient';
 import { syncGuestDataToSupabase } from './utils/syncService';
 
@@ -488,6 +489,7 @@ function AICompanionChat({ onServerWakeup }) {
 // ─── Main App ─────────────────────────────────────────────────────────────────
 export default function App({ onNavigate }) {
   const [showSplash, setShowSplash] = useState(true);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [currentPage, setCurrentPage] = useState('landing');
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [user, setUser] = useState(null);
@@ -499,6 +501,19 @@ export default function App({ onNavigate }) {
   const [showPinModal, setShowPinModal] = useState(false);
   const [pinInput, setPinInput] = useState('');
   const [showFounderDirect, setShowFounderDirect] = useState(false);
+
+  // ── 🕒 1. AUTO-RESUME ACTIVE PAYMENT SESSION (ON APP RELOAD / APP-SWITCH) ──
+  useEffect(() => {
+    const activeSession = localStorage.getItem('hb_payment_session_start');
+    if (activeSession) {
+      const elapsed = Math.floor(Date.now() / 1000) - parseInt(activeSession, 10);
+      if (elapsed < 600) {
+        setShowPaymentModal(true); // Auto-recover payment session
+      } else {
+        localStorage.removeItem('hb_payment_session_start');
+      }
+    }
+  }, []);
 
   // ── 🔄 GUEST TO USER AUTO-SYNC HANDLER ──
   const handleAutoSync = async (sessionUser) => {
@@ -635,12 +650,14 @@ export default function App({ onNavigate }) {
           user={user} 
           onLogout={handleLogout} 
           onNewAssessment={() => setCurrentPage('assessment')}
+          onOpenPaymentModal={() => setShowPaymentModal(true)}
         />
       ) : currentPage === 'assessment' ? (
         /* ── 4. CONDITIONAL ROUTING: ASSESSMENT VIEW ── */
         <Assessment 
           onBack={() => setCurrentPage('landing')} 
           onCompleteAssessment={handleAssessmentCompleted}
+          onOpenPaymentModal={() => setShowPaymentModal(true)}
         />
       ) : (
         /* ── 5. LANDING PAGE VIEW ── */
@@ -1029,6 +1046,17 @@ export default function App({ onNavigate }) {
 
       {/* ── Modals & Overlays ── */}
       <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} onLoginSuccess={handleLoginSuccess} />
+
+      {/* ── 💳 GOVT-STYLE PERSISTENT PAYMENT MODAL (WITH COUNTDOWN TIMER) ── */}
+      <PaymentModal 
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        userEmail={user?.name || "Member"}
+        onSuccess={(utr) => {
+          alert("🎉 Payment confirmed! 14-Day Cycle Synchronization Protocol Unlocked. Ref: " + utr);
+          setShowPaymentModal(false);
+        }}
+      />
 
       {/* ── 🔒 FOUNDER ACCESS PIN MODAL ── */}
       {showPinModal && (
