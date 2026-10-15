@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import html2pdf from 'html2pdf.js';
 
@@ -131,9 +132,6 @@ export default function Dashboard({ user, onLogout, onNewAssessment }) {
   const [saveSuccessNotice, setSaveSuccessNotice] = useState(false);
 
   const userLockedDate = useRef(false);
-
-  // ─── Period Due Confirmation Modal State ───
-  const [showPeriodCheckModal, setShowPeriodCheckModal] = useState(false);
 
   // ─── 3. Symptom Journal States ───
   const [selectedSymptoms, setSelectedSymptoms] = useState([]);
@@ -596,19 +594,8 @@ export default function Dashboard({ user, onLogout, onNewAssessment }) {
     pushDailyLogToSupabase({ medications: updated });
   };
 
-  // ── Smart Time-Restricted Water Logging Logic ──
   const handleAddWater = () => {
     if (waterCount < 8) {
-      const currentHour = new Date().getHours(); 
-      const waterHours = [8, 10, 12, 14, 16, 18, 20, 22]; 
-      
-      const requiredHour = waterHours[waterCount];
-      
-      if (currentHour < requiredHour) {
-        alert(`Aap abhi ${waterSchedule[waterCount]} ka water log nahi kar sakte kyunki abhi ka waqt nahi hua hai! 💧`);
-        return;
-      }
-
       const nextCount = waterCount + 1;
       setWaterCount(nextCount);
       pushDailyLogToSupabase({ water_count: nextCount });
@@ -662,54 +649,7 @@ export default function Dashboard({ user, onLogout, onNewAssessment }) {
     }
   }
 
-  // ── Smart Period Check Notification & Modal Trigger ──
-  useEffect(() => {
-    if (isCycleSetup && (daysRemainingText === "Today" || isDelayed)) {
-      const alreadyCheckedToday = localStorage.getItem(`${userKey}_periodCheck_${todayDateStr}`);
-      if (!alreadyCheckedToday) {
-        setShowPeriodCheckModal(true);
-
-        const alreadyNotified = localStorage.getItem(`${userKey}_periodNotified_${todayDateStr}`);
-        if (!alreadyNotified) {
-          triggerNotification(
-            "🌸 HerBalance Cycle Reminder",
-            daysRemainingText === "Today"
-              ? "Aaj aapka expected period day hai. App open karke confirm karein!"
-              : `Aapka expected cycle date beet chuka hai (${delayDays} din late). Check-in karke status confirm karein.`
-          );
-          localStorage.setItem(`${userKey}_periodNotified_${todayDateStr}`, 'true');
-        }
-      }
-    }
-  }, [isCycleSetup, daysRemainingText, isDelayed, delayDays, userKey, todayDateStr]);
-
   const isCalibrationComplete = calibrationDays >= 3 || (isDelayed && isCycleSetup);
-
-  // ── Confirmation Handlers ──
-  const handlePeriodConfirmedYes = () => {
-    userLockedDate.current = true;
-    localStorage.setItem(`${userKey}_lastDate`, todayDateStr);
-    localStorage.setItem(`${userKey}_isCycleSetup`, 'true');
-    localStorage.setItem(`${userKey}_periodCheck_${todayDateStr}`, 'true');
-
-    setLastDate(todayDateStr);
-    const p = parseSavedDate(todayDateStr);
-    setSelDay(p.day);
-    setSelMonth(p.month);
-    setSelYear(p.year);
-    setIsCycleSetup(true);
-
-    pushProfileToSupabase({ last_date: todayDateStr, cycle_length: Number(cycleLength) });
-
-    setShowPeriodCheckModal(false);
-    alert("New Cycle Start Date Logged! Agle cycle ki projection calculate ho gayi hai 🌸");
-  };
-
-  const handlePeriodConfirmedNo = () => {
-    localStorage.setItem(`${userKey}_periodCheck_${todayDateStr}`, 'true');
-    setShowPeriodCheckModal(false);
-    setShowEngineBlogModal(true);
-  };
 
   // ── 🛡️ ZERO-LEAKAGE SEED PROTOCOL ENCRYPTION ──
   const isFollicularPhase = currentPhaseInternal === 'Follicular' || currentPhaseInternal === 'Flow Phase';
@@ -863,20 +803,26 @@ export default function Dashboard({ user, onLogout, onNewAssessment }) {
     setSymptomStatus(updatedStatus);
     setLoggedSymptomsList(selectedSymptoms);
 
+    // --- NAYA DATE CHECK LOGIC YAHAN HAI ---
+    // Check karte hain ki aaj ki date mein progress badhi hai ya nahi
     const lastProgressDate = localStorage.getItem(`${userKey}_lastJournalDate`);
 
     if (lastProgressDate !== todayDateStr) {
+      // Agar aaj progress nahi badhi hai, toh 3-day meter badha dein
       if (calibrationDays < 3) {
         const nextDays = calibrationDays + 1;
         setCalibrationDays(nextDays);
         localStorage.setItem(`${userKey}_calibrationDays`, String(nextDays));
       }
+      // Aur aaj ki date ko save kar lein taaki aaj dobara na badhe
       localStorage.setItem(`${userKey}_lastJournalDate`, todayDateStr);
     }
+    // ---------------------------------------
 
     localStorage.setItem(`${userKey}_symptomStatus`, updatedStatus);
     localStorage.setItem(`${userKey}_loggedSymptomsList`, JSON.stringify(selectedSymptoms));
 
+    // Yeh dono database syncs hamesha challenge (har click par data update hoga)
     pushProfileToSupabase({ symptom_status: updatedStatus });
     pushDailyLogToSupabase({ symptoms: selectedSymptoms });
 
@@ -943,6 +889,9 @@ export default function Dashboard({ user, onLogout, onNewAssessment }) {
         </div>
         
         <div className="flex flex-wrap items-center gap-2.5">
+          
+          
+
           <button
             onClick={() => setShowLabModal(true)}
             className="bg-[#FCFBF5] border border-[#80AEE8] text-[#5B0015] hover:bg-[#80AEE8]/20 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
@@ -1168,6 +1117,7 @@ export default function Dashboard({ user, onLogout, onNewAssessment }) {
 
               {/* Right Side Call to Action */}
               <div className="bg-[#FCFBF5] text-[#5B0015] p-5 sm:p-6 rounded-3xl border-2 border-[#80AEE8] flex flex-col items-center text-center w-full lg:w-68 shrink-0 shadow-2xl">
+                
                 {kitSubscribed ? (
                   <div className="space-y-2 py-2">
                     <span className="text-3xl">✨</span>
@@ -1211,6 +1161,7 @@ export default function Dashboard({ user, onLogout, onNewAssessment }) {
                     </button>
                   </>
                 )}
+
               </div>
             </div>
           </div>
@@ -1625,7 +1576,7 @@ export default function Dashboard({ user, onLogout, onNewAssessment }) {
             )}
           </div>
 
-          {/* ── 5. DAILY QUICK LOGS ── */}
+          {/* ── 5. DAILY QUICK LOGS (SPOT 3: CONTEXTUAL DELAY ALERTS INTEGRATED) ── */}
           <div className="bg-[#FCFBF5] p-6 rounded-3xl shadow-sm border border-[#EDE5CD] lg:col-span-3">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-5">
               <div>
@@ -1655,7 +1606,7 @@ export default function Dashboard({ user, onLogout, onNewAssessment }) {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               
-              {/* 💧 Water Intake */}
+              {/* 💧 Water Intake (With Delay Biological Context) */}
               <div className="rounded-2xl p-4 flex flex-col justify-between border bg-[#F7F2E0] border-[#EDE5CD]">
                 <div>
                   <div className="flex items-center justify-between mb-2">
@@ -1718,7 +1669,7 @@ export default function Dashboard({ user, onLogout, onNewAssessment }) {
                 </div>
               </div>
 
-              {/* 🏃‍♀️ Gentle Movement */}
+              {/* 🏃‍♀️ Gentle Movement (With Delay Biological Context) */}
               <div className="rounded-2xl p-4 flex flex-col justify-between border bg-[#F7F2E0] border-[#EDE5CD]">
                 <div>
                   <div className="flex items-center justify-between mb-2">
@@ -1764,7 +1715,7 @@ export default function Dashboard({ user, onLogout, onNewAssessment }) {
                 </div>
               </div>
 
-              {/* 😴 Sleep */}
+              {/* 😴 Sleep (With Delay Biological Context) */}
               <div className="rounded-2xl p-4 flex flex-col justify-between border bg-[#F7F2E0] border-[#EDE5CD]">
                 <div>
                   <div className="flex items-center justify-between mb-2">
@@ -1894,54 +1845,6 @@ export default function Dashboard({ user, onLogout, onNewAssessment }) {
                   </div>
                 ))}
               </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── 🌸 SMART PERIOD DUE CHECK-IN MODAL POPUP ── */}
-      {showPeriodCheckModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-[#FCFBF5] text-[#5B0015] w-full max-w-md rounded-3xl p-6 sm:p-7 shadow-2xl border-2 border-[#80AEE8] text-center relative">
-            <button
-              onClick={() => setShowPeriodCheckModal(false)}
-              className="absolute top-4 right-4 text-[#5B0015]/70 hover:text-[#5B0015] font-black bg-[#F7F2E0] w-8 h-8 rounded-full flex items-center justify-center border border-[#EDE5CD] cursor-pointer"
-            >
-              ✕
-            </button>
-
-            <div className="w-16 h-16 bg-[#80AEE8]/20 border border-[#80AEE8]/40 text-[#5B0015] rounded-3xl mx-auto flex items-center justify-center text-3xl shadow-sm mb-3">
-              🌸
-            </div>
-
-            <span className="bg-[#80AEE8] text-[#5B0015] text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider inline-block mb-2">
-              Rhythm Check-In
-            </span>
-
-            <h3 className="text-xl sm:text-2xl font-black text-[#5B0015] tracking-tight">
-              Aaj Period Start Hua?
-            </h3>
-
-            <p className="text-xs text-[#5B0015]/80 mt-1.5 leading-relaxed font-semibold">
-              {daysRemainingText === "Today"
-                ? "Aapke calendar ke mutabiq aaj aapka expected period day hai. Kya flow shuru ho gaya hai?"
-                : `Aapka expected cycle date beet chuka hai (${delayDays} din delay). Kya flow start hua hai?`}
-            </p>
-
-            <div className="mt-5 space-y-2.5">
-              <button
-                onClick={handlePeriodConfirmedYes}
-                className="w-full bg-[#5B0015] hover:bg-[#450010] text-[#F7F2E0] font-black py-3 rounded-2xl text-xs transition-all shadow-md active:scale-95 cursor-pointer flex items-center justify-center gap-2"
-              >
-                <span>🩸 Haan, aaj period start ho gaya</span>
-              </button>
-
-              <button
-                onClick={handlePeriodConfirmedNo}
-                className="w-full bg-[#F7F2E0] hover:bg-white text-[#5B0015] border border-[#EDE5CD] font-bold py-2.5 rounded-2xl text-xs transition-colors cursor-pointer"
-              >
-                <span>Nahi, abhi tak nahi hua (Open Guidance)</span>
-              </button>
             </div>
           </div>
         </div>

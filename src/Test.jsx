@@ -78,12 +78,31 @@ export default function Assessment({ onBack, onCompleteAssessment }) {
       const fullReport = {
         ...data,
         bmi: calculatedBMI,
+        age: age,
+        weight: weight,
+        height: height,
+        cycle_length: cycle,
+        cycle_ri: formData.cycle_ri,
         exercises: formData.reg_exercise,
+        activeSymptoms: [
+          formData.weight_gain ? 'Weight Gain' : null,
+          formData.hair_growth ? 'Excess Hair' : null,
+          formData.skin_darkening ? 'Skin Darkening' : null,
+          formData.hair_loss ? 'Hair Loss' : null,
+          formData.pimples ? 'Acne/Breakouts' : null,
+          formData.fast_food ? 'Frequent Fast Food' : null,
+        ].filter(Boolean),
         assessed_at: new Date().toISOString()
       };
 
       setResult(fullReport);
       localStorage.setItem('herbalance_last_assessment_report', JSON.stringify(fullReport));
+      localStorage.setItem('hb_last_test_result', JSON.stringify({
+        risk_level: data.probability_percentage >= 70 ? 'Needs Attention' : (data.probability_percentage >= 40 ? 'Moderate' : 'Stable'),
+        cycle_length: cycle,
+        last_date: new Date().toISOString().split('T')[0],
+        features: apiData
+      }));
     } catch (error) {
       console.error("Error connecting to server:", error);
       setFormError("Server error! Make sure your FastAPI backend is awake and running.");
@@ -109,6 +128,30 @@ export default function Assessment({ onBack, onCompleteAssessment }) {
     if (prob < 40) return { color: "#5B0015", bg: "#80AEE8", border: "#80AEE8", text: "Low Risk", icon: "🌿" };
     if (prob < 70) return { color: "#854D0E", bg: "#FEF9C3", border: "#FDE047", text: "Moderate Risk", icon: "⚠️" };
     return { color: "#5B0015", bg: "#F7F2E0", border: "#5B0015", text: "High Risk", icon: "🚨" };
+  };
+
+  // --- 📱 1-CLICK WHATSAPP SHARE GENERATOR ---
+  const handleWhatsAppShare = () => {
+    if (!result) return;
+    const symptomsList = result.activeSymptoms?.length > 0 ? result.activeSymptoms.join(', ') : 'None marked';
+    const message = `*🌸 HerBalance Clinical Screening Summary*\n` +
+      `--------------------------------\n` +
+      `*Match Probability:* ${result.probability_percentage}%\n` +
+      `*Risk Assessment:* ${getRiskStyle().text}\n` +
+      `*Reported Cycle Gap:* ${result.cycle_length || formData.cycle_length} Days (${formData.cycle_ri === 1 ? 'Irregular' : 'Regular'})\n` +
+      `*Calculated BMI:* ${result.bmi?.toFixed(1) || 'N/A'}\n` +
+      `*Reported Markers:* ${symptomsList}\n` +
+      `--------------------------------\n` +
+      `_Note: Triage screening generated for doctor consultation preparation._\n` +
+      `Generated via HerBalance: app.herbalance.in`;
+
+    const encoded = encodeURIComponent(message);
+    window.open(`https://api.whatsapp.com/send?text=${encoded}`, '_blank');
+  };
+
+  // --- 🖨️ DOCTOR CLINICAL SUMMARY PRINT / PDF ---
+  const handlePrintReport = () => {
+    window.print();
   };
 
   return (
@@ -328,20 +371,67 @@ export default function Assessment({ onBack, onCompleteAssessment }) {
               </div>
             </div>
 
-            {/* ── 🚀 THE CONVERSION BRIDGE: SAVE & MOVE TO DASHBOARD ── */}
-            <div className="bg-[#FCFBF5] border-2 border-[#80AEE8] p-4 rounded-2xl mb-5 space-y-3 shadow-md text-center">
-              <div className="flex items-center justify-center gap-2">
-                <span className="text-lg">🌿</span>
-                <p className="text-xs font-black text-[#5B0015] uppercase tracking-wide">
-                  Take Next Actionable Step
-                </p>
+            {/* ── 📱 QUICK DOCTOR ACTIONS: WHATSAPP & PRINT SUMMARY ── */}
+            <div className="grid grid-cols-2 gap-2.5 mb-4">
+              <button 
+                onClick={handleWhatsAppShare}
+                className="bg-[#25D366] hover:bg-[#1EBE5D] text-white py-3 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-95 cursor-pointer"
+                title="Send clinical summary to WhatsApp"
+              >
+                <span>💬</span>
+                <span>Share on WhatsApp</span>
+              </button>
+
+              <button 
+                onClick={handlePrintReport}
+                className="bg-white hover:bg-[#F7F2E0] border border-[#EDE5CD] text-[#5B0015] py-3 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-95 cursor-pointer"
+                title="Save as 1-Page PDF"
+              >
+                <span>📄</span>
+                <span>Save Doctor PDF</span>
+              </button>
+            </div>
+
+            {/* ── 🔒 HIGH-CONVERTING LOCKED PAYWALL: 14-DAY RESET PROTOCOL (₹20 TRIAL) ── */}
+            <div className="bg-gradient-to-br from-[#FCFBF5] to-[#F7F2E0] border-2 border-[#5B0015]/30 p-4 rounded-2xl mb-5 shadow-sm text-left relative overflow-hidden">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-black bg-[#5B0015] text-[#F7F2E0] px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
+                  <span>🔒</span>
+                  <span>Personalized Care Protocol</span>
+                </span>
+                <span className="text-xs font-black text-[#5B0015] bg-[#80AEE8]/30 px-2.5 py-0.5 rounded-full border border-[#80AEE8]/50">
+                  Micro-Pass ₹20
+                </span>
               </div>
-              <p className="text-xs text-[#5B0015]/80 font-medium">
-                Save this report to your private dashboard to track daily water, seed intake rhythm, and get clinical summaries ready for your doctor.
+              <h4 className="text-xs sm:text-sm font-black text-[#5B0015] mb-1">
+                Unlock 14-Day Cycle Synchronization & Food Timing Plan
+              </h4>
+              <p className="text-[11px] text-[#5B0015]/80 font-medium leading-relaxed mb-3">
+                Aapke symptoms aur cycle length ke hisab se customized hormone balancing diet schedule, daily seed ratio guide, aur period delay risk protection unlock karein.
               </p>
               <button 
                 onClick={() => onCompleteAssessment ? onCompleteAssessment(result) : onBack()}
-                className="w-full bg-[#5B0015] hover:bg-[#450010] text-[#F7F2E0] font-black py-3.5 rounded-xl text-xs sm:text-sm shadow-md transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2"
+                className="w-full bg-[#5B0015] hover:bg-[#450010] text-[#F7F2E0] font-black py-2.5 rounded-xl text-xs transition-all active:scale-95 flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+              >
+                <span>Unlock Full Care Routine (₹20 Pass)</span>
+                <span>➔</span>
+              </button>
+            </div>
+
+            {/* ── 🚀 SAVE & MOVE TO DASHBOARD ── */}
+            <div className="bg-[#FCFBF5] border-2 border-[#80AEE8] p-4 rounded-2xl mb-5 space-y-3 shadow-md text-center">
+              <div className="flex items-center justify-center gap-2">
+                <span className="text-lg">🌸</span>
+                <p className="text-xs font-black text-[#5B0015] uppercase tracking-wide">
+                  Dashboard Routine Access
+                </p>
+              </div>
+              <p className="text-xs text-[#5B0015]/80 font-medium">
+                Save this report to your private dashboard to track daily water, log cycle changes, and keep clinical summaries ready for your doctor.
+              </p>
+              <button 
+                onClick={() => onCompleteAssessment ? onCompleteAssessment(result) : onBack()}
+                className="w-full bg-[#80AEE8] hover:bg-[#6FA0DD] text-[#5B0015] font-black py-3.5 rounded-xl text-xs sm:text-sm shadow-md transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2"
               >
                 <span>💾 Save Report & Open Dashboard Routine ➔</span>
               </button>
