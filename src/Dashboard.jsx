@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import html2pdf from 'html2pdf.js';
 
@@ -13,7 +12,7 @@ import {
   startWebIntervalEngine 
 } from './NotificationService';
 
-export default function Dashboard({ user, onLogout, onNewAssessment }) {
+export default function Dashboard({ user, onLogout, onNewAssessment, onOpenPaymentModal }) {
   
   // ─── LocalStorage Key Prefix / User ID ───
   const userKey = String(user?.id || user?.email || user?.name || 'guest_user');
@@ -59,6 +58,26 @@ export default function Dashboard({ user, onLogout, onNewAssessment }) {
     return localStorage.getItem(`${userKey}_kitSubscribed`) === 'true';
   });
 
+  // ─── 🌸 Already Subscribed Toast Message State ───
+  const [alreadySubscribedToast, setAlreadySubscribedToast] = useState(false);
+
+  // ─── Safe Protocol Button Click Handler ───
+  const handleProtocolAction = () => {
+    if (kitSubscribed) {
+      setAlreadySubscribedToast(true);
+      setTimeout(() => {
+        setAlreadySubscribedToast(false);
+      }, 3500);
+      return;
+    }
+
+    if (onOpenPaymentModal) {
+      onOpenPaymentModal();
+    } else {
+      setShowKitModal(true);
+    }
+  };
+
   // ─── Payment & UPI Configuration ───
   const UPI_ID = "pragati015tiwari@okhdfcbank"; 
   const PAYEE_NAME = "HerBalance";
@@ -78,7 +97,6 @@ export default function Dashboard({ user, onLogout, onNewAssessment }) {
   const [subState, setSubState] = useState('');
 
   const upiLink = `upi://pay?pa=${encodeURIComponent(UPI_ID)}&pn=${encodeURIComponent(PAYEE_NAME)}&am=${PASS_AMOUNT}&cu=INR&tn=${encodeURIComponent(`HerBalance Pass - ${user?.name || 'User'}`)}`;
-  const qrCodeUrl = `https://quickchart.io/qr?text=${encodeURIComponent(upiLink)}&size=200&centerImageUrl=`;
 
   // ─── SOS Emergency Contact States ───
   const [sosContactName, setSosContactName] = useState(() => {
@@ -196,7 +214,17 @@ export default function Dashboard({ user, onLogout, onNewAssessment }) {
     return Number(localStorage.getItem(`${userKey}_loggedSleep`)) || 0;
   });
 
-  const waterSchedule = ["8 AM", "10 AM", "12 PM", "2 PM", "4 PM", "6 PM", "8 PM", "10 PM"];
+  // ── 🕒 REAL-TIME WATER INTERVAL SCHEDULE (24-HR MAPPED) ──
+  const waterSchedule = [
+    { time: "8 AM", hour: 8 },
+    { time: "10 AM", hour: 10 },
+    { time: "12 PM", hour: 12 },
+    { time: "2 PM", hour: 14 },
+    { time: "4 PM", hour: 16 },
+    { time: "6 PM", hour: 18 },
+    { time: "8 PM", hour: 20 },
+    { time: "10 PM", hour: 22 }
+  ];
 
   // ─── Target Evaluation ───
   const isWaterDone = waterCount >= 8;
@@ -541,7 +569,7 @@ export default function Dashboard({ user, onLogout, onNewAssessment }) {
         "⚡ Smart Rhythm Reminders Activated!",
         "Har 2 ghante par water intake, meal aur sleep reminders set ho gaye hain. Koi target miss nahi hoga! 🌸"
       );
-      alert("✓ Smart Reminders Active! Flipkart-style real-time alerts ab 8 AM se 10 PM har interval par target miss hote hi trigger honge.");
+      alert("✓ Smart Reminders Active! Real-time alerts ab 8 AM se 10 PM har interval par target miss hote hi trigger honge.");
     } else {
       alert("Notification permission allow nahi hui. Device settings se permission enable karein.");
     }
@@ -594,14 +622,25 @@ export default function Dashboard({ user, onLogout, onNewAssessment }) {
     pushDailyLogToSupabase({ medications: updated });
   };
 
+  // ── 🕒 TIME-LOCKED WATER INTAKE HANDLER (NO ADVANCE LOGGING) ──
   const handleAddWater = () => {
-    if (waterCount < 8) {
-      const nextCount = waterCount + 1;
-      setWaterCount(nextCount);
-      pushDailyLogToSupabase({ water_count: nextCount });
-      if (nextCount === 8) {
-        triggerNotification("🎉 Hydro Goal Crushed!", "Aapne aaj ke 8 glasses water target poora kar liya!");
-      }
+    if (waterCount >= 8) return;
+
+    const currentHour = new Date().getHours();
+    const nextSlot = waterSchedule[waterCount]; // Agla slot jo log hona hai
+
+    // Check: Agar agle slot ka waqt abhi nahi hua hai
+    if (currentHour < nextSlot.hour) {
+      alert(`⏳ Sabar rakhein! ${nextSlot.time} ka time abhi nahi hua hai. Aap advance mein water intake log nahi kar sakti hain.`);
+      return;
+    }
+
+    const nextCount = waterCount + 1;
+    setWaterCount(nextCount);
+    pushDailyLogToSupabase({ water_count: nextCount });
+
+    if (nextCount === 8) {
+      triggerNotification("🎉 Hydro Goal Crushed!", "Aapne aaj ke 8 glasses water target poora kar liya!");
     }
   };
 
@@ -803,26 +842,20 @@ export default function Dashboard({ user, onLogout, onNewAssessment }) {
     setSymptomStatus(updatedStatus);
     setLoggedSymptomsList(selectedSymptoms);
 
-    // --- NAYA DATE CHECK LOGIC YAHAN HAI ---
-    // Check karte hain ki aaj ki date mein progress badhi hai ya nahi
     const lastProgressDate = localStorage.getItem(`${userKey}_lastJournalDate`);
 
     if (lastProgressDate !== todayDateStr) {
-      // Agar aaj progress nahi badhi hai, toh 3-day meter badha dein
       if (calibrationDays < 3) {
         const nextDays = calibrationDays + 1;
         setCalibrationDays(nextDays);
         localStorage.setItem(`${userKey}_calibrationDays`, String(nextDays));
       }
-      // Aur aaj ki date ko save kar lein taaki aaj dobara na badhe
       localStorage.setItem(`${userKey}_lastJournalDate`, todayDateStr);
     }
-    // ---------------------------------------
 
     localStorage.setItem(`${userKey}_symptomStatus`, updatedStatus);
     localStorage.setItem(`${userKey}_loggedSymptomsList`, JSON.stringify(selectedSymptoms));
 
-    // Yeh dono database syncs hamesha challenge (har click par data update hoga)
     pushProfileToSupabase({ symptom_status: updatedStatus });
     pushDailyLogToSupabase({ symptoms: selectedSymptoms });
 
@@ -868,6 +901,14 @@ export default function Dashboard({ user, onLogout, onNewAssessment }) {
   return (
     <div className="min-h-screen bg-[#F7F2E0] p-4 md:p-8 animate-in fade-in duration-500 relative text-[#5B0015]">
       
+      {/* ── 🌸 Toast Notice: You Are Already a Subscriber ── */}
+      {alreadySubscribedToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[1000] bg-[#5B0015] text-[#F7F2E0] border-2 border-[#80AEE8] px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-2.5 text-xs sm:text-sm font-black animate-in fade-in slide-in-from-bottom-5 duration-300">
+          <span className="text-lg">🌸</span>
+          <span>You are already a subscriber! Your 14-day protocol is currently active.</span>
+        </div>
+      )}
+
       {/* ── Header Section ── */}
       <div className="max-w-6xl mx-auto flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 mt-2">
         <div>
@@ -889,9 +930,6 @@ export default function Dashboard({ user, onLogout, onNewAssessment }) {
         </div>
         
         <div className="flex flex-wrap items-center gap-2.5">
-          
-          
-
           <button
             onClick={() => setShowLabModal(true)}
             className="bg-[#FCFBF5] border border-[#80AEE8] text-[#5B0015] hover:bg-[#80AEE8]/20 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
@@ -991,8 +1029,8 @@ export default function Dashboard({ user, onLogout, onNewAssessment }) {
               📖 Engine Kaise Kaam Karega?
             </button>
             <button
-              onClick={() => setShowKitModal(true)}
-              className="flex-1 md:flex-none bg-[#5B0015] hover:bg-[#450010] text-[#F7F2E0] font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-sm cursor-pointer"
+              onClick={handleProtocolAction}
+              className="flex-1 md:flex-none bg-[#5B0015] hover:bg-[#450010] text-[#F7F2E0] font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-sm cursor-pointer active:scale-95"
             >
               {kitSubscribed ? "✓ Protocol Active" : "Unlock Protocol (₹20)"}
             </button>
@@ -1119,10 +1157,21 @@ export default function Dashboard({ user, onLogout, onNewAssessment }) {
               <div className="bg-[#FCFBF5] text-[#5B0015] p-5 sm:p-6 rounded-3xl border-2 border-[#80AEE8] flex flex-col items-center text-center w-full lg:w-68 shrink-0 shadow-2xl">
                 
                 {kitSubscribed ? (
-                  <div className="space-y-2 py-2">
-                    <span className="text-3xl">✨</span>
-                    <p className="text-sm font-black text-[#5B0015]">Protocol Active</p>
-                    <p className="text-[11px] text-[#5B0015]/75 font-semibold">Doorstep kit dispatch queue enabled.</p>
+                  <div 
+                    onClick={handleProtocolAction}
+                    className="space-y-2 py-2 cursor-pointer group"
+                    title="Click to check subscription status"
+                  >
+                    <span className="text-3xl block transition-transform group-hover:scale-110">✨</span>
+                    <p className="text-sm font-black text-[#5B0015] group-hover:text-[#80AEE8] transition-colors">
+                      ✓ Protocol Active
+                    </p>
+                    <p className="text-[11px] text-[#5B0015]/75 font-semibold">
+                      Doorstep kit dispatch queue enabled.
+                    </p>
+                    <span className="text-[10px] font-black bg-[#80AEE8]/25 text-[#5B0015] px-2 py-0.5 rounded-full inline-block mt-1">
+                      Already Subscribed
+                    </span>
                   </div>
                 ) : !isCalibrationComplete ? (
                   <div className="space-y-2 py-1 w-full">
@@ -1154,7 +1203,7 @@ export default function Dashboard({ user, onLogout, onNewAssessment }) {
                     </p>
 
                     <button
-                      onClick={() => setShowKitModal(true)}
+                      onClick={handleProtocolAction}
                       className="w-full bg-[#5B0015] hover:bg-[#450010] text-[#F7F2E0] font-black py-3 rounded-xl text-xs shadow-lg transition-transform active:scale-95 cursor-pointer"
                     >
                       Unlock Signature (₹20 Pass) ➔
@@ -1576,7 +1625,7 @@ export default function Dashboard({ user, onLogout, onNewAssessment }) {
             )}
           </div>
 
-          {/* ── 5. DAILY QUICK LOGS (SPOT 3: CONTEXTUAL DELAY ALERTS INTEGRATED) ── */}
+          {/* ── 5. DAILY QUICK LOGS (TIME-RESTRICTED REAL-TIME SLOTS) ── */}
           <div className="bg-[#FCFBF5] p-6 rounded-3xl shadow-sm border border-[#EDE5CD] lg:col-span-3">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-5">
               <div>
@@ -1606,7 +1655,7 @@ export default function Dashboard({ user, onLogout, onNewAssessment }) {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               
-              {/* 💧 Water Intake (With Delay Biological Context) */}
+              {/* 💧 Water Intake (With Real-Time Anti-Cheat Locking) */}
               <div className="rounded-2xl p-4 flex flex-col justify-between border bg-[#F7F2E0] border-[#EDE5CD]">
                 <div>
                   <div className="flex items-center justify-between mb-2">
@@ -1633,18 +1682,24 @@ export default function Dashboard({ user, onLogout, onNewAssessment }) {
 
                   <div className="mt-3">
                     <div className="grid grid-cols-4 gap-1">
-                      {waterSchedule.map((time, index) => {
+                      {waterSchedule.map((slot, index) => {
                         const isDrank = waterCount > index;
+                        const currentHour = new Date().getHours();
+                        const isFutureSlot = currentHour < slot.hour;
+
                         return (
                           <div 
                             key={index} 
                             className={`text-center p-1 rounded-lg border text-[9px] font-bold transition-all ${
                               isDrank 
                                 ? 'bg-[#5B0015] text-[#F7F2E0] border-[#5B0015]' 
-                                : 'bg-white text-[#5B0015]/70 border-[#EDE5CD]'
+                                : isFutureSlot
+                                ? 'bg-[#EDE5CD]/50 text-[#5B0015]/40 border-[#EDE5CD] opacity-60 cursor-not-allowed'
+                                : 'bg-white text-[#5B0015] border-[#EDE5CD]'
                             }`}
+                            title={isFutureSlot ? `Locked until ${slot.time}` : slot.time}
                           >
-                            {isDrank ? '✅' : time}
+                            {isDrank ? '✅' : isFutureSlot ? `🔒 ${slot.time}` : slot.time}
                           </div>
                         );
                       })}
@@ -1653,23 +1708,42 @@ export default function Dashboard({ user, onLogout, onNewAssessment }) {
                 </div>
 
                 <div className="flex gap-1.5 mt-4">
-                  <button
-                    onClick={handleAddWater}
-                    disabled={isWaterDone}
-                    className="flex-1 text-xs font-bold py-2 rounded-xl bg-[#5B0015] text-[#F7F2E0] hover:bg-[#450010] disabled:opacity-50 cursor-pointer"
-                  >
-                    {isWaterDone ? 'Goal Complete!' : '+1 Glass'}
-                  </button>
+                  {(() => {
+                    const currentHour = new Date().getHours();
+                    const nextSlot = waterSchedule[waterCount];
+                    const isNextLocked = nextSlot && currentHour < nextSlot.hour;
+
+                    return (
+                      <button
+                        onClick={handleAddWater}
+                        disabled={isWaterDone || isNextLocked}
+                        className={`flex-1 text-xs font-bold py-2 rounded-xl transition-all cursor-pointer ${
+                          isWaterDone
+                            ? 'bg-[#5B0015]/50 text-[#F7F2E0] cursor-default'
+                            : isNextLocked
+                            ? 'bg-[#EDE5CD] text-[#5B0015]/50 border border-[#EDE5CD] cursor-not-allowed'
+                            : 'bg-[#5B0015] text-[#F7F2E0] hover:bg-[#450010]'
+                        }`}
+                      >
+                        {isWaterDone 
+                          ? 'Goal Complete!' 
+                          : isNextLocked 
+                          ? `Next at ${nextSlot.time}` 
+                          : '+1 Glass'}
+                      </button>
+                    );
+                  })()}
                   <button
                     onClick={() => { setWaterCount(0); pushDailyLogToSupabase({ water_count: 0 }); }}
                     className="px-2 border border-[#EDE5CD] text-[#5B0015]/70 text-xs rounded-xl hover:bg-white cursor-pointer"
+                    title="Reset Water Count"
                   >
                     ↺
                   </button>
                 </div>
               </div>
 
-              {/* 🏃‍♀️ Gentle Movement (With Delay Biological Context) */}
+              {/* 🏃‍♀️ Gentle Movement */}
               <div className="rounded-2xl p-4 flex flex-col justify-between border bg-[#F7F2E0] border-[#EDE5CD]">
                 <div>
                   <div className="flex items-center justify-between mb-2">
@@ -1686,7 +1760,6 @@ export default function Dashboard({ user, onLogout, onNewAssessment }) {
                     {exerciseMins} <span className="text-xs font-normal text-[#5B0015]/70">Mins</span>
                   </p>
 
-                  {/* Spot 3 Context Alert for Movement */}
                   {isDelayed && isCalibrationComplete && (
                     <div className="mt-2 p-2 rounded-xl bg-white/70 border border-[#80AEE8]/40 text-[10px] font-bold text-[#5B0015] flex items-center gap-1.5">
                       <span>🧘‍♀️</span>
@@ -1715,7 +1788,7 @@ export default function Dashboard({ user, onLogout, onNewAssessment }) {
                 </div>
               </div>
 
-              {/* 😴 Sleep (With Delay Biological Context) */}
+              {/* 😴 Sleep */}
               <div className="rounded-2xl p-4 flex flex-col justify-between border bg-[#F7F2E0] border-[#EDE5CD]">
                 <div>
                   <div className="flex items-center justify-between mb-2">
@@ -1732,7 +1805,6 @@ export default function Dashboard({ user, onLogout, onNewAssessment }) {
                     {loggedSleep} <span className="text-xs font-normal text-[#5B0015]/70">Hours</span>
                   </p>
 
-                  {/* Spot 3 Context Alert for Sleep */}
                   {isDelayed && isCalibrationComplete && (
                     <div className="mt-2 p-2 rounded-xl bg-white/70 border border-[#80AEE8]/40 text-[10px] font-bold text-[#5B0015] flex items-center gap-1.5">
                       <span>😴</span>
@@ -1968,11 +2040,11 @@ export default function Dashboard({ user, onLogout, onNewAssessment }) {
               <button
                 onClick={() => {
                   setShowEngineBlogModal(false);
-                  setShowKitModal(true);
+                  handleProtocolAction();
                 }}
                 className="flex-1 bg-[#5B0015] hover:bg-[#450010] text-[#F7F2E0] font-bold py-3 rounded-2xl text-xs transition-colors shadow-md cursor-pointer"
               >
-                Unlock My Hormone Protocol (₹20 Only) 🌸
+                {kitSubscribed ? "Check Active Protocol 🌸" : "Unlock My Hormone Protocol (₹20 Only) 🌸"}
               </button>
               <button
                 onClick={() => setShowEngineBlogModal(false)}
@@ -2142,11 +2214,15 @@ export default function Dashboard({ user, onLogout, onNewAssessment }) {
                 </div>
 
                 <div className="bg-[#F7F2E0] p-4 rounded-2xl border border-[#EDE5CD] flex flex-col items-center text-center">
-                  <div className="bg-white p-2.5 rounded-2xl border border-[#EDE5CD] shadow-sm mb-3">
+                  <div className="bg-white p-5 rounded-2xl border border-[#EDE5CD] shadow-sm mb-3 flex items-center justify-center w-full max-w-[260px]">
                     <img
-                      src={qrCodeUrl}
+                      src="/my_qr.png"
                       alt="UPI QR Code"
-                      className="w-44 h-44 object-contain rounded-xl"
+                      className="w-48 h-48 sm:w-52 sm:h-52 object-contain"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&margin=15&data=${encodeURIComponent(upiLink)}`;
+                      }}
                     />
                   </div>
 
@@ -2210,7 +2286,7 @@ export default function Dashboard({ user, onLogout, onNewAssessment }) {
         </div>
       )}
 
-      {/* ── 📄 CLINICAL DOCTOR MEDICAL PDF REPORT MODAL (SPOT 2 INTEGRATED) ── */}
+      {/* ── 📄 CLINICAL DOCTOR MEDICAL PDF REPORT MODAL ── */}
       {showPdfModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
           <div className="bg-[#FCFBF5] text-[#5B0015] w-full max-w-3xl rounded-3xl p-6 sm:p-8 shadow-2xl border border-[#EDE5CD] max-h-[92vh] overflow-y-auto relative">
@@ -2270,7 +2346,7 @@ export default function Dashboard({ user, onLogout, onNewAssessment }) {
                 </div>
               </div>
 
-              {/* ── 🌟 SPOT 2: INITIAL AI ENDOCRINE RISK BASELINE BLOCK ── */}
+              {/* Spot 2: Initial AI Endocrine Risk Baseline */}
               <div className="space-y-2">
                 <h4 className="text-xs font-black text-[#5B0015] uppercase tracking-wider flex items-center justify-between">
                   <span>1. Initial AI Endocrine Risk Baseline (12 Clinical Markers)</span>
@@ -2295,7 +2371,7 @@ export default function Dashboard({ user, onLogout, onNewAssessment }) {
                             ? 'bg-[#5B0015] text-[#F7F2E0] border-[#5B0015]' 
                             : storedAiAssessment.probability_percentage >= 40 
                             ? 'bg-amber-100 text-amber-900 border-amber-300' 
-                            : 'bg-[#80AEE8]/30 text-[#5B0015] border-[#80AEE8]'
+                            : 'bg-[#80AEE8]/30 text-[#5B0015]'
                         }`}>
                           {storedAiAssessment.probability_percentage >= 70 ? 'High Pattern Match' : storedAiAssessment.probability_percentage >= 40 ? 'Moderate Match' : 'Low Pattern Match'}
                         </span>

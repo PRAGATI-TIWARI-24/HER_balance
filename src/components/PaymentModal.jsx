@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const UPI_ID = "YOUR_UPI_ID@okaxis"; // Apna real UPI ID yahan dalein
+const UPI_ID = "pragati015tiwari@okhdfcbank"; 
 const AMOUNT = 20;
 
 export default function PaymentModal({ isOpen, onClose, onSuccess, userEmail }) {
@@ -13,7 +13,6 @@ export default function PaymentModal({ isOpen, onClose, onSuccess, userEmail }) 
   useEffect(() => {
     if (!isOpen) return;
 
-    // Check if previous payment session exists in localStorage
     const savedStartTime = localStorage.getItem('hb_payment_session_start');
     const now = Math.floor(Date.now() / 1000);
 
@@ -30,7 +29,6 @@ export default function PaymentModal({ isOpen, onClose, onSuccess, userEmail }) 
       setTimeLeft(600);
     }
 
-    // 1-second countdown interval
     const interval = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
@@ -42,7 +40,6 @@ export default function PaymentModal({ isOpen, onClose, onSuccess, userEmail }) 
       });
     }, 1000);
 
-    // ── 🛡️ 2. PREVENT ACCIDENTAL REFRESH GUARD ──
     const handleBeforeUnload = (e) => {
       e.preventDefault();
       e.returnValue = 'Aapki payment process mein hai. Refresh karne se session cancel ho sakta hai!';
@@ -71,10 +68,13 @@ export default function PaymentModal({ isOpen, onClose, onSuccess, userEmail }) 
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  // ── 🚀 3. DIRECT UPI APP TRIGGER LINK ──
-  const upiIntentUrl = `upi://pay?pa=${UPI_ID}&pn=HerBalance&am=${AMOUNT}&cu=INR&tn=14DayProtocolPass`;
+  // ── 🚀 2. CLEAN DYNAMIC UPI STRING (NPCI STANDARD) ──
+  const upiIntentUrl = `upi://pay?pa=${UPI_ID}&pn=HerBalance&am=${AMOUNT}&cu=INR&tn=CarePass`;
+  
+  // Dynamic Auto-Generated QR URL with Built-in Margin (Zero Corner Cuts)
+  const dynamicQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=12&data=${encodeURIComponent(upiIntentUrl)}`;
 
-  // ── 🛡️ 4. SUBMIT UTR / REFERENCE CODE ──
+  // ── 🛡️ 3. SUBMIT UTR / REFERENCE CODE ──
   const handleSubmitUTR = async (e) => {
     e.preventDefault();
     if (!utrNumber || utrNumber.trim().length < 8) {
@@ -86,13 +86,10 @@ export default function PaymentModal({ isOpen, onClose, onSuccess, userEmail }) 
     setError('');
 
     try {
-      // Yahan aap backend ko UTR verification call bhej sakti hain
-      // e.g., await fetch('/verify-payment', { method: 'POST', body: JSON.stringify({ utr: utrNumber }) })
-      
       localStorage.removeItem('hb_payment_session_start');
       if (onSuccess) onSuccess(utrNumber);
     } catch (err) {
-      setError('Verification mein samasya aayi. Kripya support se contact karein.');
+      setError('Verification mein samasya aayi. Kripya dobara try karein.');
     } finally {
       setSubmitting(false);
     }
@@ -121,7 +118,7 @@ export default function PaymentModal({ isOpen, onClose, onSuccess, userEmail }) 
           </button>
         </div>
 
-        {/* ⏳ GOVT STYLE TIMER BAR */}
+        {/* GOVT STYLE TIMER BAR */}
         <div className="bg-[#5B0015] text-[#F7F2E0] rounded-2xl p-3 text-center mb-4 shadow-inner">
           <p className="text-[10px] font-bold uppercase tracking-wider text-[#80AEE8]">Session Time Remaining</p>
           <div className="text-2xl font-black font-mono tracking-widest mt-0.5">
@@ -135,7 +132,7 @@ export default function PaymentModal({ isOpen, onClose, onSuccess, userEmail }) 
         {timeLeft > 0 ? (
           <div className="space-y-4">
             
-            {/* Direct UPI Trigger Button (For Mobile Users) */}
+            {/* Direct UPI Trigger Button */}
             <div className="text-center">
               <a 
                 href={upiIntentUrl}
@@ -153,13 +150,14 @@ export default function PaymentModal({ isOpen, onClose, onSuccess, userEmail }) 
               <span className="bg-[#FCFBF5] px-2 text-[10px] font-bold text-[#5B0015]/60 uppercase">OR SCAN QR</span>
             </div>
 
-            {/* Dynamic Generated UPI QR Code */}
+            {/* ── 🚀 AUTO-GENERATED CRISP QR (SHARP CORNERS, PROPER QUIET ZONE) ── */}
             <div className="flex justify-center">
-              <div className="bg-white p-2.5 rounded-2xl border border-[#EDE5CD] shadow-sm">
+              <div className="bg-white p-4 rounded-2xl border-2 border-[#EDE5CD] shadow-sm flex items-center justify-center">
                 <img 
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiIntentUrl)}`} 
-                  alt="UPI QR Code" 
-                  className="w-32 h-32 rounded-lg"
+                  src={dynamicQrUrl} 
+                  alt="Auto Generated UPI QR" 
+                  className="w-44 h-44 object-contain block rounded-none select-none"
+                  loading="eager"
                 />
               </div>
             </div>
@@ -175,7 +173,7 @@ export default function PaymentModal({ isOpen, onClose, onSuccess, userEmail }) 
                   required
                   placeholder="e.g. 4289XXXXXXXX"
                   value={utrNumber}
-                  onChange={(e) => setUtrNumber(e.target.value.replace(/\D/g, ''))} // only numbers
+                  onChange={(e) => setUtrNumber(e.target.value.replace(/\D/g, ''))}
                   maxLength={12}
                   className="w-full bg-white border border-[#EDE5CD] rounded-xl p-2.5 text-xs font-bold text-[#5B0015] text-center tracking-widest outline-none focus:ring-2 focus:ring-[#80AEE8]"
                 />
