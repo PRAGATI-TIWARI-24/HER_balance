@@ -27,7 +27,7 @@ export default function Dashboard({ user, onLogout, onNewAssessment, onOpenPayme
   // ─── Clinical Doctor PDF Modal State ───
   const [showPdfModal, setShowPdfModal] = useState(false);
 
-  // ─── Initial AI Risk Assessment Stored Report (Spot 2 Link) ───
+  // ─── Initial AI Risk Assessment Stored Report ───
   const [storedAiAssessment, setStoredAiAssessment] = useState(() => {
     try {
       const saved = localStorage.getItem('herbalance_last_assessment_report');
@@ -50,13 +50,35 @@ export default function Dashboard({ user, onLogout, onNewAssessment, onOpenPayme
     return Number(localStorage.getItem(`${userKey}_calibrationDays`)) || 1;
   });
 
-  // ─── Seed Cycling Kit & Care Pass Subscription States ───
+  // ─── Seed Cycling Kit & Care Pass Subscription States (FIXED SYNC) ───
   const [showKitModal, setShowKitModal] = useState(false);
   const [showEngineBlogModal, setShowEngineBlogModal] = useState(false);
   
+  // Unified Check: Check both keys so PaymentModal unlock triggers Dashboard instantly
   const [kitSubscribed, setKitSubscribed] = useState(() => {
-    return localStorage.getItem(`${userKey}_kitSubscribed`) === 'true';
+    const isUnlocked = localStorage.getItem('protocol_unlocked') === 'true';
+    const isUserSubscribed = localStorage.getItem(`${userKey}_kitSubscribed`) === 'true';
+    return isUnlocked || isUserSubscribed;
   });
+
+  // Listen to cross-modal storage events or interval checks
+  useEffect(() => {
+    const checkPaymentSync = () => {
+      const isUnlocked = localStorage.getItem('protocol_unlocked') === 'true';
+      const isUserSubscribed = localStorage.getItem(`${userKey}_kitSubscribed`) === 'true';
+      if (isUnlocked || isUserSubscribed) {
+        setKitSubscribed(true);
+      }
+    };
+
+    window.addEventListener('storage', checkPaymentSync);
+    const poller = setInterval(checkPaymentSync, 1000); // Polling backup for seamless instant unlock
+
+    return () => {
+      window.removeEventListener('storage', checkPaymentSync);
+      clearInterval(poller);
+    };
+  }, [userKey]);
 
   // ─── 🌸 Already Subscribed Toast Message State ───
   const [alreadySubscribedToast, setAlreadySubscribedToast] = useState(false);
@@ -214,7 +236,7 @@ export default function Dashboard({ user, onLogout, onNewAssessment, onOpenPayme
     return Number(localStorage.getItem(`${userKey}_loggedSleep`)) || 0;
   });
 
-  // ── 🕒 REAL-TIME WATER INTERVAL SCHEDULE (24-HR MAPPED) ──
+  // ── 🕒 REAL-TIME WATER INTERVAL SCHEDULE ──
   const waterSchedule = [
     { time: "8 AM", hour: 8 },
     { time: "10 AM", hour: 10 },
@@ -395,6 +417,19 @@ export default function Dashboard({ user, onLogout, onNewAssessment, onOpenPayme
           if (profileData.sos_name) setSosContactName(profileData.sos_name);
           if (profileData.sos_number) setSosContactNumber(profileData.sos_number);
           if (profileData.lab_values) setLabValues(profileData.lab_values);
+        }
+
+        // Check if kit subscription exists in Supabase
+        const { data: kitData } = await supabase
+          .from('kit_subscribers')
+          .select('*')
+          .eq('user_id', userKey)
+          .maybeSingle();
+
+        if (kitData) {
+          setKitSubscribed(true);
+          localStorage.setItem('protocol_unlocked', 'true');
+          localStorage.setItem(`${userKey}_kitSubscribed`, 'true');
         }
 
         const { data: todayLog } = await supabase
@@ -622,14 +657,13 @@ export default function Dashboard({ user, onLogout, onNewAssessment, onOpenPayme
     pushDailyLogToSupabase({ medications: updated });
   };
 
-  // ── 🕒 TIME-LOCKED WATER INTAKE HANDLER (NO ADVANCE LOGGING) ──
+  // ── 🕒 TIME-LOCKED WATER INTAKE HANDLER ──
   const handleAddWater = () => {
     if (waterCount >= 8) return;
 
     const currentHour = new Date().getHours();
-    const nextSlot = waterSchedule[waterCount]; // Agla slot jo log hona hai
+    const nextSlot = waterSchedule[waterCount];
 
-    // Check: Agar agle slot ka waqt abhi nahi hua hai
     if (currentHour < nextSlot.hour) {
       alert(`⏳ Sabar rakhein! ${nextSlot.time} ka time abhi nahi hua hai. Aap advance mein water intake log nahi kar sakti hain.`);
       return;
@@ -744,7 +778,7 @@ export default function Dashboard({ user, onLogout, onNewAssessment, onOpenPayme
     }
   };
 
-  // ── Step 2: Real UTR Submission ──
+  // ── Step 2: Real UTR Submission & Instant Unlock ──
   const handleConfirmPayment = async (e) => {
     e.preventDefault();
     if (!utrInput.trim() || utrInput.trim().length < 6) {
@@ -768,8 +802,12 @@ export default function Dashboard({ user, onLogout, onNewAssessment, onOpenPayme
       dispatch_phase: currentPhaseInternal === 'Luteal' ? 'Phase 2: Luteal Seeds' : 'Phase 1: Follicular Seeds'
     };
 
+    // Instant unlock states & localStorage sync
+    localStorage.setItem('protocol_unlocked', 'true');
     localStorage.setItem(`${userKey}_kitSubscribed`, 'true');
     localStorage.setItem(`${userKey}_deliveryAddress`, JSON.stringify(fullOrderData));
+    localStorage.setItem('payment_ref', utrInput.trim());
+    
     setKitSubscribed(true);
 
     if (isSupabaseConfigured && supabase) {
@@ -790,7 +828,7 @@ export default function Dashboard({ user, onLogout, onNewAssessment, onOpenPayme
     setCheckoutStep('address');
     setShowKitModal(false);
     setUtrInput('');
-    alert("🎉 Payment Details Received! Aapka HerBalance Care Pass review ke liye submit ho gaya hai.");
+    alert("🎉 Payment Details Received! 14-Day Cycle Protocol Unlock ho gaya hai.");
   };
 
   // ── Date Apply Handler ──
@@ -955,7 +993,6 @@ export default function Dashboard({ user, onLogout, onNewAssessment, onOpenPayme
             {notificationsEnabled ? '⚡ Reminders Active' : '🔔 Reminders'}
           </button>
 
-          {/* ── 🚨 Standout SOS Cramp Button ── */}
           <button
             onClick={() => setShowSosModal(true)}
             className="bg-[#5B0015] text-[#F7F2E0] hover:bg-[#450010] hover:scale-105 active:scale-95 px-4 py-2 rounded-xl text-xs font-black transition-all shadow-lg shadow-[#5B0015]/25 border-2 border-[#80AEE8] flex items-center gap-1.5 cursor-pointer animate-pulse"
@@ -1099,7 +1136,7 @@ export default function Dashboard({ user, onLogout, onNewAssessment, onOpenPayme
                 </p>
 
                 {kitSubscribed ? (
-                  <div className="mt-3 p-4 rounded-2xl bg-[#FCFBF5] border-2 border-[#80AEE8] flex items-start gap-3.5 shadow-md text-[#5B0015]">
+                  <div className="mt-3 p-4 rounded-2xl bg-[#FCFBF5] border-2 border-[#80AEE8] flex items-start gap-3.5 shadow-md text-[#5B0015] animate-in zoom-in-95">
                     <span className="text-3xl p-1 bg-[#F7F2E0] rounded-xl border border-[#EDE5CD]">🥣</span>
                     <div className="flex-1">
                       <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -1625,7 +1662,7 @@ export default function Dashboard({ user, onLogout, onNewAssessment, onOpenPayme
             )}
           </div>
 
-          {/* ── 5. DAILY QUICK LOGS (TIME-RESTRICTED REAL-TIME SLOTS) ── */}
+          {/* ── 5. DAILY QUICK LOGS ── */}
           <div className="bg-[#FCFBF5] p-6 rounded-3xl shadow-sm border border-[#EDE5CD] lg:col-span-3">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-5">
               <div>
@@ -1655,7 +1692,7 @@ export default function Dashboard({ user, onLogout, onNewAssessment, onOpenPayme
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               
-              {/* 💧 Water Intake (With Real-Time Anti-Cheat Locking) */}
+              {/* 💧 Water Intake */}
               <div className="rounded-2xl p-4 flex flex-col justify-between border bg-[#F7F2E0] border-[#EDE5CD]">
                 <div>
                   <div className="flex items-center justify-between mb-2">
@@ -1672,7 +1709,6 @@ export default function Dashboard({ user, onLogout, onNewAssessment, onOpenPayme
                     {waterCount} <span className="text-xs font-normal text-[#5B0015]/70">/ 8 Glasses</span>
                   </p>
 
-                  {/* Spot 3 Context Alert for Water */}
                   {isDelayed && isCalibrationComplete && (
                     <div className="mt-2 p-2 rounded-xl bg-white/70 border border-[#80AEE8]/40 text-[10px] font-bold text-[#5B0015] flex items-center gap-1.5">
                       <span>🌿</span>
