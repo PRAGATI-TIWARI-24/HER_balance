@@ -59,7 +59,7 @@ export default function PaymentModal({ isOpen, onClose, onSuccess, userEmail }) 
 
   const handleManualClose = () => {
     localStorage.removeItem('hb_payment_session_start');
-    onClose();
+    if (onClose) onClose();
   };
 
   const formatTimer = (seconds) => {
@@ -71,10 +71,10 @@ export default function PaymentModal({ isOpen, onClose, onSuccess, userEmail }) 
   // ── 🚀 2. CLEAN DYNAMIC UPI STRING (NPCI STANDARD) ──
   const upiIntentUrl = `upi://pay?pa=${UPI_ID}&pn=HerBalance&am=${AMOUNT}&cu=INR&tn=CarePass`;
   
-  // Dynamic Auto-Generated QR URL with Built-in Margin (Zero Corner Cuts)
+  // Dynamic Auto-Generated QR URL with Built-in Margin
   const dynamicQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=12&data=${encodeURIComponent(upiIntentUrl)}`;
 
-  // ── 🛡️ 3. SUBMIT UTR / REFERENCE CODE ──
+  // ── 🛡️ 3. SUBMIT UTR / REFERENCE CODE (FIXED) ──
   const handleSubmitUTR = async (e) => {
     e.preventDefault();
     if (!utrNumber || utrNumber.trim().length < 8) {
@@ -87,8 +87,22 @@ export default function PaymentModal({ isOpen, onClose, onSuccess, userEmail }) 
 
     try {
       localStorage.removeItem('hb_payment_session_start');
-      if (onSuccess) onSuccess(utrNumber);
+      
+      // LocalStorage update taaki reload hone par bhi unlock bana rahe
+      localStorage.setItem('protocol_unlocked', 'true');
+      localStorage.setItem('payment_ref', utrNumber.trim());
+
+      // 1. Success callback run karein (jahan alert + main UI unlock logic chalega)
+      if (onSuccess) {
+        await onSuccess(utrNumber.trim());
+      }
+
+      // 2. Modal ko turant screen se close karein
+      if (onClose) {
+        onClose();
+      }
     } catch (err) {
+      console.error("Payment error:", err);
       setError('Verification mein samasya aayi. Kripya dobara try karein.');
     } finally {
       setSubmitting(false);
@@ -111,6 +125,7 @@ export default function PaymentModal({ isOpen, onClose, onSuccess, userEmail }) 
             </div>
           </div>
           <button 
+            type="button"
             onClick={handleManualClose} 
             className="text-[#5B0015]/60 hover:text-[#5B0015] font-bold text-sm p-1 cursor-pointer"
           >
@@ -150,7 +165,7 @@ export default function PaymentModal({ isOpen, onClose, onSuccess, userEmail }) 
               <span className="bg-[#FCFBF5] px-2 text-[10px] font-bold text-[#5B0015]/60 uppercase">OR SCAN QR</span>
             </div>
 
-            {/* ── 🚀 AUTO-GENERATED CRISP QR (SHARP CORNERS, PROPER QUIET ZONE) ── */}
+            {/* ── 🚀 AUTO-GENERATED CRISP QR ── */}
             <div className="flex justify-center">
               <div className="bg-white p-4 rounded-2xl border-2 border-[#EDE5CD] shadow-sm flex items-center justify-center">
                 <img 
@@ -200,6 +215,7 @@ export default function PaymentModal({ isOpen, onClose, onSuccess, userEmail }) 
             <span className="text-3xl">⏰</span>
             <p className="text-xs font-bold text-rose-600">Session expired. Security timeout reached.</p>
             <button 
+              type="button"
               onClick={handleManualClose}
               className="bg-[#5B0015] text-[#F7F2E0] text-xs font-bold px-4 py-2 rounded-xl cursor-pointer"
             >
