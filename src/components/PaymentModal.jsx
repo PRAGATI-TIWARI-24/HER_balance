@@ -74,10 +74,11 @@ export default function PaymentModal({ isOpen, onClose, onSuccess, userEmail }) 
   // Dynamic Auto-Generated QR URL with Built-in Margin
   const dynamicQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=12&data=${encodeURIComponent(upiIntentUrl)}`;
 
-  // ── 🛡️ 3. SUBMIT UTR / REFERENCE CODE (FIXED) ──
+  // ── 🛡️ 3. SUBMIT UTR & GUARANTEED UI UNLOCK ──
   const handleSubmitUTR = async (e) => {
     e.preventDefault();
-    if (!utrNumber || utrNumber.trim().length < 8) {
+    const cleanUtr = utrNumber.trim();
+    if (!cleanUtr || cleanUtr.length < 8) {
       setError('Kripya valid 12-digit UPI Reference / UTR Number dalein.');
       return;
     }
@@ -86,23 +87,32 @@ export default function PaymentModal({ isOpen, onClose, onSuccess, userEmail }) 
     setError('');
 
     try {
-      localStorage.removeItem('hb_payment_session_start');
-      
-      // LocalStorage update taaki reload hone par bhi unlock bana rahe
+      // 1. Sabhi possible LocalStorage keys set karein taaki Dashboard kisi bhi key se unlock pakad le
       localStorage.setItem('protocol_unlocked', 'true');
-      localStorage.setItem('payment_ref', utrNumber.trim());
+      localStorage.setItem('hb_protocol_unlocked', 'true');
+      localStorage.setItem('payment_ref', cleanUtr);
+      
+      // Guest ya logged-in user prefix ke sath bhi lock open karein
+      const savedUserKey = userEmail || 'guest_user';
+      localStorage.setItem(`${savedUserKey}_kitSubscribed`, 'true');
+      localStorage.removeItem('hb_payment_session_start');
 
-      // 1. Success callback run karein (jahan alert + main UI unlock logic chalega)
+      // 2. Alert popup show karein
+      alert(`🎉 Payment confirmed! 14-Day Cycle Synchronization Protocol Unlocked. Ref: ${cleanUtr}`);
+
+      // 3. Parent callbacks execute karein
       if (onSuccess) {
-        await onSuccess(utrNumber.trim());
+        await onSuccess(cleanUtr);
       }
-
-      // 2. Modal ko turant screen se close karein
       if (onClose) {
         onClose();
       }
+
+      // 4. 🔥 HARD REFRESH TRIGGER: React state mismatch ko bypass karke fresh unlocked dashboard render karega
+      window.location.reload();
+
     } catch (err) {
-      console.error("Payment error:", err);
+      console.error("Payment confirmation error:", err);
       setError('Verification mein samasya aayi. Kripya dobara try karein.');
     } finally {
       setSubmitting(false);
@@ -165,7 +175,7 @@ export default function PaymentModal({ isOpen, onClose, onSuccess, userEmail }) 
               <span className="bg-[#FCFBF5] px-2 text-[10px] font-bold text-[#5B0015]/60 uppercase">OR SCAN QR</span>
             </div>
 
-            {/* ── 🚀 AUTO-GENERATED CRISP QR ── */}
+            {/* AUTO-GENERATED CRISP QR */}
             <div className="flex justify-center">
               <div className="bg-white p-4 rounded-2xl border-2 border-[#EDE5CD] shadow-sm flex items-center justify-center">
                 <img 
